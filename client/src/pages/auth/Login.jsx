@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { supabase } from '../../lib/supabase'
 import { Mail, Lock, Eye, EyeOff, } from 'lucide-react'
 
 export default function Login() {
@@ -10,14 +9,39 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  async function handleLogin(e) {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) setError(error.message)
-    setLoading(false)
+async function handleLogin(e) {
+  e.preventDefault()
+  setLoading(true)
+  setError(null)
+
+  try {
+    const response = await fetch('http://localhost:5012/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, role }),
+    })
+
+    const result = await response.json()
+
+    if (!response.ok) {
+      setError(result.error || 'Login failed')
+      setLoading(false)
+      return
+    }
+
+    // Store JWT token
+    localStorage.setItem('authToken', result.token)
+    localStorage.setItem('user', JSON.stringify(result.user))
+
+    // Redirect based on role
+    window.location.href = '/dashboard'
+
+  } catch (err) {
+    setError('Network error: ' + err.message)
   }
+
+  setLoading(false)
+}
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-10" style={{ backgroundColor: '#f5f2ec' }}>
