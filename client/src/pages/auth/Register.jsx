@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { supabase } from '../../lib/supabase'
+
 import { User, Mail, Phone, Lock, Eye, EyeOff, Store, ShoppingBag } from 'lucide-react'
 
 export default function Register() {
@@ -54,48 +54,51 @@ export default function Register() {
     setLoading(true)
 
     try {
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: form.email,
-        password: form.password,
-        options: {
-          data: {
-            full_name: form.full_name,
-            contact_number: form.contact_number,
-            role: form.role          // 'renter' | 'operator'
-          }
-        }
-      })
 
-      console.log('signUp result:', { data, error: signUpError })
-      setDebugInfo({
-        error: signUpError ? signUpError.message : null,
-        user_id: data?.user?.id ?? null,
-        user_email: data?.user?.email ?? null,
-        session: data?.session ? 'present' : 'null',
-        identities_count: data?.user?.identities?.length ?? 'n/a',
-        raw: JSON.stringify({ data, error: signUpError }, null, 2)
-      })
 
-      if (signUpError) {
-        setError(signUpError.message)
-        setLoading(false)
-        return
-      }
+      // Attempt registration
+// Attempt registration via backend API
+const response = await fetch('http://localhost:5000/api/register', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    full_name: form.full_name,
+    contact_number: form.contact_number,
+    role: form.role, // 'renter' | 'operator'
+    email: form.email,
+    password: form.password,
+    agreed: form.agreed,
+  }),
+});
 
-      // Email already registered — Supabase returns fake user with no identities
-      if (data?.user?.identities?.length === 0) {
-        setError('An account with this email already exists. Please log in instead.')
-        setLoading(false)
-        return
-      }
+const result = await response.json();
 
-      if (data?.user && !data?.session) {
-        setSuccess('confirm')
-      } else if (data?.session) {
-        setSuccess('immediate')
-      } else {
-        setError('Unexpected response from server. See debug info below.')
-      }
+// Log raw response for debugging
+console.log('register API result:', result);
+setDebugInfo({
+  error: result.error ?? null,
+  user_id: result.user?.id ?? null,
+  user_email: result.user?.email ?? null,
+  session: result.session ? 'present' : 'null',
+  identities_count: result.user?.identities?.length ?? 'n/a',
+  raw: JSON.stringify(result, null, 2),
+});
+
+if (!response.ok) {
+  setError(result.error || 'Registration failed');
+  setLoading(false);
+  return;
+}
+
+// Store JWT token if provided
+if (result.token) {
+  localStorage.setItem('authToken', result.token);
+}
+
+// Success flow – immediate login after registration
+setSuccess('immediate');
 
     } catch (err) {
       console.error('Caught exception:', err)
@@ -223,27 +226,27 @@ export default function Register() {
                     {/* Contractor / Operator */}
                     <button
                       type="button"
-                      onClick={() => selectRole('operator')}
+                      onClick={() => selectRole('contractor')}
                       className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${
-                        form.role === 'operator'
+                        form.role === 'contractor'
                           ? 'border-green-700 bg-green-50'
                           : 'border-gray-200 bg-gray-50 hover:border-gray-300'
                       }`}
                     >
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                        form.role === 'operator' ? 'bg-green-700' : 'bg-gray-200'
+                        form.role === 'contractor' ? 'bg-green-700' : 'bg-gray-200'
                       }`}>
-                        <Store size={20} className={form.role === 'operator' ? 'text-white' : 'text-gray-500'} />
+                        <Store size={20} className={form.role === 'contractor' ? 'text-white' : 'text-gray-500'} />
                       </div>
                       <div className="text-center">
-                        <p className={`text-sm font-semibold ${form.role === 'operator' ? 'text-green-800' : 'text-gray-700'}`}>
+                        <p className={`text-sm font-semibold ${form.role === 'contractor' ? 'text-green-800' : 'text-gray-700'}`}>
                           Contractor
                         </p>
                         <p className="text-[10px] text-gray-400 leading-tight mt-0.5">
                           I manage stalls
                         </p>
                       </div>
-                      {form.role === 'operator' && (
+                      {form.role === 'contractor' && (
                         <span className="text-xs font-bold text-green-700">✓ Selected</span>
                       )}
                     </button>
