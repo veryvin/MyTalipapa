@@ -15,7 +15,7 @@ async function handleLogin(e) {
   setError(null)
 
   try {
-    const response = await fetch('http://localhost:5012/api/login', {
+    const response = await fetch('http://localhost:5000/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, role }),
@@ -34,7 +34,11 @@ async function handleLogin(e) {
     localStorage.setItem('user', JSON.stringify(result.user))
 
     // Redirect based on role
-    window.location.href = '/dashboard'
+    if (result.user && result.user.role === 'renter') {
+      window.location.href = '/renter/dashboard'
+    } else {
+      window.location.href = '/contractor/dashboard'
+    }
 
   } catch (err) {
     setError('Network error: ' + err.message)
