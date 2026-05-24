@@ -1,8 +1,11 @@
+
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 import { User, Mail, Phone, Lock, Eye, EyeOff, Store, ShoppingBag } from 'lucide-react'
 
 export default function Register() {
+  const navigate = useNavigate()
   const [form, setForm] = useState({
     full_name: '',
     email: '',
@@ -174,18 +177,33 @@ setSuccess('immediate');
             )}
 
             {/* Success — immediate */}
-            {success === 'immediate' && (
-              <div className="text-center py-6">
-                <div className="text-5xl mb-4">🎉</div>
-                <h3 className="font-bold text-gray-800 text-lg mb-2">Account created!</h3>
-                <p className="text-sm text-gray-500 mb-6">
-                  Welcome, <strong>{form.full_name}</strong>!
-                </p>
-                <a href="/dashboard" className="inline-block px-6 py-3 rounded-xl text-white text-sm font-semibold" style={{ backgroundColor: '#1a5c2a' }}>
-                  Go to Dashboard
-                </a>
-              </div>
-            )}
+           {success === 'immediate' && (
+  <div className="text-center py-6">
+    <div className="text-5xl mb-4">🎉</div>
+
+    <h3 className="font-bold text-gray-800 text-lg mb-2">
+      Account created!
+    </h3>
+
+    <p className="text-sm text-gray-500 mb-6">
+      Welcome, <strong>{form.full_name}</strong>!
+    </p>
+
+    <button
+      onClick={() =>
+        navigate(
+          form.role === 'contractor'
+            ? '/contractor/dashboard'
+            : '/renter/dashboard'
+        )
+      }
+      className="inline-block px-6 py-3 rounded-xl text-white text-sm font-semibold"
+      style={{ backgroundColor: '#1a5c2a' }}
+    >
+      Go to Dashboard
+    </button>
+  </div>
+)}
 
             {!success && (
               <form onSubmit={handleRegister} className="space-y-4">
