@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import marketImage from '../../images/market_live_view.png'
-import './ContractorDashboard.css'
+
 
 const STATS = [
   {

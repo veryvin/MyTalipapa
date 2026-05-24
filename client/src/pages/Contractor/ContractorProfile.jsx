@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import adminPhoto from '../../images/ContractorSample.jpg'  // swap with your actual image path
-import './ContractorProfile.css'
-// ContractorProfile.css is no longer needed — contractor.css covers everything
+
 
 const NAV_ITEMS = [
   {

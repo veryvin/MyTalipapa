@@ -1,0 +1,410 @@
+import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+
+const NAV_ITEMS = [
+  {
+    id: 'nav-dashboard',
+    label: 'Dashboard',
+    path: '/contractor/dashboard',
+    icon: (
+      <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <rect x="3" y="3" width="7" height="7" rx="1" />
+        <rect x="14" y="3" width="7" height="7" rx="1" />
+        <rect x="3" y="14" width="7" height="7" rx="1" />
+        <rect x="14" y="14" width="7" height="7" rx="1" />
+      </svg>
+    ),
+  },
+  {
+    id: 'nav-stalls',
+    label: 'Stalls',
+    path: '/contractor/stalls',
+    icon: (
+      <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+        <polyline points="9,22 9,12 15,12 15,22" />
+      </svg>
+    ),
+  },
+  {
+    id: 'nav-apps',
+    label: 'Apps',
+    path: '/contractor/applications',
+    icon: (
+      <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+        <polyline points="14,2 14,8 20,8" />
+        <line x1="16" y1="13" x2="8" y2="13" />
+        <line x1="16" y1="17" x2="8" y2="17" />
+      </svg>
+    ),
+  },
+  {
+    id: 'nav-records',
+    label: 'Records',
+    path: '/contractor/records',
+    icon: (
+      <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="12,6 12,12 16,14" />
+      </svg>
+    ),
+  },
+  {
+    id: 'nav-profile',
+    label: 'Profile',
+    path: '/contractor/profile',
+    icon: (
+      <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+        <circle cx="12" cy="7" r="4" />
+      </svg>
+    ),
+  },
+]
+
+const LogoutIcon = () => (
+  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <polyline points="16,17 21,12 16,7" />
+    <line x1="21" y1="12" x2="9" y2="12" />
+  </svg>
+)
+
+const SECTIONS = {
+  "MAIN SECTION A": Array.from({ length: 15 }, (_, i) => {
+    const n = i + 101;
+    const statuses = ["available", "occupied", "pending", "occupied", "available", "occupied", "occupied", "pending", "occupied", "available", "available", "pending", "occupied", "available", "occupied"];
+    return { id: n, status: statuses[i] };
+  }),
+  "MAIN SECTION B": Array.from({ length: 12 }, (_, i) => {
+    const n = i + 201;
+    const statuses = ["occupied", "available", "occupied", "pending", "available", "occupied", "available", "available", "pending", "occupied", "available", "occupied"];
+    return { id: n, status: statuses[i] };
+  }),
+  "WING C": Array.from({ length: 10 }, (_, i) => {
+    const n = i + 301;
+    const statuses = ["available", "available", "pending", "occupied", "available", "pending", "occupied", "available", "available", "occupied"];
+    return { id: n, status: statuses[i] };
+  }),
+};
+
+const STATUS_LABEL = { available: "Available", occupied: "Occupied", pending: "Pending" };
+
+export default function ContractorStalls() {
+  const [activeSection, setActiveSection] = useState("MAIN SECTION A");
+  const [activeNav, setActiveNav] = useState('nav-stalls');
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const navigate = useNavigate();
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [selectedStall, setSelectedStall] = useState(null);
+
+  const handleNav = (item) => {
+    setActiveNav(item.id);
+    navigate(item.path);
+  };
+
+  const handleLogout = () => {
+    navigate('/login');
+  };
+
+  const allStalls = useMemo(() => Object.values(SECTIONS).flat(), []);
+  const totalStalls = allStalls.length;
+  const occupied = allStalls.filter(s => s.status === "occupied").length;
+  const occupancyPct = Math.round((occupied / totalStalls) * 100);
+
+  const sectionStalls = useMemo(() => {
+    const stalls = SECTIONS[activeSection] || [];
+    if (filterStatus === "all") return stalls;
+    return stalls.filter(s => s.status === filterStatus);
+  }, [activeSection, filterStatus]);
+
+  const filterOptions = ["all", "available", "occupied", "pending"];
+
+  return (
+    <div className="dashboard-root">
+      {/* Logout Modal */}
+      {showLogoutModal && (
+        <div className="logout-overlay" onClick={() => setShowLogoutModal(false)}>
+          <div className="logout-modal" onClick={e => e.stopPropagation()}>
+            <div className="logout-modal-icon"><LogoutIcon /></div>
+            <h3 className="logout-modal-title">Log Out?</h3>
+            <p className="logout-modal-msg">You'll be signed out of your contractor session.</p>
+            <div className="logout-modal-actions">
+              <button className="logout-cancel-btn" onClick={() => setShowLogoutModal(false)}>Cancel</button>
+              <button className="logout-confirm-btn" onClick={handleLogout}>Yes, Log Out</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <header className="dashboard-header">
+        <div className="header-logo">
+          <span className="logo-icon">🏪</span>
+          <span className="logo-text">MyTalipapa</span>
+        </div>
+        <div className="header-right">
+          <button className="notif-btn" aria-label="Notifications">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            <span className="notif-dot"></span>
+          </button>
+          <button
+            className="header-logout-btn"
+            aria-label="Log out"
+            onClick={() => setShowLogoutModal(true)}
+          >
+            <LogoutIcon />
+          </button>
+        </div>
+      </header>
+
+      <div className="dashboard-body">
+        {/* Sidebar */}
+        <nav className="sidebar-nav" aria-label="Sidebar Navigation">
+          {NAV_ITEMS.map(item => (
+            <button
+              key={item.id}
+              id={`sidebar-${item.id}`}
+              className={`sidebar-nav-item ${activeNav === item.id ? 'nav-active' : ''}`}
+              onClick={() => handleNav(item)}
+            >
+              <span className="nav-icon">{item.icon}</span>
+              <span className="nav-label">{item.label}</span>
+            </button>
+          ))}
+          <div className="sidebar-logout-spacer" />
+          <button
+            className="sidebar-nav-item sidebar-logout-item"
+            id="sidebar-logout"
+            onClick={() => setShowLogoutModal(true)}
+          >
+            <span className="nav-icon">
+              <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16,17 21,12 16,7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </span>
+            <span className="nav-label">Log Out</span>
+          </button>
+        </nav>
+
+        <main className="dashboard-main stalls-main">
+          <div className="stalls-title-block">
+            <h1 className="stalls-page-title">Market Floor Plan</h1>
+            <p className="stalls-page-sub">Real-time stall availability and management.</p>
+          </div>
+
+          {/* Occupancy Banner */}
+          <div className="stalls-occupancy-banner">
+            <div className="occupancy-banner-inner">
+              <span className="occupancy-banner-label">Total Occupancy</span>
+              <span className="occupancy-banner-pct">{occupancyPct}%</span>
+            </div>
+            <div className="occupancy-bar-track">
+              <div className="occupancy-bar-fill" style={{ width: `${occupancyPct}%` }}></div>
+            </div>
+            <div className="occupancy-banner-counts">
+              <span>{occupied} Stalls Occupied</span>
+              <span>{totalStalls} Total Stalls</span>
+            </div>
+          </div>
+
+          {/* Section Tabs */}
+          <div className="stalls-section-tabs-wrap">
+            <div className="stalls-section-tabs">
+              {Object.keys(SECTIONS).map(sec => (
+                <button
+                  key={sec}
+                  className={`stalls-section-tab${activeSection === sec ? " stalls-tab-active" : ""}`}
+                  onClick={() => setActiveSection(sec)}
+                >
+                  {sec}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Section Header + Filter */}
+          <div className="stalls-section-header">
+            <h2 className="stalls-section-name">{activeSection}</h2>
+            <div className="stalls-filter-wrap">
+              <button className="stalls-filter-btn" onClick={() => setFilterOpen(o => !o)}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                </svg>
+                Filter
+              </button>
+              {filterOpen && (
+                <div className="stalls-filter-dropdown">
+                  {filterOptions.map(f => (
+                    <button
+                      key={f}
+                      className={`stalls-filter-option${filterStatus === f ? " filter-selected" : ""}`}
+                      onClick={() => { setFilterStatus(f); setFilterOpen(false); }}
+                    >
+                      {f === "all" ? "All" : STATUS_LABEL[f]}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Stall Grid */}
+          <div className="stalls-grid">
+            {sectionStalls.map(stall => (
+              <button
+                key={stall.id}
+                className={`stall-cell stall-${stall.status}`}
+                onClick={() => setSelectedStall(stall)}
+              >
+                {stall.id}
+              </button>
+            ))}
+            {sectionStalls.length === 0 && (
+              <p className="stalls-empty">No stalls match this filter.</p>
+            )}
+          </div>
+
+          {/* Legend */}
+          <div className="stalls-legend">
+            <div className="legend-item">
+              <span className="legend-dot legend-available"></span>
+              <span>Available</span>
+            </div>
+            <div className="legend-item">
+              <span className="legend-dot legend-occupied"></span>
+              <span>Occupied</span>
+            </div>
+            <div className="legend-item">
+              <span className="legend-dot legend-pending"></span>
+              <span>Pending</span>
+            </div>
+          </div>
+        </main>
+      </div>
+
+      {/* Bottom Navigation */}
+      <nav className="bottom-nav" aria-label="Main Navigation">
+        {NAV_ITEMS.map(item => (
+          <button
+            key={item.id}
+            id={item.id}
+            className={`nav-item ${activeNav === item.id ? 'nav-active' : ''}`}
+            onClick={() => handleNav(item)}
+          >
+            <span className="nav-icon">{item.icon}</span>
+            <span className="nav-label">{item.label}</span>
+          </button>
+        ))}
+      </nav>
+
+      {/* Stall Detail Modal */}
+      {selectedStall && (
+        <div className="logout-overlay" onClick={() => setSelectedStall(null)}>
+          <div className="stall-modal" onClick={e => e.stopPropagation()}>
+            <div className={`stall-modal-badge stall-modal-${selectedStall.status}`}>
+              {STATUS_LABEL[selectedStall.status]}
+            </div>
+            <h2 className="stall-modal-number">Stall #{selectedStall.id}</h2>
+            <p className="stall-modal-section">{activeSection}</p>
+            {selectedStall.status === "occupied" && (
+              <div className="stall-modal-info">
+                <div className="stall-modal-row"><span>Vendor</span><strong>Juan Dela Cruz</strong></div>
+                <div className="stall-modal-row"><span>Lease Since</span><strong>Jan 2023</strong></div>
+                <div className="stall-modal-row"><span>Monthly Rent</span><strong>₱3,500</strong></div>
+              </div>
+            )}
+            {selectedStall.status === "pending" && (
+              <div className="stall-modal-info">
+                <div className="stall-modal-row"><span>Applicant</span><strong>Maria Santos</strong></div>
+                <div className="stall-modal-row"><span>Applied</span><strong>Oct 25, 2023</strong></div>
+              </div>
+            )}
+            {selectedStall.status === "available" && (
+              <p className="stall-modal-avail">This stall is available for rent.</p>
+            )}
+            <button className="stall-modal-close" onClick={() => setSelectedStall(null)}>Close</button>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        .stalls-main { padding-bottom: 80px; }
+        .stalls-title-block { margin-bottom: 2px; }
+        .stalls-page-title { font-size: 20px; font-weight: 800; color: var(--color-text); margin: 0 0 4px; letter-spacing: -0.3px; }
+        .stalls-page-sub { font-size: 12px; color: var(--color-text-muted); margin: 0; font-weight: 500; }
+        .stalls-occupancy-banner { background: var(--color-surface); border-radius: var(--r-lg); padding: 16px 16px 12px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 8px; }
+        .occupancy-banner-inner { display: flex; align-items: center; justify-content: space-between; }
+        .occupancy-banner-label { font-size: 13px; font-weight: 700; color: var(--color-text); }
+        .occupancy-banner-pct { font-size: 18px; font-weight: 900; color: var(--color-brand-green); }
+        .occupancy-bar-track { height: 10px; background: #e5e7eb; border-radius: var(--r-full); overflow: hidden; }
+        .occupancy-bar-fill { height: 100%; background: linear-gradient(90deg, var(--color-brand-green), #22c55e); border-radius: var(--r-full); transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); }
+        .occupancy-banner-counts { display: flex; justify-content: space-between; font-size: 11px; color: var(--color-text-muted); font-weight: 600; }
+        .stalls-section-tabs-wrap { overflow-x: auto; scrollbar-width: none; }
+        .stalls-section-tabs-wrap::-webkit-scrollbar { display: none; }
+        .stalls-section-tabs { display: flex; gap: 8px; min-width: max-content; }
+        .stalls-section-tab { padding: 8px 16px; border-radius: var(--r-full); border: 1.5px solid var(--color-border); background: var(--color-surface); font-size: 12px; font-weight: 700; color: var(--color-text-muted); cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.2s; white-space: nowrap; }
+        .stalls-section-tab:hover { border-color: var(--color-brand-green); color: var(--color-brand-green); }
+        .stalls-tab-active { background: var(--color-brand-green); color: #fff !important; border-color: var(--color-brand-green) !important; }
+        .stalls-section-header { display: flex; align-items: center; justify-content: space-between; margin-top: 2px; }
+        .stalls-section-name { font-size: 15px; font-weight: 800; color: var(--color-text); margin: 0; }
+        .stalls-filter-wrap { position: relative; }
+        .stalls-filter-btn { display: flex; align-items: center; gap: 6px; background: var(--color-surface); border: 1.5px solid var(--color-border); border-radius: var(--r-sm); padding: 7px 12px; font-size: 12px; font-weight: 700; color: var(--color-text-mid); cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.2s; }
+        .stalls-filter-btn:hover { border-color: var(--color-brand-green); color: var(--color-brand-green); }
+        .stalls-filter-dropdown { position: absolute; right: 0; top: calc(100% + 6px); background: var(--color-surface); border: 1.5px solid var(--color-border); border-radius: var(--r-md); box-shadow: var(--shadow-md); z-index: 50; overflow: hidden; min-width: 130px; }
+        .stalls-filter-option { display: block; width: 100%; padding: 10px 14px; background: none; border: none; border-bottom: 1px solid var(--color-border-soft); font-size: 13px; font-weight: 600; color: var(--color-text-mid); text-align: left; cursor: pointer; font-family: 'Inter', sans-serif; transition: background 0.15s; }
+        .stalls-filter-option:last-child { border-bottom: none; }
+        .stalls-filter-option:hover { background: #f9fafb; }
+        .filter-selected { color: var(--color-brand-green); background: var(--color-brand-green-light) !important; }
+        .stalls-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+        .stall-cell { aspect-ratio: 1; border-radius: var(--r-sm); border: 2px solid transparent; font-size: 12px; font-weight: 800; font-family: 'Inter', sans-serif; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; display: flex; align-items: center; justify-content: center; }
+        .stall-cell:hover { transform: scale(1.08); box-shadow: var(--shadow-md); z-index: 2; position: relative; }
+        .stall-available { background: #dcfce7; border-color: #86efac; color: #15803d; }
+        .stall-occupied { background: #fed7aa; border-color: #fdba74; color: #c2410c; }
+        .stall-pending { background: #fef9c3; border-color: #fde047; color: #a16207; }
+        .stalls-empty { grid-column: 1 / -1; text-align: center; color: var(--color-text-faint); font-size: 13px; padding: 24px 0; }
+        .stalls-legend { display: flex; align-items: center; gap: 20px; justify-content: center; padding: 8px 0 4px; flex-wrap: wrap; }
+        .legend-item { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: var(--color-text-muted); }
+        .legend-dot { width: 14px; height: 14px; border-radius: 4px; border: 2px solid transparent; flex-shrink: 0; }
+        .legend-available { background: #dcfce7; border-color: #86efac; }
+        .legend-occupied { background: #fed7aa; border-color: #fdba74; }
+        .legend-pending { background: #fef9c3; border-color: #fde047; }
+        .stall-modal { background: var(--color-surface); border-radius: var(--r-xl); padding: 28px 24px 24px; max-width: 320px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; box-shadow: var(--shadow-lg); animation: slide-up 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .stall-modal-badge { font-size: 10px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; padding: 5px 14px; border-radius: var(--r-full); }
+        .stall-modal-available { background: #dcfce7; color: #15803d; }
+        .stall-modal-occupied { background: #fed7aa; color: #c2410c; }
+        .stall-modal-pending { background: #fef9c3; color: #a16207; }
+        .stall-modal-number { font-size: 26px; font-weight: 900; color: var(--color-text); margin: 4px 0 0; }
+        .stall-modal-section { font-size: 12px; color: var(--color-text-muted); margin: 0 0 8px; font-weight: 500; }
+        .stall-modal-info { width: 100%; background: #f9fafb; border-radius: var(--r-md); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 4px; }
+        .stall-modal-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--color-text-mid); }
+        .stall-modal-row strong { color: var(--color-text); font-weight: 700; }
+        .stall-modal-avail { font-size: 13px; color: var(--color-text-muted); text-align: center; margin: 0 0 8px; }
+        .stall-modal-close { width: 100%; padding: 12px; background: var(--color-brand-green); color: #fff; border: none; border-radius: var(--r-md); font-size: 14px; font-weight: 700; font-family: 'Inter', sans-serif; cursor: pointer; margin-top: 4px; transition: background 0.2s; }
+        .stall-modal-close:hover { background: var(--color-green-mid); }
+        @media (min-width: 640px) {
+          .stalls-page-title { font-size: 24px; }
+          .stalls-grid { grid-template-columns: repeat(6, 1fr); gap: 10px; }
+          .stall-cell { font-size: 13px; }
+          .stalls-occupancy-banner { padding: 20px 20px 14px; }
+          .occupancy-banner-pct { font-size: 22px; }
+        }
+        @media (min-width: 1024px) {
+          .stalls-main { padding-bottom: 32px; }
+          .stalls-page-title { font-size: 26px; }
+          .stalls-grid { grid-template-columns: repeat(8, 1fr); gap: 12px; }
+          .stall-cell { font-size: 13px; border-radius: 10px; }
+        }
+        @media (min-width: 1280px) {
+          .stalls-grid { grid-template-columns: repeat(10, 1fr); }
+        }
+      `}</style>
+    </div>
+  );
+}

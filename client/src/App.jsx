@@ -3,6 +3,9 @@ import Landingpage from './pages/Landingpage'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import ContractorDashboard from './pages/Contractor/ContractorDashboard'
+import ContractorRecords from './pages/Contractor/ContractorRecords'
+import ContractorApplications from './pages/Contractor/ContractorApplications'
+import ContractorStalls from './pages/Contractor/ContractorStalls'
 import ContractorProfile from './pages/Contractor/ContractorProfile'
 import RenterDashboard from './pages/Renter/RenterDashboard'
 
@@ -15,6 +18,9 @@ export default function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/contractor/dashboard" element={<ContractorDashboard />} />
         <Route path="/contractor/profile" element={<ContractorProfile />} />
+        <Route path="/contractor/records" element={<ContractorRecords />} />
+        <Route path="/contractor/applications" element={<ContractorApplications />} />
+        <Route path="/contractor/stalls" element={<ContractorStalls />} />
         <Route path="/contractor/*" element={<ContractorDashboard />} />
         <Route path="/renter/dashboard" element={<RenterDashboard />} />
         <Route path="/renter/*" element={<RenterDashboard />} />
