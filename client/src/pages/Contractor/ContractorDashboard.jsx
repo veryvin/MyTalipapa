@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useCurrentUser } from '../../utils/auth';
 import marketImage from '../../images/market_live_view.png'
 
 
@@ -186,6 +187,8 @@ export default function ContractorDashboard() {
   const [applications, setApplications] = useState(APPLICATIONS)
   const [actionMap, setActionMap] = useState({})
   const [showLogoutModal, setShowLogoutModal] = useState(false)
+  // New hook to get current user's display name
+  const { userName, loading } = useCurrentUser()
 
   const occupancy = Math.round((105 / 120) * 100)
 
@@ -250,7 +253,7 @@ export default function ContractorDashboard() {
         </div>
         <div className="header-right">
           <div className="header-welcome">
-            <span className="welcome-name">Welcome, Contractor Maria!</span>
+            <span className="welcome-name">{loading ? 'Loading…' : userName ? `${userName}` : 'Welcome, Guest'}</span>
             <span className="welcome-role">Market Supervisor</span>
           </div>
           <button className="notif-btn" id="notif-button" aria-label="Notifications">

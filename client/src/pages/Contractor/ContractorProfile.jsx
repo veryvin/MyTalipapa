@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useCurrentUser } from '../../utils/auth';
 import adminPhoto from '../../images/ContractorSample.jpg'  // swap with your actual image path
 
 
@@ -54,6 +55,7 @@ export default function ContractorProfile() {
   const [activeNav, setActiveNav] = useState('nav-profile')
   const [showLogout, setShowLogout] = useState(false)
   const [imgError, setImgError] = useState(false)
+  const { userName, loading } = useCurrentUser();
 
   const handleNav = (item) => { setActiveNav(item.id); navigate(item.path) }
   const handleLogout = () => navigate('/login')
@@ -137,7 +139,7 @@ export default function ContractorProfile() {
               </button>
             </div>
             <div className="profile-hero-text">
-              <h1 className="profile-name">Admin Maria Clara</h1>
+                <h1 className="profile-name">{loading ? 'Loading…' : userName ? `${userName}` : 'Welcome, Guest'}</h1>
               <span className="profile-badge">Contractor / Administrator</span>
             </div>
           </div>

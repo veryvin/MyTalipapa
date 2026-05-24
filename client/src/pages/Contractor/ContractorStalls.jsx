@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useCurrentUser } from '../../utils/auth';
 
 const NAV_ITEMS = [
   {
@@ -53,6 +54,7 @@ export default function ContractorStalls() {
   const [stalls, setStalls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { userName, loading: authLoading } = useCurrentUser();
 
   useEffect(() => {
     fetch('http://localhost:5000/api/contractor/stalls')
@@ -144,6 +146,10 @@ export default function ContractorStalls() {
           <span className="logo-text">MyTalipapa</span>
         </div>
         <div className="header-right">
+          <div className="header-welcome">
+            <span className="welcome-name">{authLoading ? 'Loading…' : userName ? `${userName}` : 'Welcome, Guest'}</span>
+            <span className="welcome-role">Market Supervisor</span>
+          </div>
           <button className="notif-btn" aria-label="Notifications">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>

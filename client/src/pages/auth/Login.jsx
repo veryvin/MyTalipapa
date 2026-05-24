@@ -32,6 +32,7 @@ async function handleLogin(e) {
     // Store JWT token
     localStorage.setItem('authToken', result.token)
     localStorage.setItem('user', JSON.stringify(result.user))
+    
 
     // Redirect based on role
     if (result.user && result.user.role === 'renter') {
