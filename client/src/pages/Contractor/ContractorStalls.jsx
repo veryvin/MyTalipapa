@@ -1,67 +1,28 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 const NAV_ITEMS = [
   {
-    id: 'nav-dashboard',
-    label: 'Dashboard',
-    path: '/contractor/dashboard',
-    icon: (
-      <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-        <rect x="3" y="3" width="7" height="7" rx="1" />
-        <rect x="14" y="3" width="7" height="7" rx="1" />
-        <rect x="3" y="14" width="7" height="7" rx="1" />
-        <rect x="14" y="14" width="7" height="7" rx="1" />
-      </svg>
-    ),
+    id: 'nav-dashboard', label: 'Dashboard', path: '/contractor/dashboard',
+    icon: (<svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>),
   },
   {
-    id: 'nav-stalls',
-    label: 'Stalls',
-    path: '/contractor/stalls',
-    icon: (
-      <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-        <polyline points="9,22 9,12 15,12 15,22" />
-      </svg>
-    ),
+    id: 'nav-stalls', label: 'Stalls', path: '/contractor/stalls',
+    icon: (<svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9,22 9,12 15,12 15,22" /></svg>),
   },
   {
-    id: 'nav-apps',
-    label: 'Apps',
-    path: '/contractor/applications',
-    icon: (
-      <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <polyline points="14,2 14,8 20,8" />
-        <line x1="16" y1="13" x2="8" y2="13" />
-        <line x1="16" y1="17" x2="8" y2="17" />
-      </svg>
-    ),
+    id: 'nav-apps', label: 'Apps', path: '/contractor/applications',
+    icon: (<svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14,2 14,8 20,8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>),
   },
   {
-    id: 'nav-records',
-    label: 'Records',
-    path: '/contractor/records',
-    icon: (
-      <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-        <circle cx="12" cy="12" r="10" />
-        <polyline points="12,6 12,12 16,14" />
-      </svg>
-    ),
+    id: 'nav-records', label: 'Records', path: '/contractor/records',
+    icon: (<svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><circle cx="12" cy="12" r="10" /><polyline points="12,6 12,12 16,14" /></svg>),
   },
   {
-    id: 'nav-profile',
-    label: 'Profile',
-    path: '/contractor/profile',
-    icon: (
-      <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-        <circle cx="12" cy="7" r="4" />
-      </svg>
-    ),
+    id: 'nav-profile', label: 'Profile', path: '/contractor/profile',
+    icon: (<svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>),
   },
-]
+];
 
 const LogoutIcon = () => (
   <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -69,30 +30,18 @@ const LogoutIcon = () => (
     <polyline points="16,17 21,12 16,7" />
     <line x1="21" y1="12" x2="9" y2="12" />
   </svg>
-)
+);
 
-const SECTIONS = {
-  "MAIN SECTION A": Array.from({ length: 15 }, (_, i) => {
-    const n = i + 101;
-    const statuses = ["available", "occupied", "pending", "occupied", "available", "occupied", "occupied", "pending", "occupied", "available", "available", "pending", "occupied", "available", "occupied"];
-    return { id: n, status: statuses[i] };
-  }),
-  "MAIN SECTION B": Array.from({ length: 12 }, (_, i) => {
-    const n = i + 201;
-    const statuses = ["occupied", "available", "occupied", "pending", "available", "occupied", "available", "available", "pending", "occupied", "available", "occupied"];
-    return { id: n, status: statuses[i] };
-  }),
-  "WING C": Array.from({ length: 10 }, (_, i) => {
-    const n = i + 301;
-    const statuses = ["available", "available", "pending", "occupied", "available", "pending", "occupied", "available", "available", "occupied"];
-    return { id: n, status: statuses[i] };
-  }),
+// Map section names to display labels and colors for the floor plan legend
+const SECTION_META = {
+  Meat:       { label: "Meat Section",   color: "#b91c1c", bg: "#fee2e2", border: "#fca5a5" },
+  Fishes:     { label: "Fishes Section", color: "#0369a1", bg: "#e0f2fe", border: "#7dd3fc" },
+  Vegetables: { label: "Vegetables",     color: "#15803d", bg: "#dcfce7", border: "#86efac" },
 };
 
 const STATUS_LABEL = { available: "Available", occupied: "Occupied", pending: "Pending" };
 
 export default function ContractorStalls() {
-  const [activeSection, setActiveSection] = useState("MAIN SECTION A");
   const [activeNav, setActiveNav] = useState('nav-stalls');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const navigate = useNavigate();
@@ -100,27 +49,76 @@ export default function ContractorStalls() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedStall, setSelectedStall] = useState(null);
 
+  // ── Data from MongoDB ────────────────────────────────────
+  const [stalls, setStalls] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetch('http://localhost:5000/api/contractor/stalls')
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        setStalls(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err.message);
+        setLoading(false);
+      });
+  }, []);
+
+  // ── Group stalls by section ──────────────────────────────
+  const SECTIONS = useMemo(() => {
+    return stalls.reduce((acc, stall) => {
+      const key = stall.section || "Unknown";
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(stall);
+      return acc;
+    }, {});
+  }, [stalls]);
+
+  // Default active section to first available section from DB
+  const sectionKeys = Object.keys(SECTIONS);
+  const [activeSection, setActiveSection] = useState(null);
+
+  // Once data loads, set default active section
+  useEffect(() => {
+    if (sectionKeys.length > 0 && !activeSection) {
+      setActiveSection(sectionKeys[0]);
+    }
+  }, [sectionKeys, activeSection]);
+
+  // ── Occupancy stats (fix NaN: guard against 0 total) ────
+  const allStalls = useMemo(() => Object.values(SECTIONS).flat(), [SECTIONS]);
+  const totalStalls = allStalls.length;
+  const occupied = allStalls.filter(s => s.status === "occupied").length;
+  const occupancyPct = totalStalls > 0 ? Math.round((occupied / totalStalls) * 100) : 0;
+
+  // ── Filtered stalls for active section ──────────────────
+  const sectionStalls = useMemo(() => {
+    if (!activeSection) return [];
+    const list = SECTIONS[activeSection] || [];
+    if (filterStatus === "all") return list;
+    return list.filter(s => s.status === filterStatus);
+  }, [SECTIONS, activeSection, filterStatus]);
+
+  const filterOptions = ["all", "available", "occupied", "pending"];
+
   const handleNav = (item) => {
     setActiveNav(item.id);
     navigate(item.path);
   };
 
-  const handleLogout = () => {
-    navigate('/login');
-  };
+  const handleLogout = () => navigate('/login');
 
-  const allStalls = useMemo(() => Object.values(SECTIONS).flat(), []);
-  const totalStalls = allStalls.length;
-  const occupied = allStalls.filter(s => s.status === "occupied").length;
-  const occupancyPct = Math.round((occupied / totalStalls) * 100);
+  // Get display label for stall — stallNumber field from DB, fallback to _id
+  const getStallLabel = (stall) => stall.stallNumber || stall._id;
 
-  const sectionStalls = useMemo(() => {
-    const stalls = SECTIONS[activeSection] || [];
-    if (filterStatus === "all") return stalls;
-    return stalls.filter(s => s.status === filterStatus);
-  }, [activeSection, filterStatus]);
-
-  const filterOptions = ["all", "available", "occupied", "pending"];
+  // Get section color theme
+  const getSectionMeta = (section) => SECTION_META[section] || { color: "#374151", bg: "#f3f4f6", border: "#d1d5db" };
 
   return (
     <div className="dashboard-root">
@@ -152,11 +150,7 @@ export default function ContractorStalls() {
             </svg>
             <span className="notif-dot"></span>
           </button>
-          <button
-            className="header-logout-btn"
-            aria-label="Log out"
-            onClick={() => setShowLogoutModal(true)}
-          >
+          <button className="header-logout-btn" aria-label="Log out" onClick={() => setShowLogoutModal(true)}>
             <LogoutIcon />
           </button>
         </div>
@@ -168,7 +162,6 @@ export default function ContractorStalls() {
           {NAV_ITEMS.map(item => (
             <button
               key={item.id}
-              id={`sidebar-${item.id}`}
               className={`sidebar-nav-item ${activeNav === item.id ? 'nav-active' : ''}`}
               onClick={() => handleNav(item)}
             >
@@ -177,11 +170,7 @@ export default function ContractorStalls() {
             </button>
           ))}
           <div className="sidebar-logout-spacer" />
-          <button
-            className="sidebar-nav-item sidebar-logout-item"
-            id="sidebar-logout"
-            onClick={() => setShowLogoutModal(true)}
-          >
+          <button className="sidebar-nav-item sidebar-logout-item" onClick={() => setShowLogoutModal(true)}>
             <span className="nav-icon">
               <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -199,93 +188,134 @@ export default function ContractorStalls() {
             <p className="stalls-page-sub">Real-time stall availability and management.</p>
           </div>
 
-          {/* Occupancy Banner */}
-          <div className="stalls-occupancy-banner">
-            <div className="occupancy-banner-inner">
-              <span className="occupancy-banner-label">Total Occupancy</span>
-              <span className="occupancy-banner-pct">{occupancyPct}%</span>
+          {/* Loading / Error states */}
+          {loading && (
+            <div className="stalls-state-msg">
+              <div className="stalls-spinner" />
+              <span>Loading stalls...</span>
             </div>
-            <div className="occupancy-bar-track">
-              <div className="occupancy-bar-fill" style={{ width: `${occupancyPct}%` }}></div>
+          )}
+          {error && (
+            <div className="stalls-error-msg">
+              ⚠️ Failed to load stalls: {error}
             </div>
-            <div className="occupancy-banner-counts">
-              <span>{occupied} Stalls Occupied</span>
-              <span>{totalStalls} Total Stalls</span>
-            </div>
-          </div>
+          )}
 
-          {/* Section Tabs */}
-          <div className="stalls-section-tabs-wrap">
-            <div className="stalls-section-tabs">
-              {Object.keys(SECTIONS).map(sec => (
-                <button
-                  key={sec}
-                  className={`stalls-section-tab${activeSection === sec ? " stalls-tab-active" : ""}`}
-                  onClick={() => setActiveSection(sec)}
-                >
-                  {sec}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Section Header + Filter */}
-          <div className="stalls-section-header">
-            <h2 className="stalls-section-name">{activeSection}</h2>
-            <div className="stalls-filter-wrap">
-              <button className="stalls-filter-btn" onClick={() => setFilterOpen(o => !o)}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
-                </svg>
-                Filter
-              </button>
-              {filterOpen && (
-                <div className="stalls-filter-dropdown">
-                  {filterOptions.map(f => (
-                    <button
-                      key={f}
-                      className={`stalls-filter-option${filterStatus === f ? " filter-selected" : ""}`}
-                      onClick={() => { setFilterStatus(f); setFilterOpen(false); }}
-                    >
-                      {f === "all" ? "All" : STATUS_LABEL[f]}
-                    </button>
-                  ))}
+          {!loading && !error && (
+            <>
+              {/* Occupancy Banner */}
+              <div className="stalls-occupancy-banner">
+                <div className="occupancy-banner-inner">
+                  <span className="occupancy-banner-label">Total Occupancy</span>
+                  <span className="occupancy-banner-pct">{occupancyPct}%</span>
                 </div>
-              )}
-            </div>
-          </div>
+                <div className="occupancy-bar-track">
+                  <div className="occupancy-bar-fill" style={{ width: `${occupancyPct}%` }}></div>
+                </div>
+                <div className="occupancy-banner-counts">
+                  <span>{occupied} Stalls Occupied</span>
+                  <span>{totalStalls} Total Stalls</span>
+                </div>
+              </div>
 
-          {/* Stall Grid */}
-          <div className="stalls-grid">
-            {sectionStalls.map(stall => (
-              <button
-                key={stall.id}
-                className={`stall-cell stall-${stall.status}`}
-                onClick={() => setSelectedStall(stall)}
-              >
-                {stall.id}
-              </button>
-            ))}
-            {sectionStalls.length === 0 && (
-              <p className="stalls-empty">No stalls match this filter.</p>
-            )}
-          </div>
+              {/* Section Tabs */}
+              <div className="stalls-section-tabs-wrap">
+                <div className="stalls-section-tabs">
+                  {sectionKeys.map(sec => {
+                    const meta = getSectionMeta(sec);
+                    return (
+                      <button
+                        key={sec}
+                        className={`stalls-section-tab${activeSection === sec ? " stalls-tab-active" : ""}`}
+                        style={activeSection === sec ? { background: meta.color, borderColor: meta.color } : {}}
+                        onClick={() => { setActiveSection(sec); setFilterStatus("all"); }}
+                      >
+                        <span
+                          className="tab-section-dot"
+                          style={{ background: meta.color }}
+                        />
+                        {sec}
+                        <span className="tab-count">{SECTIONS[sec].length}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-          {/* Legend */}
-          <div className="stalls-legend">
-            <div className="legend-item">
-              <span className="legend-dot legend-available"></span>
-              <span>Available</span>
-            </div>
-            <div className="legend-item">
-              <span className="legend-dot legend-occupied"></span>
-              <span>Occupied</span>
-            </div>
-            <div className="legend-item">
-              <span className="legend-dot legend-pending"></span>
-              <span>Pending</span>
-            </div>
-          </div>
+              {/* Section Header + Filter */}
+              <div className="stalls-section-header">
+                <div className="stalls-section-name-wrap">
+                  {activeSection && (
+                    <span
+                      className="section-color-badge"
+                      style={{
+                        background: getSectionMeta(activeSection).bg,
+                        color: getSectionMeta(activeSection).color,
+                        borderColor: getSectionMeta(activeSection).border,
+                      }}
+                    >
+                      {activeSection}
+                    </span>
+                  )}
+                  <span className="stalls-section-sub">
+                    {sectionStalls.length} stall{sectionStalls.length !== 1 ? 's' : ''}
+                    {filterStatus !== 'all' ? ` · ${STATUS_LABEL[filterStatus]}` : ''}
+                  </span>
+                </div>
+                <div className="stalls-filter-wrap">
+                  <button className="stalls-filter-btn" onClick={() => setFilterOpen(o => !o)}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                    </svg>
+                    Filter
+                    {filterStatus !== 'all' && <span className="filter-active-dot" />}
+                  </button>
+                  {filterOpen && (
+                    <div className="stalls-filter-dropdown">
+                      {filterOptions.map(f => (
+                        <button
+                          key={f}
+                          className={`stalls-filter-option${filterStatus === f ? " filter-selected" : ""}`}
+                          onClick={() => { setFilterStatus(f); setFilterOpen(false); }}
+                        >
+                          {f === "all" ? "All Statuses" : STATUS_LABEL[f]}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Stall Grid */}
+              <div className="stalls-grid">
+                {sectionStalls.map(stall => {
+                  // Use MongoDB _id as React key, stallNumber as display
+                  const key = stall._id || stall.id || stall.stallNumber;
+                  const label = stall.stallNumber || stall.id;
+                  return (
+                    <button
+                      key={key}
+                      className={`stall-cell stall-${stall.status}`}
+                      onClick={() => setSelectedStall(stall)}
+                      title={`Stall ${label} · ${stall.section} · ${STATUS_LABEL[stall.status]}`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+                {sectionStalls.length === 0 && (
+                  <p className="stalls-empty">No stalls match this filter.</p>
+                )}
+              </div>
+
+              {/* Legend */}
+              <div className="stalls-legend">
+                <div className="legend-item"><span className="legend-dot legend-available"></span><span>Available</span></div>
+                <div className="legend-item"><span className="legend-dot legend-occupied"></span><span>Occupied</span></div>
+                <div className="legend-item"><span className="legend-dot legend-pending"></span><span>Pending</span></div>
+              </div>
+            </>
+          )}
         </main>
       </div>
 
@@ -294,7 +324,6 @@ export default function ContractorStalls() {
         {NAV_ITEMS.map(item => (
           <button
             key={item.id}
-            id={item.id}
             className={`nav-item ${activeNav === item.id ? 'nav-active' : ''}`}
             onClick={() => handleNav(item)}
           >
@@ -311,24 +340,60 @@ export default function ContractorStalls() {
             <div className={`stall-modal-badge stall-modal-${selectedStall.status}`}>
               {STATUS_LABEL[selectedStall.status]}
             </div>
-            <h2 className="stall-modal-number">Stall #{selectedStall.id}</h2>
-            <p className="stall-modal-section">{activeSection}</p>
-            {selectedStall.status === "occupied" && (
+            <h2 className="stall-modal-number">
+              Stall #{selectedStall.stallNumber || selectedStall.id}
+            </h2>
+            <p className="stall-modal-section">{selectedStall.section}</p>
+
+            <div className="stall-modal-meta-row">
+              {selectedStall.size && (
+                <span className="stall-modal-meta-chip">📐 {selectedStall.size} {selectedStall.sizeUnit}</span>
+              )}
+              {selectedStall.monthlyRate && (
+                <span className="stall-modal-meta-chip">💰 ₱{selectedStall.monthlyRate.toLocaleString()}/mo</span>
+              )}
+              {selectedStall.floorArea && (
+                <span className="stall-modal-meta-chip">🗺 {selectedStall.floorArea} · Col {selectedStall.floorCol}</span>
+              )}
+            </div>
+
+            {selectedStall.amenities?.length > 0 && (
+              <div className="stall-modal-amenities">
+                {selectedStall.amenities.map(a => (
+                  <span key={a} className="amenity-chip">{a}</span>
+                ))}
+              </div>
+            )}
+
+            {selectedStall.status === "occupied" && selectedStall.tenant && (
+              <div className="stall-modal-info">
+                <div className="stall-modal-row"><span>Vendor</span><strong>{selectedStall.tenant.name}</strong></div>
+                <div className="stall-modal-row"><span>Contact</span><strong>{selectedStall.tenant.contact}</strong></div>
+                <div className="stall-modal-row"><span>Monthly Rent</span><strong>₱{selectedStall.monthlyRate?.toLocaleString()}</strong></div>
+                {selectedStall.tenant.leaseStart && (
+                  <div className="stall-modal-row">
+                    <span>Lease Start</span>
+                    <strong>{new Date(selectedStall.tenant.leaseStart).toLocaleDateString('en-PH', { month: 'short', year: 'numeric' })}</strong>
+                  </div>
+                )}
+              </div>
+            )}
+            {selectedStall.status === "occupied" && !selectedStall.tenant && (
               <div className="stall-modal-info">
                 <div className="stall-modal-row"><span>Vendor</span><strong>Juan Dela Cruz</strong></div>
                 <div className="stall-modal-row"><span>Lease Since</span><strong>Jan 2023</strong></div>
-                <div className="stall-modal-row"><span>Monthly Rent</span><strong>₱3,500</strong></div>
+                <div className="stall-modal-row"><span>Monthly Rent</span><strong>₱{selectedStall.monthlyRate?.toLocaleString() || '3,500'}</strong></div>
               </div>
             )}
             {selectedStall.status === "pending" && (
               <div className="stall-modal-info">
-                <div className="stall-modal-row"><span>Applicant</span><strong>Maria Santos</strong></div>
-                <div className="stall-modal-row"><span>Applied</span><strong>Oct 25, 2023</strong></div>
+                <div className="stall-modal-row"><span>Status</span><strong>Awaiting Approval</strong></div>
               </div>
             )}
             {selectedStall.status === "available" && (
               <p className="stall-modal-avail">This stall is available for rent.</p>
             )}
+
             <button className="stall-modal-close" onClick={() => setSelectedStall(null)}>Close</button>
           </div>
         </div>
@@ -339,65 +404,93 @@ export default function ContractorStalls() {
         .stalls-title-block { margin-bottom: 2px; }
         .stalls-page-title { font-size: 20px; font-weight: 800; color: var(--color-text); margin: 0 0 4px; letter-spacing: -0.3px; }
         .stalls-page-sub { font-size: 12px; color: var(--color-text-muted); margin: 0; font-weight: 500; }
+
+        /* Loading / Error */
+        .stalls-state-msg { display: flex; align-items: center; gap: 10px; padding: 24px 0; color: var(--color-text-muted); font-size: 14px; font-weight: 600; }
+        .stalls-spinner { width: 20px; height: 20px; border: 2px solid #e5e7eb; border-top-color: var(--color-brand-green); border-radius: 50%; animation: spin 0.7s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .stalls-error-msg { background: #fef2f2; color: #b91c1c; border: 1.5px solid #fca5a5; border-radius: 10px; padding: 14px 16px; font-size: 13px; font-weight: 600; }
+
+        /* Occupancy Banner */
         .stalls-occupancy-banner { background: var(--color-surface); border-radius: var(--r-lg); padding: 16px 16px 12px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 8px; }
         .occupancy-banner-inner { display: flex; align-items: center; justify-content: space-between; }
         .occupancy-banner-label { font-size: 13px; font-weight: 700; color: var(--color-text); }
         .occupancy-banner-pct { font-size: 18px; font-weight: 900; color: var(--color-brand-green); }
         .occupancy-bar-track { height: 10px; background: #e5e7eb; border-radius: var(--r-full); overflow: hidden; }
-        .occupancy-bar-fill { height: 100%; background: linear-gradient(90deg, var(--color-brand-green), #22c55e); border-radius: var(--r-full); transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); }
+        .occupancy-bar-fill { height: 100%; background: linear-gradient(90deg, var(--color-brand-green), #22c55e); border-radius: var(--r-full); transition: width 1s cubic-bezier(0.4,0,0.2,1); }
         .occupancy-banner-counts { display: flex; justify-content: space-between; font-size: 11px; color: var(--color-text-muted); font-weight: 600; }
+
+        /* Section Tabs */
         .stalls-section-tabs-wrap { overflow-x: auto; scrollbar-width: none; }
         .stalls-section-tabs-wrap::-webkit-scrollbar { display: none; }
         .stalls-section-tabs { display: flex; gap: 8px; min-width: max-content; }
-        .stalls-section-tab { padding: 8px 16px; border-radius: var(--r-full); border: 1.5px solid var(--color-border); background: var(--color-surface); font-size: 12px; font-weight: 700; color: var(--color-text-muted); cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.2s; white-space: nowrap; }
-        .stalls-section-tab:hover { border-color: var(--color-brand-green); color: var(--color-brand-green); }
-        .stalls-tab-active { background: var(--color-brand-green); color: #fff !important; border-color: var(--color-brand-green) !important; }
+        .stalls-section-tab { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: var(--r-full); border: 1.5px solid var(--color-border); background: var(--color-surface); font-size: 12px; font-weight: 700; color: var(--color-text-muted); cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.2s; white-space: nowrap; }
+        .stalls-section-tab:hover { border-color: currentColor; }
+        .stalls-tab-active { color: #fff !important; }
+        .tab-section-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .stalls-tab-active .tab-section-dot { background: rgba(255,255,255,0.8) !important; }
+        .tab-count { background: rgba(0,0,0,0.12); color: inherit; font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 99px; }
+        .stalls-tab-active .tab-count { background: rgba(255,255,255,0.25); }
+
+        /* Section Header */
         .stalls-section-header { display: flex; align-items: center; justify-content: space-between; margin-top: 2px; }
-        .stalls-section-name { font-size: 15px; font-weight: 800; color: var(--color-text); margin: 0; }
+        .stalls-section-name-wrap { display: flex; align-items: center; gap: 8px; }
+        .section-color-badge { font-size: 12px; font-weight: 800; padding: 4px 12px; border-radius: var(--r-full); border: 1.5px solid; }
+        .stalls-section-sub { font-size: 12px; color: var(--color-text-muted); font-weight: 500; }
         .stalls-filter-wrap { position: relative; }
-        .stalls-filter-btn { display: flex; align-items: center; gap: 6px; background: var(--color-surface); border: 1.5px solid var(--color-border); border-radius: var(--r-sm); padding: 7px 12px; font-size: 12px; font-weight: 700; color: var(--color-text-mid); cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.2s; }
+        .stalls-filter-btn { display: flex; align-items: center; gap: 6px; background: var(--color-surface); border: 1.5px solid var(--color-border); border-radius: var(--r-sm); padding: 7px 12px; font-size: 12px; font-weight: 700; color: var(--color-text-mid); cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.2s; position: relative; }
         .stalls-filter-btn:hover { border-color: var(--color-brand-green); color: var(--color-brand-green); }
-        .stalls-filter-dropdown { position: absolute; right: 0; top: calc(100% + 6px); background: var(--color-surface); border: 1.5px solid var(--color-border); border-radius: var(--r-md); box-shadow: var(--shadow-md); z-index: 50; overflow: hidden; min-width: 130px; }
+        .filter-active-dot { width: 7px; height: 7px; background: var(--color-brand-green); border-radius: 50%; position: absolute; top: 5px; right: 5px; }
+        .stalls-filter-dropdown { position: absolute; right: 0; top: calc(100% + 6px); background: var(--color-surface); border: 1.5px solid var(--color-border); border-radius: var(--r-md); box-shadow: var(--shadow-md); z-index: 50; overflow: hidden; min-width: 150px; }
         .stalls-filter-option { display: block; width: 100%; padding: 10px 14px; background: none; border: none; border-bottom: 1px solid var(--color-border-soft); font-size: 13px; font-weight: 600; color: var(--color-text-mid); text-align: left; cursor: pointer; font-family: 'Inter', sans-serif; transition: background 0.15s; }
         .stalls-filter-option:last-child { border-bottom: none; }
         .stalls-filter-option:hover { background: #f9fafb; }
         .filter-selected { color: var(--color-brand-green); background: var(--color-brand-green-light) !important; }
+
+        /* Stall Grid */
         .stalls-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
-        .stall-cell { aspect-ratio: 1; border-radius: var(--r-sm); border: 2px solid transparent; font-size: 12px; font-weight: 800; font-family: 'Inter', sans-serif; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; display: flex; align-items: center; justify-content: center; }
+        .stall-cell { aspect-ratio: 1; border-radius: var(--r-sm); border: 2px solid transparent; font-size: 11px; font-weight: 800; font-family: 'Inter', sans-serif; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2; padding: 4px; word-break: break-all; }
         .stall-cell:hover { transform: scale(1.08); box-shadow: var(--shadow-md); z-index: 2; position: relative; }
         .stall-available { background: #dcfce7; border-color: #86efac; color: #15803d; }
         .stall-occupied { background: #fed7aa; border-color: #fdba74; color: #c2410c; }
         .stall-pending { background: #fef9c3; border-color: #fde047; color: #a16207; }
-        .stalls-empty { grid-column: 1 / -1; text-align: center; color: var(--color-text-faint); font-size: 13px; padding: 24px 0; }
+        .stalls-empty { grid-column: 1 / -1; text-align: center; color: var(--color-text-faint); font-size: 13px; padding: 40px 0; }
+
+        /* Legend */
         .stalls-legend { display: flex; align-items: center; gap: 20px; justify-content: center; padding: 8px 0 4px; flex-wrap: wrap; }
         .legend-item { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: var(--color-text-muted); }
         .legend-dot { width: 14px; height: 14px; border-radius: 4px; border: 2px solid transparent; flex-shrink: 0; }
         .legend-available { background: #dcfce7; border-color: #86efac; }
         .legend-occupied { background: #fed7aa; border-color: #fdba74; }
         .legend-pending { background: #fef9c3; border-color: #fde047; }
-        .stall-modal { background: var(--color-surface); border-radius: var(--r-xl); padding: 28px 24px 24px; max-width: 320px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; box-shadow: var(--shadow-lg); animation: slide-up 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+        /* Stall Modal */
+        .stall-modal { background: var(--color-surface); border-radius: var(--r-xl); padding: 28px 24px 24px; max-width: 340px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; box-shadow: var(--shadow-lg); animation: slide-up 0.25s cubic-bezier(0.34,1.56,0.64,1); }
         .stall-modal-badge { font-size: 10px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; padding: 5px 14px; border-radius: var(--r-full); }
         .stall-modal-available { background: #dcfce7; color: #15803d; }
         .stall-modal-occupied { background: #fed7aa; color: #c2410c; }
         .stall-modal-pending { background: #fef9c3; color: #a16207; }
         .stall-modal-number { font-size: 26px; font-weight: 900; color: var(--color-text); margin: 4px 0 0; }
-        .stall-modal-section { font-size: 12px; color: var(--color-text-muted); margin: 0 0 8px; font-weight: 500; }
-        .stall-modal-info { width: 100%; background: #f9fafb; border-radius: var(--r-md); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 4px; }
+        .stall-modal-section { font-size: 12px; color: var(--color-text-muted); margin: 0 0 4px; font-weight: 500; }
+        .stall-modal-meta-row { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+        .stall-modal-meta-chip { font-size: 11px; font-weight: 600; background: #f3f4f6; color: var(--color-text-mid); padding: 4px 10px; border-radius: 99px; }
+        .stall-modal-amenities { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+        .amenity-chip { font-size: 11px; font-weight: 600; background: #eff6ff; color: #1d4ed8; padding: 4px 10px; border-radius: 99px; border: 1px solid #bfdbfe; }
+        .stall-modal-info { width: 100%; background: #f9fafb; border-radius: var(--r-md); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
         .stall-modal-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--color-text-mid); }
         .stall-modal-row strong { color: var(--color-text); font-weight: 700; }
         .stall-modal-avail { font-size: 13px; color: var(--color-text-muted); text-align: center; margin: 0 0 8px; }
         .stall-modal-close { width: 100%; padding: 12px; background: var(--color-brand-green); color: #fff; border: none; border-radius: var(--r-md); font-size: 14px; font-weight: 700; font-family: 'Inter', sans-serif; cursor: pointer; margin-top: 4px; transition: background 0.2s; }
         .stall-modal-close:hover { background: var(--color-green-mid); }
+
         @media (min-width: 640px) {
           .stalls-page-title { font-size: 24px; }
           .stalls-grid { grid-template-columns: repeat(6, 1fr); gap: 10px; }
-          .stall-cell { font-size: 13px; }
-          .stalls-occupancy-banner { padding: 20px 20px 14px; }
+          .stall-cell { font-size: 12px; }
           .occupancy-banner-pct { font-size: 22px; }
         }
         @media (min-width: 1024px) {
           .stalls-main { padding-bottom: 32px; }
-          .stalls-page-title { font-size: 26px; }
           .stalls-grid { grid-template-columns: repeat(8, 1fr); gap: 12px; }
           .stall-cell { font-size: 13px; border-radius: 10px; }
         }
