@@ -93,7 +93,7 @@ const NAV_ITEMS = [
   {
     id: 'nav-dashboard',
     label: 'Dashboard',
-    path: '/admin/dashboard',
+    path: '/contractor/dashboard',
     icon: (
       <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -106,7 +106,7 @@ const NAV_ITEMS = [
   {
     id: 'nav-stalls',
     label: 'Stalls',
-    path: '/admin/stalls',
+    path: '/contractor/stalls',
     icon: (
       <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
@@ -117,7 +117,7 @@ const NAV_ITEMS = [
   {
     id: 'nav-apps',
     label: 'Apps',
-    path: '/admin/applications',
+    path: '/contractor/applications',
     icon: (
       <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -130,7 +130,7 @@ const NAV_ITEMS = [
   {
     id: 'nav-records',
     label: 'Records',
-    path: '/admin/records',
+    path: '/contractor/records',
     icon: (
       <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <circle cx="12" cy="12" r="10" />
@@ -141,7 +141,7 @@ const NAV_ITEMS = [
   {
     id: 'nav-profile',
     label: 'Profile',
-    path: '/admin/profile',
+    path: '/contractor/profile',
     icon: (
       <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -180,7 +180,7 @@ function OccupancyRing({ percent }) {
   )
 }
 
-export default function AdminDashboard() {
+export default function ContractorDashboard() {
   const navigate = useNavigate()
   const [activeNav, setActiveNav] = useState('nav-dashboard')
   const [applications, setApplications] = useState(APPLICATIONS)
@@ -229,7 +229,7 @@ export default function AdminDashboard() {
               <LogoutIcon />
             </div>
             <h3 className="logout-modal-title">Log Out?</h3>
-            <p className="logout-modal-msg">You'll be signed out of your admin session.</p>
+            <p className="logout-modal-msg">You'll be signed out of your contractor session.</p>
             <div className="logout-modal-actions">
               <button className="logout-cancel-btn" onClick={() => setShowLogoutModal(false)}>
                 Cancel
@@ -250,7 +250,7 @@ export default function AdminDashboard() {
         </div>
         <div className="header-right">
           <div className="header-welcome">
-            <span className="welcome-name">Welcome, Admin Maria!</span>
+            <span className="welcome-name">Welcome, Contractor Maria!</span>
             <span className="welcome-role">Market Supervisor</span>
           </div>
           <button className="notif-btn" id="notif-button" aria-label="Notifications">
