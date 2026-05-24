@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCurrentUser } from '../../utils/auth';
 
@@ -62,7 +62,7 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
-]
+];
 
 const LogoutIcon = () => (
   <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -70,85 +70,45 @@ const LogoutIcon = () => (
     <polyline points="16,17 21,12 16,7" />
     <line x1="21" y1="12" x2="9" y2="12" />
   </svg>
-)
-
-const INITIAL_APPLICATIONS = [
-  {
-    id: 1,
-    name: "Jose Rizal",
-    phone: "+63 917 123 4567",
-    stall: "STALL #045",
-    stallColor: "#f97316",
-    applied: "Oct 24, 2023",
-    type: "New Vendor",
-    typeColor: "#2563eb",
-    status: "pending",
-    avatar: null,
-    initials: "JR",
-  },
-  {
-    id: 2,
-    name: "Andres Bonifacio",
-    phone: "+63 918 987 6543",
-    stall: "STALL #112",
-    stallColor: "#f97316",
-    applied: "Oct 25, 2023",
-    type: "Renewal",
-    typeColor: "#7c3aed",
-    status: "pending",
-    avatar: null,
-    initials: "AB",
-  },
-  {
-    id: 3,
-    name: "Maria Valdez",
-    phone: "+63 920 444 5555",
-    stall: "STALL #012",
-    stallColor: "#f97316",
-    applied: "Oct 26, 2023",
-    type: "Transfer",
-    typeColor: "#0891b2",
-    status: "pending",
-    avatar: null,
-    initials: "MV",
-  },
-  {
-    id: 4,
-    name: "Emilio Aguinaldo",
-    phone: "+63 922 333 4444",
-    stall: "STALL #078",
-    stallColor: "#f97316",
-    applied: "Oct 20, 2023",
-    type: "New Vendor",
-    typeColor: "#2563eb",
-    status: "approved",
-    avatar: null,
-    initials: "EA",
-  },
-  {
-    id: 5,
-    name: "Gabriela Silang",
-    phone: "+63 921 888 9999",
-    stall: "STALL #033",
-    stallColor: "#f97316",
-    applied: "Oct 18, 2023",
-    type: "Renewal",
-    typeColor: "#7c3aed",
-    status: "rejected",
-    avatar: null,
-    initials: "GS",
-  },
-];
+);
 
 const TABS = ["Pending", "Approved", "Rejected"];
 
 export default function ContractorApplication() {
   const [tab, setTab] = useState("Pending");
-  const [applications, setApplications] = useState(INITIAL_APPLICATIONS);
+  const [applications, setApplications] = useState([]);
+  const [loadingApps, setLoadingApps] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState('nav-apps');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { userName, loading: authLoading } = useCurrentUser();
+  const [processingId, setProcessingId] = useState(null);
+  const [selectedApp, setSelectedApp] = useState(null);
+  const [animating, setAnimating] = useState({});
+
+  const filteredApps = applications.filter(
+    a => a.status === tab.toLowerCase()
+  );
+
+  // ── Fetch applications on mount ──────────────────────────
+  useEffect(() => {
+    setLoadingApps(true);
+    fetch('/api/contractor/applications')
+      .then(res => {
+        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        setApplications(data);
+        setError(null);
+      })
+      .catch(err => {
+        console.error('Failed to fetch applications:', err);
+        setError('Failed to load applications. Please refresh.');
+      })
+      .finally(() => setLoadingApps(false));
+  }, []);
 
   const handleNav = (item) => {
     setActiveNav(item.id);
@@ -159,32 +119,145 @@ export default function ContractorApplication() {
     navigate('/login');
   };
 
-  const [processingId, setProcessingId] = useState(null);
-  const [selectedApp, setSelectedApp] = useState(null);
-  const [animating, setAnimating] = useState({});
-
-  const filtered = applications.filter(a => a.status === tab.toLowerCase());
-
-  const handleAction = (id, action) => {
+  // ── Approve / Reject — persists to backend ───────────────
+  const handleAction = async (id, action) => {
     setProcessingId(id);
     setAnimating(prev => ({ ...prev, [id]: action }));
-    setTimeout(() => {
+
+    try {
+      const res = await fetch(`/api/contractor/applications/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }), // "approve" | "reject"
+      });
+
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+
+      // Update UI only after backend confirms
       setApplications(prev =>
-        prev.map(a => a.id === id ? { ...a, status: action === "approve" ? "approved" : "rejected" } : a)
+        prev.map(a =>
+          a.id === id
+            ? { ...a, status: action === 'approve' ? 'approved' : 'rejected' }
+            : a
+        )
       );
+    } catch (err) {
+      console.error('Failed to update application:', err);
+      alert('Action failed. Please try again.');
+    } finally {
       setProcessingId(null);
       setAnimating(prev => {
         const next = { ...prev };
         delete next[id];
         return next;
       });
-    }, 500);
+    }
   };
 
-  const pendingCount = applications.filter(a => a.status === "pending").length;
+  const pendingCount  = applications.filter(a => a.status === "pending").length;
   const approvedCount = applications.filter(a => a.status === "approved").length;
   const rejectedCount = applications.filter(a => a.status === "rejected").length;
   const tabCounts = { Pending: pendingCount, Approved: approvedCount, Rejected: rejectedCount };
+
+  // ── Shared list renderer ─────────────────────────────────
+  const renderList = () => {
+    if (loadingApps) {
+      return (
+        <div className="no-applications">
+          <span style={{ fontSize: 32 }}>⏳</span>
+          <span>Loading applications…</span>
+        </div>
+      );
+    }
+    if (error) {
+      return (
+        <div className="no-applications" style={{ color: '#dc2626' }}>
+          <span style={{ fontSize: 32 }}>⚠️</span>
+          <span>{error}</span>
+        </div>
+      );
+    }
+    if (filteredApps.length === 0) {
+      return (
+        <div className="no-applications">
+          <span style={{ fontSize: 32 }}>
+            {tab === "Pending" ? "📋" : tab === "Approved" ? "✅" : "❌"}
+          </span>
+          <span>No {tab.toLowerCase()} applications</span>
+        </div>
+      );
+    }
+    return filteredApps.map(app => (
+      <div
+        key={app.id}
+        className={`application-row apps-row-full${
+          animating[app.id] === "approve" ? " action-approved" : ""
+        }${
+          animating[app.id] === "reject" ? " action-rejected" : ""
+        }`}
+      >
+        <div className="app-avatar">
+          <span style={{ fontSize: 15, fontWeight: 800, color: "#6b7280" }}>
+            {app.initials}
+          </span>
+        </div>
+        <div className="app-info">
+          <div className="apps-name-row">
+            <span className="app-name">{app.name}</span>
+            <span className="apps-stall-badge" style={{ background: app.stallColor }}>
+              {app.stall}
+            </span>
+          </div>
+          <span className="app-meta">{app.phone}</span>
+          <div className="apps-meta-row">
+            <span className="apps-date">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline", marginRight: 3 }}>
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              Applied: {app.applied}
+            </span>
+            <span className="app-type" style={{ color: app.typeColor }}>{app.type}</span>
+          </div>
+        </div>
+        <div className="apps-action-col">
+          {tab === "Pending" ? (
+            <>
+              <button className="apps-view-btn" onClick={() => setSelectedApp(app)}>View Details</button>
+              <div className="app-actions">
+                <button
+                  className="btn-reject"
+                  disabled={processingId === app.id}
+                  onClick={() => handleAction(app.id, "reject")}
+                  aria-label="Reject"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+                <button
+                  className="btn-approve"
+                  disabled={processingId === app.id}
+                  onClick={() => handleAction(app.id, "approve")}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  Approve
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="apps-status-row">
+              <button className="apps-view-btn" onClick={() => setSelectedApp(app)}>View Details</button>
+              <span className={`apps-status-chip apps-status-${app.status}`}>
+                {app.status === "approved" ? "✓ Approved" : "✗ Rejected"}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    ));
+  };
 
   return (
     <div className="dashboard-root">
@@ -211,13 +284,15 @@ export default function ContractorApplication() {
         </div>
         <div className="header-right">
           <div className="header-welcome">
-            <span className="welcome-name">{authLoading ? 'Loading…' : userName ? `${userName}` : 'Welcome, Guest'}</span>
+            <span className="welcome-name">
+              {authLoading ? 'Loading…' : userName ? `${userName}` : 'Welcome, Guest'}
+            </span>
             <span className="welcome-role">Market Supervisor</span>
           </div>
-
           <button className="notif-btn" aria-label="Notifications">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
             </svg>
             <span className="notif-dot"></span>
           </button>
@@ -288,85 +363,7 @@ export default function ContractorApplication() {
 
           {/* Applications List */}
           <div className="applications-list apps-list-full">
-            {filtered.length === 0 ? (
-              <div className="no-applications">
-                <span style={{ fontSize: 32 }}>
-                  {tab === "Pending" ? "📋" : tab === "Approved" ? "✅" : "❌"}
-                </span>
-                <span>No {tab.toLowerCase()} applications</span>
-              </div>
-            ) : (
-              filtered.map(app => (
-                <div
-                  key={app.id}
-                  className={`application-row apps-row-full${
-                    animating[app.id] === "approve" ? " action-approved" : ""
-                  }${
-                    animating[app.id] === "reject" ? " action-rejected" : ""
-                  }`}
-                >
-                  <div className="app-avatar">
-                    <span style={{ fontSize: 15, fontWeight: 800, color: "#6b7280" }}>
-                      {app.initials}
-                    </span>
-                  </div>
-                  <div className="app-info">
-                    <div className="apps-name-row">
-                      <span className="app-name">{app.name}</span>
-                      <span className="apps-stall-badge" style={{ background: app.stallColor }}>
-                        {app.stall}
-                      </span>
-                    </div>
-                    <span className="app-meta">{app.phone}</span>
-                    <div className="apps-meta-row">
-                      <span className="apps-date">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline", marginRight: 3 }}>
-                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-                        </svg>
-                        Applied: {app.applied}
-                      </span>
-                      <span className="app-type" style={{ color: app.typeColor }}>{app.type}</span>
-                    </div>
-                  </div>
-                  <div className="apps-action-col">
-                    {tab === "Pending" ? (
-                      <>
-                        <button className="apps-view-btn" onClick={() => setSelectedApp(app)}>View Details</button>
-                        <div className="app-actions">
-                          <button
-                            className="btn-reject"
-                            disabled={processingId === app.id}
-                            onClick={() => handleAction(app.id, "reject")}
-                            aria-label="Reject"
-                          >
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                            </svg>
-                          </button>
-                          <button
-                            className="btn-approve"
-                            disabled={processingId === app.id}
-                            onClick={() => handleAction(app.id, "approve")}
-                          >
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="20 6 9 17 4 12"/>
-                            </svg>
-                            Approve
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="apps-status-row">
-                        <button className="apps-view-btn" onClick={() => setSelectedApp(app)}>View Details</button>
-                        <span className={`apps-status-chip apps-status-${app.status}`}>
-                          {app.status === "approved" ? "✓ Approved" : "✗ Rejected"}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
+            {renderList()}
           </div>
         </main>
       </div>
