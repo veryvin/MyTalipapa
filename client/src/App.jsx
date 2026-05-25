@@ -7,8 +7,7 @@ import ContractorRecords from './pages/Contractor/ContractorRecords'
 import ContractorApplications from './pages/Contractor/ContractorApplications'
 import ContractorStalls from './pages/Contractor/ContractorStalls'
 import ContractorProfile from './pages/Contractor/ContractorProfile'
-import RenterDashboard from './pages/Renter/RenterDashboard'
-import MarketTour360 from './pages/MarketTour360'
+import RenterLayout from './pages/Renter/RenterLayout'
 
 export default function App() {
   return (
@@ -23,9 +22,7 @@ export default function App() {
         <Route path="/contractor/applications" element={<ContractorApplications />} />
         <Route path="/contractor/stalls" element={<ContractorStalls />} />
         <Route path="/contractor/*" element={<ContractorDashboard />} />
-        <Route path="/renter/dashboard" element={<RenterDashboard />} />
-        <Route path="/renter/market-tour" element={<MarketTour360 />} />
-        <Route path="/renter/*" element={<RenterDashboard />} />
+        <Route path="/renter/*" element={<RenterLayout />} />
       </Routes>
     </BrowserRouter>
   )

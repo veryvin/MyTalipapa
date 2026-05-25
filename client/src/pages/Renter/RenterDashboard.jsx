@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import {
   Bell,
   LogOut,
-  Home,
-  Map,
   Store,
   FileText,
   User,
@@ -12,14 +10,14 @@ import {
   CheckCircle,
   XCircle,
   MessageSquare,
-  Menu,
   Phone,
-  Mail
+  Mail,
+  Globe,
+  Camera
 } from 'lucide-react'
 
 export default function RenterDashboard() {
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState('home')
 
   const [currentUser] = useState(() => {
     try {
@@ -39,29 +37,27 @@ export default function RenterDashboard() {
     monthlyRate: '₱3,500',
     status: 'Active',
     leaseStart: 'Nov 01, 2025',
-    leaseEnd: 'Nov 01, 2026'
+    leaseEnd: 'Nov 01, 2026',
   }
 
   const applications = [
-    { id: 'app-1', stall: '#045', section: 'Produce Section B', date: 'Oct 25, 2025', status: 'Approved', fee: '₱3,500/mo' },
-    { id: 'app-2', stall: '#012', section: 'Meat & Poultry Section A', date: 'Oct 24, 2025', status: 'Rejected', fee: '₱4,200/mo' }
+    { id: 'app-1', stall: '#045', section: 'Produce Section B',        date: 'Oct 25, 2025', status: 'Approved', fee: '₱3,500/mo' },
+    { id: 'app-2', stall: '#012', section: 'Meat & Poultry Section A', date: 'Oct 24, 2025', status: 'Rejected', fee: '₱4,200/mo' },
   ]
 
   const alerts = [
-    { id: 'alert-1', type: 'info', message: 'Market cleanup is scheduled for next Monday. Stall operations will start at 9:00 AM.', date: 'May 22, 2026' },
-    { id: 'alert-2', type: 'warning', message: 'Please ensure compliance with standard waste disposal regulations in Produce Section B.', date: 'May 20, 2026' }
+    { id: 'alert-1', type: 'info',    message: 'Market cleanup is scheduled for next Monday. Stall operations will start at 9:00 AM.', date: 'May 22, 2026' },
+    { id: 'alert-2', type: 'warning', message: 'Please ensure compliance with standard waste disposal regulations in Produce Section B.', date: 'May 20, 2026' },
   ]
 
   const appStats = {
-    pending: applications.filter(a => a.status === 'Pending').length || 3,
+    pending:  applications.filter(a => a.status === 'Pending').length  || 3,
     approved: applications.filter(a => a.status === 'Approved').length || 12,
-    rejected: applications.filter(a => a.status === 'Rejected').length || 1
+    rejected: applications.filter(a => a.status === 'Rejected').length || 1,
   }
 
   useEffect(() => {
-    if (!currentUser) {
-      navigate('/login')
-    }
+    if (!currentUser) navigate('/login')
   }, [currentUser, navigate])
 
   const handleLogout = () => {
@@ -75,87 +71,73 @@ export default function RenterDashboard() {
   const firstName = currentUser?.full_name?.split(' ')[0] || 'Juan'
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-100 font-sans">
+    <div className="flex flex-col flex-1 overflow-hidden h-full">
 
-      {/* ── TOP NAVBAR ── */}
-      <header className="bg-white sticky top-0 z-40 border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-          {/* Hamburger (mobile) + Brand */}
-          <div className="flex items-center gap-3">
-            <button className="md:hidden text-gray-500 hover:text-gray-800 cursor-pointer">
-              <Menu size={20} />
-            </button>
-            <span className="text-lg font-extrabold text-gray-900 tracking-tight">MyTalipapa</span>
-          </div>
-
-          {/* Right: greeting (desktop) + bell */}
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex flex-col text-right">
-              <span className="text-xs font-bold text-gray-800">Hello, {firstName}!</span>
-              <span className="text-[10px] text-gray-400">Stall Owner</span>
+      {/* ── TOP HEADER ── */}
+      <header className="bg-white border-b border-gray-100 px-4 md:px-6 py-3.5 flex items-center justify-between sticky top-0 z-30 shrink-0">
+        <div className="flex items-center gap-3">
+          {/* Mobile logo */}
+          <div className="md:hidden flex items-center gap-2">
+            <div className="w-7 h-7 bg-[#1a5c2a] rounded-lg flex items-center justify-center">
+              <Store size={13} color="white" />
             </div>
-            <button className="relative p-2 rounded-full hover:bg-gray-100 cursor-pointer text-gray-600">
-              <Bell size={20} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
-            <button
-              onClick={handleLogout}
-              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-red-600 hover:bg-red-50 transition-all cursor-pointer"
-            >
-              <LogOut size={14} /> Logout
-            </button>
+            <span className="font-extrabold text-gray-900 text-sm">MyTalipapa</span>
           </div>
+          {/* Desktop breadcrumb */}
+          <div className="hidden md:flex items-center gap-1 text-sm text-gray-400">
+            <span>Renter</span>
+            <ChevronRight size={14} />
+            <span className="text-gray-700 font-semibold">Home</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:flex flex-col text-right">
+            <span className="text-xs font-bold text-gray-800">Hello, {firstName}!</span>
+            <span className="text-[10px] text-gray-400">Stall Owner</span>
+          </div>
+          <button className="relative p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors">
+            <Bell size={18} />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
+          </button>
+          <button
+            onClick={handleLogout}
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-red-500 hover:bg-red-50 transition-all"
+          >
+            <LogOut size={13} /> Logout
+          </button>
         </div>
       </header>
 
-      {/* ── MAIN SCROLL AREA ── */}
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-5 space-y-5 pb-24 md:pb-8">
+      {/* ── SCROLLABLE CONTENT ── */}
+      <main className="flex-1 overflow-y-auto pb-20 md:pb-6 px-4 md:px-6 py-5 space-y-5">
 
-        {/* Mobile greeting */}
-        <div className="sm:hidden">
+        {/* Greeting */}
+        <div>
           <p className="text-base font-bold text-gray-900">Hello, {firstName}!</p>
           <p className="text-xs text-gray-400">Welcome back to your market dashboard.</p>
         </div>
 
-        {/* Desktop greeting */}
-        <div className="hidden sm:block">
-          <p className="text-lg font-bold text-gray-900">Hello, {firstName}!</p>
-          <p className="text-xs text-gray-400">Welcome back to your market dashboard.</p>
-        </div>
-
-        {/* ── ACTION BUTTONS: 360 Tour + Find Stall AR ── */}
+        {/* ── ACTION BUTTONS ── */}
         <div className="grid grid-cols-2 gap-3">
-          {/* View 360° Market Tour */}
           <button
             onClick={() => navigate('/renter/market-tour')}
-            className="flex flex-col items-center justify-center gap-2 rounded-2xl py-6 px-4 text-white font-bold text-sm cursor-pointer hover:opacity-90 transition-all"
+            className="flex flex-col items-center justify-center gap-2 rounded-2xl py-6 px-4 text-white font-bold text-sm hover:opacity-90 transition-all"
             style={{ backgroundColor: '#1a5c2a' }}
           >
             <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-              {/* 360 icon */}
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0" />
-                <path d="M3.6 9h16.8M3.6 15h16.8" />
-                <path d="M11.5 3a17 17 0 0 0 0 18M12.5 3a17 17 0 0 1 0 18" />
-              </svg>
+              <Globe size={20} />
             </div>
             <span className="text-center leading-tight">View 360° Market Tour</span>
           </button>
 
-          {/* Find Stall via AR */}
           <button
             onClick={() => navigate('/renter/ar-finder')}
-            className="flex flex-col items-center justify-center gap-2 rounded-2xl py-6 px-4 text-white font-bold text-sm cursor-pointer hover:opacity-90 transition-all"
+            className="flex flex-col items-center justify-center gap-2 rounded-2xl py-6 px-4 text-white font-bold text-sm hover:opacity-90 transition-all"
             style={{ backgroundColor: '#e07b00' }}
           >
             <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-              {/* AR / camera icon */}
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M2 8V6a2 2 0 0 1 2-2h2" /><path d="M2 16v2a2 2 0 0 0 2 2h2" />
-                <path d="M22 8V6a2 2 0 0 0-2-2h-2" /><path d="M22 16v2a2 2 0 0 1-2 2h-2" />
-                <circle cx="12" cy="12" r="4" />
-                <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-              </svg>
+              <Camera size={20} />
             </div>
             <span className="text-center leading-tight">Find Stall via AR</span>
           </button>
@@ -165,21 +147,16 @@ export default function RenterDashboard() {
         <div>
           <h2 className="text-sm font-bold text-gray-800 mb-3">Applications Overview</h2>
           <div className="grid grid-cols-3 gap-3">
-            {/* Pending */}
-            <div className="bg-white rounded-2xl py-4 px-3 flex flex-col items-center shadow-sm border border-gray-100">
-              <span className="text-2xl font-extrabold text-gray-800">{appStats.pending}</span>
-              <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide mt-0.5">Pending</span>
-            </div>
-            {/* Approved */}
-            <div className="bg-white rounded-2xl py-4 px-3 flex flex-col items-center shadow-sm border border-gray-100">
-              <span className="text-2xl font-extrabold text-gray-800">{appStats.approved}</span>
-              <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide mt-0.5">Approved</span>
-            </div>
-            {/* Rejected */}
-            <div className="bg-white rounded-2xl py-4 px-3 flex flex-col items-center shadow-sm border border-gray-100">
-              <span className="text-2xl font-extrabold text-red-500">{appStats.rejected}</span>
-              <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide mt-0.5">Rejected</span>
-            </div>
+            {[
+              { label: 'Pending',  value: appStats.pending,  color: 'text-gray-800' },
+              { label: 'Approved', value: appStats.approved, color: 'text-gray-800' },
+              { label: 'Rejected', value: appStats.rejected, color: 'text-red-500'  },
+            ].map(s => (
+              <div key={s.label} className="bg-white rounded-2xl py-4 px-3 flex flex-col items-center shadow-sm border border-gray-100">
+                <span className={`text-2xl font-extrabold ${s.color}`}>{s.value}</span>
+                <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide mt-0.5">{s.label}</span>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -187,12 +164,9 @@ export default function RenterDashboard() {
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-bold text-gray-800">Market News</h2>
-            <button className="text-xs font-bold text-green-700 hover:text-green-900 cursor-pointer">View All</button>
+            <button className="text-xs font-bold text-[#1a5c2a] hover:text-[#14451f]">View All</button>
           </div>
-
-          {/* News Card */}
           <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
-            {/* Market image */}
             <div className="relative w-full" style={{ paddingBottom: '42%' }}>
               <img
                 src="https://images.unsplash.com/photo-1533900298318-6b8da08a523e?w=800&q=80"
@@ -203,16 +177,13 @@ export default function RenterDashboard() {
                   e.target.parentElement.style.background = 'linear-gradient(135deg,#1a5c2a,#2f7a40)'
                 }}
               />
-              {/* Arrow button */}
               <button
-                className="absolute right-3 bottom-3 w-9 h-9 rounded-full flex items-center justify-center text-white cursor-pointer hover:opacity-90 transition-all shadow-md"
+                className="absolute right-3 bottom-3 w-9 h-9 rounded-full flex items-center justify-center text-white shadow-md hover:opacity-90 transition-all"
                 style={{ backgroundColor: '#1a5c2a' }}
               >
                 <ChevronRight size={18} />
               </button>
             </div>
-
-            {/* News content */}
             <div className="px-4 py-4">
               <div className="flex items-center gap-2 mb-2">
                 <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider text-white" style={{ backgroundColor: '#e07b00' }}>
@@ -228,7 +199,7 @@ export default function RenterDashboard() {
           </div>
         </div>
 
-        {/* ── ACTIVE STALL LEASE ── (extra info below the fold) */}
+        {/* ── ACTIVE STALL LEASE ── */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -244,33 +215,26 @@ export default function RenterDashboard() {
               {activeStall.status}
             </span>
           </div>
-
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-gray-50 rounded-xl p-3">
-              <p className="text-[9px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Stall No.</p>
-              <p className="text-base font-extrabold text-gray-800">{activeStall.stallNumber}</p>
-            </div>
-            <div className="bg-gray-50 rounded-xl p-3">
-              <p className="text-[9px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Section</p>
-              <p className="text-xs font-extrabold text-gray-800 truncate">{activeStall.section}</p>
-            </div>
-            <div className="bg-gray-50 rounded-xl p-3">
-              <p className="text-[9px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Monthly Rent</p>
-              <p className="text-base font-extrabold text-green-800">{activeStall.monthlyRate}</p>
-            </div>
-            <div className="bg-gray-50 rounded-xl p-3">
-              <p className="text-[9px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Expiry</p>
-              <p className="text-xs font-extrabold text-red-500">{activeStall.leaseEnd}</p>
-            </div>
+            {[
+              { label: 'Stall No.',    value: activeStall.stallNumber, cls: 'text-base font-extrabold text-gray-800' },
+              { label: 'Section',      value: activeStall.section,     cls: 'text-xs font-extrabold text-gray-800 truncate' },
+              { label: 'Monthly Rent', value: activeStall.monthlyRate, cls: 'text-base font-extrabold text-green-800' },
+              { label: 'Expiry',       value: activeStall.leaseEnd,    cls: 'text-xs font-extrabold text-red-500' },
+            ].map(cell => (
+              <div key={cell.label} className="bg-gray-50 rounded-xl p-3">
+                <p className="text-[9px] text-gray-400 font-semibold uppercase tracking-wider mb-1">{cell.label}</p>
+                <p className={cell.cls}>{cell.value}</p>
+              </div>
+            ))}
           </div>
-
           <div className="mt-4 pt-4 border-t border-gray-50">
             <div className="flex justify-between text-xs text-gray-400 mb-1.5">
               <span className="font-semibold">Lease Progress</span>
               <span>Started {activeStall.leaseStart}</span>
             </div>
             <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-              <div className="h-full rounded-full" style={{ width: '58%', backgroundColor: '#1a5c2a' }}></div>
+              <div className="h-full rounded-full bg-[#1a5c2a]" style={{ width: '58%' }} />
             </div>
           </div>
         </div>
@@ -287,11 +251,10 @@ export default function RenterDashboard() {
                 <p className="text-[10px] text-gray-400">Applications submitted for market leases</p>
               </div>
             </div>
-            <button className="text-[11px] font-bold text-green-700 hover:text-green-900 flex items-center gap-0.5 cursor-pointer">
+            <button className="text-[11px] font-bold text-[#1a5c2a] hover:text-[#14451f] flex items-center gap-0.5">
               Apply <ChevronRight size={13} />
             </button>
           </div>
-
           <div className="overflow-x-auto -mx-1">
             <table className="w-full min-w-[420px] text-left text-xs border-collapse">
               <thead>
@@ -313,9 +276,7 @@ export default function RenterDashboard() {
                     <td className="py-3 px-1 font-bold text-gray-800">{app.fee}</td>
                     <td className="py-3 px-1">
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                        app.status === 'Approved'
-                          ? 'bg-green-50 text-green-700'
-                          : 'bg-red-50 text-red-500'
+                        app.status === 'Approved' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-500'
                       }`}>
                         {app.status === 'Approved' ? <CheckCircle size={9} /> : <XCircle size={9} />}
                         {app.status}
@@ -328,7 +289,7 @@ export default function RenterDashboard() {
           </div>
         </div>
 
-                {/* ── MARKET ALERTS ── */}
+        {/* ── MARKET ALERTS ── */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -350,80 +311,41 @@ export default function RenterDashboard() {
           </div>
         </div>
 
-                {/* ── PROFILE DETAILS ── */}
+        {/* ── PROFILE DETAILS ── */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
           <h3 className="text-sm font-bold text-gray-800 mb-4 border-b border-gray-100 pb-3">Stallholder Profile Details</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-gray-100 text-gray-500 rounded-xl shrink-0"><User size={15} /></div>
-              <div className="min-w-0">
-                <p className="text-[9px] text-gray-400 font-bold uppercase">Full Name</p>
-                <p className="text-xs font-semibold text-gray-800 truncate">{currentUser?.full_name}</p>
+            {[
+              { icon: User,  label: 'Full Name', value: currentUser?.full_name },
+              { icon: Mail,  label: 'Email',     value: currentUser?.email },
+              { icon: Phone, label: 'Contact',   value: currentUser?.contact_number || 'N/A' },
+            ].map(row => (
+              <div key={row.label} className="flex items-center gap-3">
+                <div className="p-2 bg-gray-100 text-gray-500 rounded-xl shrink-0">
+                  <row.icon size={15} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[9px] text-gray-400 font-bold uppercase">{row.label}</p>
+                  <p className="text-xs font-semibold text-gray-800 truncate">{row.value}</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-gray-100 text-gray-500 rounded-xl shrink-0"><Mail size={15} /></div>
-              <div className="min-w-0">
-                <p className="text-[9px] text-gray-400 font-bold uppercase">Email</p>
-                <p className="text-xs font-semibold text-gray-800 truncate">{currentUser?.email}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-gray-100 text-gray-500 rounded-xl shrink-0"><Phone size={15} /></div>
-              <div className="min-w-0">
-                <p className="text-[9px] text-gray-400 font-bold uppercase">Contact</p>
-                <p className="text-xs font-semibold text-gray-800 truncate">{currentUser?.contact_number || 'N/A'}</p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
+
+        {/* Desktop footer */}
+        <footer className="hidden md:block border-t border-gray-200 pt-5 mt-2">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-gray-400">
+            <p>© 2026 MyTalipapa Market Management. All rights reserved.</p>
+            <div className="flex gap-5">
+              <a href="#" className="hover:text-gray-600 transition-all">Support Desk</a>
+              <a href="#" className="hover:text-gray-600 transition-all">Market Terms</a>
+              <a href="#" className="hover:text-gray-600 transition-all">Privacy Policy</a>
+            </div>
+          </div>
+        </footer>
 
       </main>
-
-      {/* ── MOBILE BOTTOM TAB BAR ── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
-        <div className="grid grid-cols-5 h-16">
-          {[
-            { id: 'home', icon: Home, label: 'Home' },
-            { id: 'navigate', icon: Map, label: 'Navigate' },
-            { id: 'stalls', icon: Store, label: 'Stalls' },
-            { id: 'applications', icon: FileText, label: 'Applications' },
-            { id: 'profile', icon: User, label: 'Profile' }
-          ].map(tab => {
-            const isActive = activeTab === tab.id
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className="flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all"
-              >
-                <div className={`p-1.5 rounded-xl transition-all ${isActive ? 'bg-orange-500' : ''}`}>
-                  <tab.icon
-                    size={18}
-                    className={isActive ? 'text-white' : 'text-gray-400'}
-                  />
-                </div>
-                <span className={`text-[9px] font-bold ${isActive ? 'text-gray-800' : 'text-gray-400'}`}>
-                  {tab.label}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      </nav>
-
-      {/* ── DESKTOP FOOTER ── */}
-      <footer className="hidden md:block bg-white border-t border-gray-200 py-5 mt-4">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-gray-400">
-          <p>© 2026 MyTalipapa Market Management. All rights reserved.</p>
-          <div className="flex gap-5">
-            <a href="#" className="hover:text-gray-600 transition-all">Support Desk</a>
-            <a href="#" className="hover:text-gray-600 transition-all">Market Terms</a>
-            <a href="#" className="hover:text-gray-600 transition-all">Privacy Policy</a>
-          </div>
-        </div>
-      </footer>
-
     </div>
   )
 }
