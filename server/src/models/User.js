@@ -9,6 +9,7 @@ const UserSchema = new mongoose.Schema(
     passwordHash: { type: String, required: true },
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'approved' },
     agreed: { type: Boolean, default: false },
+    profilePicture: { type: String, default: null },
   },
   { timestamps: true }
 );

@@ -68,6 +68,8 @@ router.post('/register', async (req, res) => {
         email: user.email,
         full_name: user.full_name,
         role: user.role,
+        profilePicture: user.profilePicture || null,
+        contact_number: user.contact_number || '',
       },
       token,               // client will store this in localStorage
       message: 'Account created',
@@ -191,6 +193,8 @@ router.post('/contractor/register-application', async (req, res) => {
         full_name: userRecord.full_name,
         role: userRecord.role,
         status: userRecord.status,
+        profilePicture: userRecord.profilePicture || null,
+        contact_number: userRecord.contact_number || '',
       }
     });
   } catch (err) {
@@ -248,12 +252,77 @@ router.post('/login', async (req, res) => {
         full_name: user.full_name,
         role: user.role,
         status: user.status || 'approved',
+        profilePicture: user.profilePicture || null,
+        contact_number: user.contact_number || '',
       },
       token,
     });
 
   } catch (err) {
     console.error('Login error:', err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ---------------------------------------------------
+// GET /api/profile
+// ---------------------------------------------------
+router.get('/profile', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized. No token provided.' });
+  }
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'mytalipapa-secret-key-12345');
+    const user = await User.findById(decoded.id).select('-passwordHash');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+    return res.status(200).json(user);
+  } catch (err) {
+    console.error('Fetch profile error:', err);
+    return res.status(401).json({ error: 'Unauthorized. Invalid token.' });
+  }
+});
+
+// ---------------------------------------------------
+// PUT /api/profile
+// ---------------------------------------------------
+router.put('/profile', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized. No token provided.' });
+  }
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'mytalipapa-secret-key-12345');
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    const { full_name, contact_number, profilePicture } = req.body;
+    if (full_name) user.full_name = full_name;
+    if (contact_number) user.contact_number = contact_number;
+    if (profilePicture !== undefined) user.profilePicture = profilePicture;
+
+    await user.save();
+
+    return res.status(200).json({
+      message: 'Profile updated successfully',
+      user: {
+        id: user._id,
+        email: user.email,
+        full_name: user.full_name,
+        contact_number: user.contact_number,
+        role: user.role,
+        status: user.status,
+        profilePicture: user.profilePicture,
+      }
+    });
+  } catch (err) {
+    console.error('Update profile error:', err);
     return res.status(500).json({ error: 'Server error' });
   }
 });

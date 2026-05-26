@@ -1,7 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { ChevronRight, Store } from "lucide-react";
 import { useCurrentUser, getUser } from '../../utils/auth';
 import ContractorLockScreen from './ContractorLockScreen';
+import ContractorSidebar from '../../components/ContractorSidebar';
 
 const NAV_ITEMS = [
   {
@@ -190,7 +192,7 @@ export default function ContractorStalls() {
 
   return (
     <ContractorLockScreen>
-      <div className="dashboard-root">
+      <div className="flex h-screen bg-[#f5f5f0] font-sans overflow-hidden w-full">
       {/* Logout Modal */}
       {showLogoutModal && (
         <div className="logout-overlay" onClick={() => setShowLogoutModal(false)}>
@@ -206,54 +208,43 @@ export default function ContractorStalls() {
         </div>
       )}
 
-      {/* Header */}
-      <header className="dashboard-header">
-        <div className="header-logo">
-          <span className="logo-icon">🏪</span>
-          <span className="logo-text">MyTalipapa</span>
-        </div>
-        <div className="header-right">
-          <div className="header-welcome">
-            <span className="welcome-name">{authLoading ? 'Loading…' : userName ? `${userName}` : 'Welcome, Guest'}</span>
-            <span className="welcome-role">Market Supervisor</span>
-          </div>
-          <button className="notif-btn" aria-label="Notifications">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
-            <span className="notif-dot"></span>
-          </button>
-          <button className="header-logout-btn" aria-label="Log out" onClick={() => setShowLogoutModal(true)}>
-            <LogoutIcon />
-          </button>
-        </div>
-      </header>
+      {/* Sidebar */}
+      <ContractorSidebar active="nav-stalls" />
 
-      <div className="dashboard-body">
-        {/* Sidebar */}
-        <nav className="sidebar-nav" aria-label="Sidebar Navigation">
-          {NAV_ITEMS.map(item => (
-            <button
-              key={item.id}
-              className={`sidebar-nav-item ${activeNav === item.id ? 'nav-active' : ''}`}
-              onClick={() => handleNav(item)}
-            >
-              <span className="nav-icon">{item.icon}</span>
-              <span className="nav-label">{item.label}</span>
-            </button>
-          ))}
-          <div className="sidebar-logout-spacer" />
-          <button className="sidebar-nav-item sidebar-logout-item" onClick={() => setShowLogoutModal(true)}>
-            <span className="nav-icon">
-              <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16,17 21,12 16,7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        {/* Header */}
+        <header className="bg-white border-b border-gray-100 px-4 md:px-6 py-3.5 flex items-center justify-between sticky top-0 z-30 shrink-0">
+          <div className="flex items-center gap-3">
+            {/* Mobile logo */}
+            <div className="md:hidden flex items-center gap-2">
+              <div className="w-7 h-7 bg-[#1a5c2a] rounded-lg flex items-center justify-center shrink-0">
+                <Store size={13} color="white" />
+              </div>
+              <span className="font-extrabold text-gray-900 text-sm">MyTalipapa</span>
+            </div>
+            {/* Desktop breadcrumb */}
+            <div className="hidden md:flex items-center gap-1 text-sm text-gray-400">
+              <span>Contractor</span>
+              <ChevronRight size={14} />
+              <span className="text-gray-700 font-semibold">Stalls</span>
+            </div>
+          </div>
+          <div className="header-right">
+            <div className="header-welcome">
+              <span className="welcome-name">{authLoading ? 'Loading…' : userName ? `${userName}` : 'Welcome, Guest'}</span>
+              <span className="welcome-role">Contractor</span>
+            </div>
+            <button className="notif-btn" aria-label="Notifications">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
               </svg>
-            </span>
-            <span className="nav-label">Log Out</span>
-          </button>
-        </nav>
+              <span className="notif-dot"></span>
+            </button>
+            <button className="header-logout-btn" aria-label="Log out" onClick={() => setShowLogoutModal(true)}>
+              <LogoutIcon />
+            </button>
+          </div>
+        </header>
 
         <main className="dashboard-main stalls-main">
           <div className="stalls-title-block">
