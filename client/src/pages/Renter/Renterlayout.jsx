@@ -3,7 +3,8 @@
  * Shell that owns activeTab + sidebarCollapsed state and renders
  * whichever page the nav points to.
  */
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Home, Map, Store, FileText, User, LogOut } from 'lucide-react'
 
 import RenterDashboard    from './RenterDashboard'
@@ -11,6 +12,8 @@ import RenterStalls       from './RenterStalls'
 import StallDetails       from './StallDetails'
 import RenterApplications from './RenterApplications'
 import Renterprofile      from './Renterprofile'
+import MarketTour360      from '../MarketTour360'
+import ArFinder           from './ArFinder'
 
 const NAV_ITEMS = [
   { id: 'home',         label: 'Home',         Icon: Home     },
@@ -24,9 +27,16 @@ const NAV_ITEMS = [
 function Sidebar({ active, setActive, collapsed, setCollapsed, onLogout }) {
   return (
     <aside
-      className={`hidden md:flex flex-col bg-white border-r border-gray-100 h-screen sticky top-0 transition-all duration-300 shrink-0 ${
-        collapsed ? 'w-16' : 'w-56'
-      }`}
+      onMouseEnter={() => {
+        console.log('[Sidebar] Mouse Entered - Expanding')
+        setCollapsed(false)
+      }}
+      onMouseLeave={() => {
+        console.log('[Sidebar] Mouse Left - Collapsing')
+        setCollapsed(true)
+      }}
+      className="hidden md:flex flex-col bg-white border-r border-gray-100 h-screen sticky top-0 transition-all duration-300 shrink-0"
+      style={{ width: collapsed ? '4rem' : '14rem' }}
     >
       <div className={`flex items-center gap-2 px-4 py-5 border-b border-gray-100 ${collapsed ? 'justify-center' : ''}`}>
         <div className="w-8 h-8 bg-[#1a5c2a] rounded-lg flex items-center justify-center shrink-0">
@@ -65,17 +75,6 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, onLogout }) {
             {!collapsed && 'Logout'}
           </button>
         )}
-        <button
-          onClick={() => setCollapsed((c) => !c)}
-          className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-gray-400 hover:bg-gray-50 hover:text-gray-700 text-xs font-medium transition-all ${collapsed ? 'justify-center' : ''}`}
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            {collapsed
-              ? <path d="M13 17l5-5-5-5M6 17l5-5-5-5" />
-              : <path d="M11 17l-5-5 5-5M18 17l-5-5 5-5" />}
-          </svg>
-          {!collapsed && 'Collapse'}
-        </button>
       </div>
     </aside>
   )
@@ -119,15 +118,24 @@ function PlaceholderPage({ label }) {
 
 /* ── Layout shell ────────────────────────────────────────────── */
 export default function RenterLayout() {
+  const location = useLocation()
+  const routerNavigate = useNavigate()
   const [activeTab,        setActiveTab]        = useState('home')
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
   const [selectedStall,    setSelectedStall]    = useState(null)
 
   /* useCallback keeps navigate stable — never undefined on re-renders */
   const navigate = useCallback((tab) => {
     setActiveTab(tab)
     if (tab !== 'stalls') setSelectedStall(null)
-  }, [])
+    
+    // Redirect to the corresponding route
+    if (tab === 'home') routerNavigate('/renter/dashboard')
+    else if (tab === 'navigate') routerNavigate('/renter/market-tour')
+    else if (tab === 'stalls') routerNavigate('/renter/stalls')
+    else if (tab === 'applications') routerNavigate('/renter/applications')
+    else if (tab === 'profile') routerNavigate('/renter/profile')
+  }, [routerNavigate])
 
   const openStallDetail = useCallback((stall) => {
     setSelectedStall(stall)
@@ -140,23 +148,58 @@ export default function RenterLayout() {
     window.location.href = '/login'
   }
 
+  // Synchronize layout active tabs with route path changes
+  useEffect(() => {
+    console.log('[RenterLayout] location.pathname changed to:', location.pathname)
+    if (location.pathname.includes('market-tour') || location.pathname.includes('navigate')) {
+      setActiveTab('navigate')
+    } else if (location.pathname.includes('ar-finder')) {
+      setActiveTab('ar-finder')
+    } else if (location.pathname.includes('stalls')) {
+      setActiveTab('stalls')
+    } else if (location.pathname.includes('applications')) {
+      setActiveTab('applications')
+    } else if (location.pathname.includes('profile')) {
+      setActiveTab('profile')
+    } else if (location.pathname.includes('home') || location.pathname.includes('dashboard')) {
+      setActiveTab('home')
+    }
+  }, [location.pathname])
+
   const renderPage = () => {
+    console.log('[RenterLayout] Rendering page. activeTab =', activeTab, 'pathname =', location.pathname)
+    // Check for special routes like market-tour
+    if (location.pathname.includes('market-tour')) {
+      console.log('[RenterLayout] pathname contains market-tour, rendering MarketTour360')
+      return <MarketTour360 />
+    }
+    // Check for AR Finder route
+    if (location.pathname.includes('ar-finder')) {
+      console.log('[RenterLayout] pathname contains ar-finder, rendering ArFinder')
+      return <ArFinder onBack={() => routerNavigate('/renter/dashboard')} />
+    }
+
     switch (activeTab) {
       case 'home':
-        return <RenterDashboard onNavigate={navigate} onOpenStall={openStallDetail} />
+        console.log('[RenterLayout] rendering RenterDashboard')
+        return RenterDashboard ? <RenterDashboard onNavigate={navigate} onOpenStall={openStallDetail} /> : <PlaceholderPage label="Home" />
 
       case 'stalls':
+        console.log('[RenterLayout] rendering RenterStalls or StallDetails')
         return selectedStall
           ? <StallDetails stall={selectedStall} onBack={() => setSelectedStall(null)} onNavigate={navigate} />
           : <RenterStalls onNavigate={navigate} onOpenStall={openStallDetail} />
 
       case 'applications':
+        console.log('[RenterLayout] rendering RenterApplications')
         return <RenterApplications onNavigate={navigate} />
 
       case 'navigate':
-        return <PlaceholderPage label="Navigate" />
+        console.log('[RenterLayout] rendering MarketTour360')
+        return <MarketTour360 />
 
       case 'profile':
+        console.log('[RenterLayout] rendering Renterprofile')
         return <Renterprofile onNavigate={navigate} onLogout={handleLogout} />
 
       default:

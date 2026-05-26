@@ -95,7 +95,12 @@ const stallData = {
 
 // --- Sidebar (reused from parent) ---
 const Sidebar = ({ active, setActive, collapsed, setCollapsed }) => (
-  <aside className={`hidden md:flex flex-col bg-white border-r border-gray-100 h-screen sticky top-0 transition-all duration-300 ${collapsed ? "w-16" : "w-56"} shrink-0`}>
+  <aside
+    onMouseEnter={() => setCollapsed(false)}
+    onMouseLeave={() => setCollapsed(true)}
+    className="hidden md:flex flex-col bg-white border-r border-gray-100 h-screen sticky top-0 transition-all duration-300 shrink-0"
+    style={{ width: collapsed ? '4rem' : '14rem' }}
+  >
     <div className={`flex items-center gap-2 px-4 py-5 border-b border-gray-100 ${collapsed ? "justify-center" : ""}`}>
       <div className="w-8 h-8 bg-[#2d6a2d] rounded-lg flex items-center justify-center shrink-0">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
@@ -118,17 +123,6 @@ const Sidebar = ({ active, setActive, collapsed, setCollapsed }) => (
         </button>
       ))}
     </nav>
-    <div className="p-3 border-t border-gray-100">
-      <button
-        onClick={() => setCollapsed(c => !c)}
-        className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-gray-400 hover:bg-gray-50 hover:text-gray-700 text-xs font-medium transition-all ${collapsed ? "justify-center" : ""}`}
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          {collapsed ? <path d="M13 17l5-5-5-5M6 17l5-5-5-5"/> : <path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/>}
-        </svg>
-        {!collapsed && "Collapse"}
-      </button>
-    </div>
   </aside>
 );
 
@@ -150,16 +144,22 @@ const BottomBar = ({ active, setActive }) => (
 );
 
 // --- Stall Detail Page ---
-export default function StallDetail() {
+export default function StallDetail({ stall = stallData, onBack, onNavigate }) {
   const [activeNav, setActiveNav] = useState("stalls");
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const stall = stallData;
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+
+  const handleNavClick = (path) => {
+    setActiveNav(path);
+    if (onNavigate) {
+      onNavigate(path);
+    }
+  };
 
   return (
     <div className="flex h-screen bg-[#f5f5f0] font-sans overflow-hidden">
       <Sidebar
         active={activeNav}
-        setActive={setActiveNav}
+        setActive={handleNavClick}
         collapsed={sidebarCollapsed}
         setCollapsed={setSidebarCollapsed}
       />
@@ -170,7 +170,12 @@ export default function StallDetail() {
           <div className="flex items-center gap-1 text-sm text-gray-400">
             <span>Market</span>
             <ChevronRightIcon />
-            <span>Stalls</span>
+            <span
+              className="cursor-pointer hover:text-gray-600 transition-colors"
+              onClick={onBack}
+            >
+              Stalls
+            </span>
             <ChevronRightIcon />
             <span className="text-gray-700 font-medium">Stall #{stall.id}</span>
           </div>
@@ -192,7 +197,10 @@ export default function StallDetail() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
             {/* Top bar */}
             <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-4">
-              <button className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow text-gray-700">
+              <button
+                onClick={onBack}
+                className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow text-gray-700"
+              >
                 <ArrowLeftIcon />
               </button>
               <span className="font-semibold text-white text-sm drop-shadow">Stall #{stall.id}</span>
@@ -346,11 +354,17 @@ export default function StallDetail() {
 
           {/* CTA Buttons */}
           <div className="space-y-2.5 pt-1">
-            <button className="w-full py-3 rounded-xl border-2 border-[#2d6a2d] text-[#2d6a2d] text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[#edf5ed] transition-colors">
+            <button
+              onClick={() => handleNavClick("navigate")}
+              className="w-full py-3 rounded-xl border-2 border-[#2d6a2d] text-[#2d6a2d] text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[#edf5ed] transition-colors"
+            >
               <TourIcon />
               View in 360° Tour
             </button>
-            <button className="w-full py-3 rounded-xl bg-[#e87722] hover:bg-[#d06618] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors shadow-sm">
+            <button
+              onClick={() => handleNavClick("applications")}
+              className="w-full py-3 rounded-xl bg-[#e87722] hover:bg-[#d06618] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors shadow-sm"
+            >
               <InquiryIcon />
               Send Rental Inquiry
             </button>
@@ -358,7 +372,7 @@ export default function StallDetail() {
         </div>
       </main>
 
-      <BottomBar active={activeNav} setActive={setActiveNav} />
+      <BottomBar active={activeNav} setActive={handleNavClick} />
     </div>
   );
 }
