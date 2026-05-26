@@ -6,9 +6,10 @@
 import { useState } from 'react'
 import { Home, Map, Store, FileText, User, LogOut } from 'lucide-react'
 
-import RenterDashboard from './RenterDashboard'
-import RenterStalls    from './RenterStalls'
-import StallDetails    from './StallDetails'
+import RenterDashboard     from './RenterDashboard'
+import RenterStalls        from './RenterStalls'
+import StallDetails        from './StallDetails'
+import RenterApplications  from './RenterApplications'
 
 const NAV_ITEMS = [
   { id: 'home',         label: 'Home',         Icon: Home     },
@@ -153,16 +154,21 @@ export default function RenterLayout() {
     switch (activeTab) {
       case 'home':
         return <RenterDashboard onNavigate={navigate} onOpenStall={openStallDetail} />
+
       case 'stalls':
         return selectedStall
           ? <StallDetails stall={selectedStall} onBack={() => setSelectedStall(null)} onNavigate={navigate} />
           : <RenterStalls onNavigate={navigate} onOpenStall={openStallDetail} />
+
+      case 'applications':
+        return <RenterApplications onNavigate={navigate} />
+
       case 'navigate':
         return <PlaceholderPage label="Navigate" />
-      case 'applications':
-        return <PlaceholderPage label="Applications" />
+
       case 'profile':
         return <PlaceholderPage label="Profile" />
+
       default:
         return <PlaceholderPage label={activeTab} />
     }
