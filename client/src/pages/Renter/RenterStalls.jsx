@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 // --- Icons ---
 const Icon = ({ d, size = 20, className = "" }) => (
@@ -35,15 +35,6 @@ const stallImages = {
   veggies: "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&h=200&fit=crop",
 };
 
-const stalls = [
-  { id: "042", zone: "A", category: "Produce", status: "available", size: 12.5, price: 3200, img: stallImages.produce },
-  { id: "089", zone: "D", category: "Fruits", status: "occupied", size: 15.0, price: 4500, img: stallImages.fruits },
-  { id: "112", zone: "C", category: "Seafood", status: "available", size: 10.0, price: 2800, img: stallImages.seafood },
-  { id: "055", zone: "A", category: "Dry Goods", status: "available", size: 12.5, price: 3200, img: stallImages.dryGoods },
-  { id: "031", zone: "B", category: "Meat", status: "occupied", size: 18.0, price: 5100, img: stallImages.meat },
-  { id: "077", zone: "B", category: "Vegetables", status: "available", size: 9.5, price: 2500, img: stallImages.veggies },
-];
-
 // --- Card ---
 const StatusBadge = ({ status }) => (
   <span className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -53,42 +44,90 @@ const StatusBadge = ({ status }) => (
   </span>
 );
 
-const StallCard = ({ stall }) => (
-  <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
-    <div className="relative h-36">
-      <img src={stall.img} className="w-full h-full object-cover" />
-      <StatusBadge status={stall.status} />
-    </div>
+const getStallImage = (section) => {
+  const sec = (section || "").toLowerCase();
+  if (sec.includes("fish") || sec.includes("sea")) return stallImages.seafood;
+  if (sec.includes("meat")) return stallImages.meat;
+  if (sec.includes("veg") || sec.includes("produce")) return stallImages.veggies;
+  if (sec.includes("fruit")) return stallImages.fruits;
+  return stallImages.dryGoods;
+};
 
-    <div className="p-3">
-      <p className="font-bold">#{stall.id}</p>
-      <p className="text-xs text-gray-500">{stall.zone} · {stall.category}</p>
+const StallCard = ({ stall, onClick }) => {
+  const displayId = stall.stallNumber || stall.id || stall._id?.toString() || "";
+  const displayCategory = stall.section || stall.category || "";
+  const isVegetable = displayCategory.toLowerCase().includes("veg");
+  const displayZone = isVegetable
+    ? "Zone C"
+    : (stall.floorArea ? (stall.floorArea === 'upper' ? 'Upper Floor' : 'Lower Floor') : (stall.zone ? `Zone ${stall.zone}` : ""));
+  const displaySize = stall.size || 12;
+  const displayPrice = stall.monthlyRate || stall.price || 0;
+  const displayImg = stall.img || getStallImage(stall.section || stall.category);
 
-      <div className="text-xs text-gray-500 mt-2">
-        {stall.size} sqm · ₱{stall.price}/mo
+  return (
+    <div 
+      onClick={onClick}
+      className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 transition-all duration-200 hover:shadow-md hover:scale-[1.01] cursor-pointer"
+    >
+      <div className="relative h-36">
+        <img src={displayImg} className="w-full h-full object-cover" />
+        <StatusBadge status={stall.status} />
+      </div>
+
+      <div className="p-3">
+        <p className="font-bold text-gray-900">Stall #{displayId}</p>
+        <p className="text-xs text-gray-500">{displayZone} · {displayCategory}</p>
+
+        <div className="text-xs font-semibold text-gray-700 mt-2">
+          {displaySize} sqm · ₱{displayPrice.toLocaleString()}/mo
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 // --- MAIN ---
-export default function ContractorStalls() {
+export default function RenterStalls({ onNavigate, onOpenStall }) {
+  const [stalls, setStalls] = useState([]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
 
-  const filters = ["All", "Available", "Occupied", "Zone A", "Zone B", "Zone C", "Zone D"];
+  useEffect(() => {
+    fetch("/api/contractor/stalls")
+      .then((res) => res.json())
+      .then((data) => setStalls(data))
+      .catch(() => {
+        // Mock data fallback
+        setStalls([
+          { id: "042", zone: "A", category: "Produce", status: "available", size: 12.5, price: 3200, img: stallImages.produce },
+          { id: "089", zone: "D", category: "Fruits", status: "occupied", size: 15.0, price: 4500, img: stallImages.fruits },
+          { id: "112", zone: "C", category: "Seafood", status: "available", size: 10.0, price: 2800, img: stallImages.seafood },
+          { id: "055", zone: "A", category: "Dry Goods", status: "available", size: 12.5, price: 3200, img: stallImages.dryGoods },
+          { id: "031", zone: "B", category: "Meat", status: "occupied", size: 18.0, price: 5100, img: stallImages.meat },
+          { id: "077", zone: "B", category: "Vegetables", status: "available", size: 9.5, price: 2500, img: stallImages.veggies },
+        ]);
+      });
+  }, []);
+
+  const filters = ["All", "Available", "Occupied", "Zone A", "Zone B", "Zone C"];
 
   const filtered = stalls.filter((s) => {
+    const stallCategory = s.category || s.section || "";
+    const isVegetable = stallCategory.toLowerCase().includes("veg");
+    const stallZone = isVegetable
+      ? 'C'
+      : (s.zone || (s.floorArea === 'upper' ? 'A' : (s.floorArea === 'lower' ? 'B' : 'A')));
+
     const matchSearch =
-      s.id.includes(search) ||
-      s.zone.toLowerCase().includes(search.toLowerCase()) ||
-      s.category.toLowerCase().includes(search.toLowerCase());
+      (s.stallNumber || s.id || "").toString().toLowerCase().includes(search.toLowerCase()) ||
+      stallZone.toLowerCase().includes(search.toLowerCase()) ||
+      stallCategory.toLowerCase().includes(search.toLowerCase());
 
     const matchFilter =
       filter === "All" ||
       (filter === "Available" && s.status === "available") ||
       (filter === "Occupied" && s.status === "occupied") ||
-      filter === `Zone ${s.zone}`;
+      filter === `Zone ${stallZone}`;
 
     return matchSearch && matchFilter;
   });
@@ -150,9 +189,9 @@ export default function ContractorStalls() {
 
         {/* Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((stall) => (
-            <StallCard key={stall.id} stall={stall} />
-          ))}
+      {filtered.map((stall) => (
+        <StallCard key={stall.id || stall._id} stall={stall} onClick={() => onOpenStall && onOpenStall(stall)} />
+      ))}
         </div>
 
       </main>

@@ -132,47 +132,69 @@ const Sidebar = ({ active, setActive, collapsed, setCollapsed }) => (
   </aside>
 );
 
-// --- Mobile Bottom Bar ---
-const BottomBar = ({ active, setActive }) => (
-  <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex items-center justify-around px-2 py-2 z-50">
-    {navItems.map(item => (
-      <button
-        key={item.path}
-        onClick={() => setActive(item.path)}
-        className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-all ${active === item.path ? "text-[#2d6a2d]" : "text-gray-400"}`}
-      >
-        <span>{item.icon}</span>
-        <span className="text-[10px] font-medium">{item.label}</span>
-        {active === item.path && <span className="w-1 h-1 rounded-full bg-[#2d6a2d]" />}
-      </button>
-    ))}
-  </nav>
-);
+const stallImages = {
+  produce: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&h=400&fit=crop",
+  fruits: "https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=800&h=400&fit=crop",
+  seafood: "https://images.unsplash.com/photo-1534482421-64566f976cfa?w=800&h=400&fit=crop",
+  dryGoods: "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=800&h=400&fit=crop",
+  meat: "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=800&h=400&fit=crop",
+  veggies: "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&h=400&fit=crop",
+};
+
+const getStallImage = (section) => {
+  const sec = (section || "").toLowerCase();
+  if (sec.includes("fish") || sec.includes("sea")) return stallImages.seafood;
+  if (sec.includes("meat")) return stallImages.meat;
+  if (sec.includes("veg") || sec.includes("produce")) return stallImages.veggies;
+  if (sec.includes("fruit")) return stallImages.fruits;
+  return stallImages.dryGoods;
+};
 
 // --- Stall Detail Page ---
-export default function StallDetail() {
-  const [activeNav, setActiveNav] = useState("stalls");
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const stall = stallData;
+export default function StallDetail({ stall: passedStall, onBack, onNavigate, onInquiry }) {
+  const displayStall = passedStall || stallData;
+  const displayId = displayStall.stallNumber || displayStall.id || "";
+  const displaySection = displayStall.section || displayStall.category || "General Section";
+  const displayZone = (displayStall.section || displayStall.category || "").toLowerCase().includes("veg")
+    ? "Zone C"
+    : (displayStall.floorArea ? (displayStall.floorArea === 'upper' ? 'Upper Floor' : 'Lower Floor') : (displayStall.zone ? `Zone ${displayStall.zone}` : "Zone A"));
+  const displaySize = displayStall.size || 12;
+  const displayPrice = displayStall.monthlyRate || displayStall.price || 0;
+  const displayImg = displayStall.img || getStallImage(displayStall.section || displayStall.category);
+  const displayDescription = displayStall.description || `This premium stall is situated in the ${displaySection}, offering high foot traffic from early morning shoppers. Its prime location ensures maximum visibility from the central walkway.`;
+  const status = displayStall.status || "available";
+
+  const amenitiesList = [
+    { label: "Water Supply", icon: <WaterIcon />, color: "text-[#2d6a2d] bg-[#edf5ed] border-[#c3dfc3]" },
+    { label: "220V Outlets", icon: <PowerIcon />, color: "text-amber-700 bg-amber-50 border-amber-200" },
+    { label: "Waste Management", icon: <WasteIcon />, color: "text-sky-700 bg-sky-50 border-sky-200" },
+  ];
+
+  const activeAmenities = (displayStall.amenities && displayStall.amenities.length > 0)
+    ? amenitiesList.filter(a => displayStall.amenities.includes(a.label))
+    : amenitiesList; // default/all if none specified
+
+  const floorGrid = [
+    ["038", "039", "040", "041"],
+    ["043", displayId, "044", "045"],
+    ["046", "047", "048", "049"],
+  ];
 
   return (
-    <div className="flex h-screen bg-[#f5f5f0] font-sans overflow-hidden">
-      <Sidebar
-        active={activeNav}
-        setActive={setActiveNav}
-        collapsed={sidebarCollapsed}
-        setCollapsed={setSidebarCollapsed}
-      />
-
-      <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
+    <div className="flex-1 flex flex-col overflow-hidden bg-[#f5f5f0] font-sans">
+      <main className="flex-1 overflow-y-auto pb-24 md:pb-6">
         {/* Desktop Top Header */}
-        <header className="hidden md:flex bg-white border-b border-gray-100 px-6 py-4 items-center justify-between sticky top-0 z-30">
-          <div className="flex items-center gap-1 text-sm text-gray-400">
+        <header className="hidden md:flex bg-white border-b border-gray-100 px-6 py-4 items-center justify-between sticky top-0 z-30 shadow-sm">
+          <div className="flex items-center gap-3 text-sm text-gray-400">
+            <button onClick={onBack} className="flex items-center gap-1 text-[#2d6a2d] font-bold hover:underline transition-all">
+              <ArrowLeftIcon /> Back
+            </button>
+            <span>/</span>
             <span>Market</span>
             <ChevronRightIcon />
             <span>Stalls</span>
             <ChevronRightIcon />
-            <span className="text-gray-700 font-medium">Stall #{stall.id}</span>
+            <span className="text-gray-700 font-medium font-bold">Stall #{displayId}</span>
           </div>
           <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
             <ShareIcon />
@@ -184,26 +206,28 @@ export default function StallDetail() {
           {/* Hero Image */}
           <div className="relative h-52 w-full overflow-hidden">
             <img
-              src={stall.img}
-              alt={stall.section}
+              src={displayImg}
+              alt={displaySection}
               className="w-full h-full object-cover"
               onError={e => { e.target.src = "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=800&h=400&fit=crop"; }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
             {/* Top bar */}
             <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-4">
-              <button className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow text-gray-700">
+              <button onClick={onBack} className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow text-gray-700 active:scale-90 transition-transform">
                 <ArrowLeftIcon />
               </button>
-              <span className="font-semibold text-white text-sm drop-shadow">Stall #{stall.id}</span>
+              <span className="font-semibold text-white text-sm drop-shadow">Stall #{displayId}</span>
               <button className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow text-gray-700">
                 <ShareIcon />
               </button>
             </div>
             {/* Available badge */}
             <div className="absolute top-4 right-4 mt-10">
-              <span className="bg-[#2d6a2d] text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow">
-                Available
+              <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow text-white ${
+                status === "available" ? "bg-[#2d6a2d]" : status === "occupied" ? "bg-red-600" : "bg-amber-600"
+              }`}>
+                {status}
               </span>
             </div>
           </div>
@@ -212,15 +236,15 @@ export default function StallDetail() {
           <div className="bg-white rounded-t-3xl -mt-4 relative px-4 pt-4 pb-4 shadow-sm">
             <div className="flex items-start justify-between mb-1">
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Stall #{stall.id}</h1>
+                <h1 className="text-xl font-bold text-gray-900">Stall #{displayId}</h1>
                 <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
-                  <span>{stall.section}</span>
+                  <span>{displaySection}</span>
                 </div>
               </div>
               <div className="text-right">
                 <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Monthly Rate</p>
-                <p className="text-xl font-bold text-gray-900">₱{stall.monthlyRate.toLocaleString()}</p>
+                <p className="text-xl font-bold text-[#2d6a2d]">₱{displayPrice.toLocaleString()}</p>
               </div>
             </div>
           </div>
@@ -230,15 +254,17 @@ export default function StallDetail() {
         <div className="hidden md:block px-6 pt-5">
           <div className="relative rounded-2xl overflow-hidden h-56 w-full shadow-sm">
             <img
-              src={stall.img}
-              alt={stall.section}
+              src={displayImg}
+              alt={displaySection}
               className="w-full h-full object-cover"
               onError={e => { e.target.src = "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=800&h=400&fit=crop"; }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
             <div className="absolute top-3 right-3">
-              <span className="bg-[#2d6a2d] text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow">
-                Available
+              <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow text-white ${
+                status === "available" ? "bg-[#2d6a2d]" : status === "occupied" ? "bg-red-600" : "bg-amber-600"
+              }`}>
+                {status}
               </span>
             </div>
           </div>
@@ -248,27 +274,26 @@ export default function StallDetail() {
         <div className="hidden md:block px-6 pt-4">
           <div className="bg-white rounded-2xl px-5 py-4 border border-gray-100 shadow-sm flex items-start justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Stall #{stall.id}</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Stall #{displayId}</h1>
               <div className="flex items-center gap-1 text-sm text-gray-500 mt-0.5">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
-                <span>{stall.section}</span>
+                <span>{displaySection}</span>
               </div>
             </div>
             <div className="text-right">
               <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Monthly Rate</p>
-              <p className="text-2xl font-bold text-gray-900">₱{stall.monthlyRate.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-[#2d6a2d]">₱{displayPrice.toLocaleString()}</p>
             </div>
           </div>
         </div>
 
         {/* Shared body content */}
         <div className="px-4 md:px-6 pt-3 pb-4 space-y-3">
-
           {/* Description */}
           <div className="bg-white rounded-2xl px-4 py-4 border border-gray-100 shadow-sm">
             <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1.5">Description</p>
             <p className="text-sm text-gray-600 leading-relaxed">
-              {stall.description.split("high foot traffic").map((part, i, arr) =>
+              {displayDescription.split("high foot traffic").map((part, i, arr) =>
                 i < arr.length - 1
                   ? <span key={i}>{part}<strong className="text-gray-900 font-semibold">high foot traffic</strong></span>
                   : <span key={i}>{part}</span>
@@ -283,8 +308,8 @@ export default function StallDetail() {
                 <ZoneIcon />
               </div>
               <div>
-                <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Zone</p>
-                <p className="text-sm font-bold text-gray-900">{stall.zone}</p>
+                <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Floor / Zone</p>
+                <p className="text-sm font-bold text-gray-900">{displayZone}</p>
               </div>
             </div>
             <div className="bg-white rounded-2xl px-4 py-3.5 border border-gray-100 shadow-sm flex items-center gap-3">
@@ -293,7 +318,7 @@ export default function StallDetail() {
               </div>
               <div>
                 <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Size</p>
-                <p className="text-sm font-bold text-gray-900">{stall.size} sqm</p>
+                <p className="text-sm font-bold text-gray-900">{displaySize} sqm</p>
               </div>
             </div>
           </div>
@@ -302,7 +327,7 @@ export default function StallDetail() {
           <div className="bg-white rounded-2xl px-4 py-4 border border-gray-100 shadow-sm">
             <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-2.5">Stall Amenities</p>
             <div className="flex flex-wrap gap-2">
-              {stall.amenities.map(a => (
+              {activeAmenities.map(a => (
                 <span
                   key={a.label}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border ${a.color}`}
@@ -324,7 +349,7 @@ export default function StallDetail() {
                     <div
                       key={cell}
                       className={`h-10 flex items-center justify-center rounded-lg text-xs font-semibold transition-all ${
-                        cell === stall.id
+                        cell === displayId
                           ? "bg-[#e87722] text-white shadow-sm scale-105"
                           : "bg-gray-100 text-gray-400"
                       }`}
@@ -336,29 +361,59 @@ export default function StallDetail() {
               ))}
             </div>
             <div className="flex items-center justify-between mt-3">
-              <p className="text-[10px] text-gray-400">Section: Meat (Zone C)</p>
+              <p className="text-[10px] text-gray-400">Section: {displaySection} ({displayZone})</p>
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-sm bg-[#e87722]" />
-                <span className="text-[10px] text-gray-500">Your Selection</span>
+                <span className="text-[10px] text-gray-500 font-semibold">Your Selection</span>
               </div>
             </div>
           </div>
 
           {/* CTA Buttons */}
           <div className="space-y-2.5 pt-1">
-            <button className="w-full py-3 rounded-xl border-2 border-[#2d6a2d] text-[#2d6a2d] text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[#edf5ed] transition-colors">
+            <button className="w-full py-3 rounded-xl border-2 border-[#2d6a2d] text-[#2d6a2d] text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[#edf5ed] transition-all duration-200">
               <TourIcon />
               View in 360° Tour
             </button>
-            <button className="w-full py-3 rounded-xl bg-[#e87722] hover:bg-[#d06618] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors shadow-sm">
-              <InquiryIcon />
-              Send Rental Inquiry
-            </button>
+            {status === "occupied" ? (
+              <button
+                disabled
+                className="w-full py-3 rounded-xl bg-gray-300 text-gray-500 text-sm font-semibold flex items-center justify-center gap-2 cursor-not-allowed shadow-none"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                Stall is Occupied (Unavailable)
+              </button>
+            ) : (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  console.log("Send Rental Inquiry button clicked inside StallDetail!");
+                  console.log("onInquiry prop value is:", onInquiry);
+                  console.log("displayStall is:", displayStall);
+                  
+                  if (onInquiry) {
+                    onInquiry(displayStall);
+                  } else {
+                    console.warn("onInquiry prop was not provided! Executing manual fallback tab transition...");
+                    if (onNavigate) {
+                      onNavigate('applications');
+                    } else {
+                      console.error("No navigation handler available.");
+                    }
+                  }
+                }}
+                className="w-full py-3 rounded-xl bg-[#e87722] hover:bg-[#d06618] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 shadow-sm active:scale-[0.99]"
+              >
+                <InquiryIcon />
+                Send Rental Inquiry
+              </button>
+            )}
           </div>
         </div>
       </main>
-
-      <BottomBar active={activeNav} setActive={setActiveNav} />
     </div>
   );
 }

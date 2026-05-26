@@ -7,27 +7,13 @@
  *   onNavigate(tab) – from RenterLayout
  *   onLogout()      – from RenterLayout
  */
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Bell, User, ChevronRight, ExternalLink,
   LogOut, Shield, Bell as BellIcon,
   ShoppingBag, Calendar, CheckCircle, Edit,
 } from 'lucide-react'
-
-/* ── Static mock data ────────────────────────────────────────── */
-const USER = {
-  name:       'Ricardo "Ric" Santos',
-  avatar:     'https://randomuser.me/api/portraits/men/32.jpg',
-  verified:   true,
-}
-
-const RENTAL = {
-  section:     'Dry Goods Section – Block A',
-  stallNumber: '#A-142',
-  monthlyRate: '₱4,500',
-  nextDue:     'Oct 15, 2023',
-  status:      'ACTIVE',
-}
+import { getUser } from '../../utils/auth'
 
 /* ── Section header label ────────────────────────────────────── */
 function SectionLabel({ children }) {
@@ -67,12 +53,102 @@ function RowDivider() {
 /* ── Main component ──────────────────────────────────────────── */
 export default function RenterProfile({ onLogout }) {
   const [loggingOut, setLoggingOut] = useState(false)
+  const [activeRental, setActiveRental] = useState(null)
+  const [loadingRental, setLoadingRental] = useState(true)
+
+  const currentUser = getUser() || {}
+
+  useEffect(() => {
+    const user = getUser();
+    if (!user || !user.email) {
+      setLoadingRental(false);
+      return;
+    }
+
+    fetch('/api/contractor/stalls')
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch stalls');
+        return res.json();
+      })
+      .then(stalls => {
+        // Direct search: Find any stall where status is occupied and the tenant email matches the logged-in user
+        const myStall = stalls.find(s => 
+          s.status === 'occupied' && 
+          s.tenant && 
+          s.tenant.email && 
+          s.tenant.email.toLowerCase() === user.email.toLowerCase()
+        );
+
+        if (myStall) {
+          // Calculate next due date (30 days from leaseStart)
+          let dueDateStr = 'Next Month';
+          if (myStall.tenant.leaseStart) {
+            const baseDate = new Date(myStall.tenant.leaseStart);
+            baseDate.setDate(baseDate.getDate() + 30);
+            dueDateStr = baseDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+          }
+
+          setActiveRental({
+            stallNumber: `Stall #${myStall.stallNumber}`,
+            section: `${myStall.section} Section`,
+            monthlyRate: myStall.monthlyRate ? `₱${myStall.monthlyRate.toLocaleString()}` : '₱4,500',
+            nextDue: dueDateStr,
+            status: 'ACTIVE'
+          });
+          setLoadingRental(false);
+        } else {
+          // Fallback: Check approved applications in case the stall's tenant field wasn't updated yet
+          const emailParam = `?email=${encodeURIComponent(user.email)}`;
+          fetch(`/api/renter/applications${emailParam}`)
+            .then(res => res.json())
+            .then(apps => {
+              const approved = apps.find(a => a.status?.toLowerCase() === 'approved');
+              if (approved) {
+                const cleanNum = (approved.preferredStall || "").replace(/\D/g, '');
+                const stallObj = stalls.find(s => (s.stallNumber === cleanNum || s.stallNumber === approved.preferredStall));
+                
+                let dueDateStr = 'Next Month';
+                if (approved.reviewedAt || approved.appliedAt) {
+                  const baseDate = new Date(approved.reviewedAt || approved.appliedAt);
+                  baseDate.setDate(baseDate.getDate() + 30);
+                  dueDateStr = baseDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                }
+
+                setActiveRental({
+                  stallNumber: stallObj ? `Stall #${stallObj.stallNumber}` : approved.preferredStall,
+                  section: stallObj ? `${stallObj.section} Section` : (approved.intendedBusinessUse ? `${approved.intendedBusinessUse} Section` : 'General Section'),
+                  monthlyRate: stallObj?.monthlyRate ? `₱${stallObj.monthlyRate.toLocaleString()}` : '₱4,500',
+                  nextDue: dueDateStr,
+                  status: 'ACTIVE'
+                });
+              } else {
+                setActiveRental(null);
+              }
+              setLoadingRental(false);
+            })
+            .catch(() => {
+              setActiveRental(null);
+              setLoadingRental(false);
+            });
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching profile lease details:', err);
+        setLoadingRental(false);
+      });
+  }, []);
 
   const handleLogout = () => {
     setLoggingOut(true)
     setTimeout(() => {
       onLogout?.()
     }, 600)
+  }
+
+  // Generate fallback name initials for avatar
+  const getInitials = (name) => {
+    if (!name) return 'R';
+    return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
   }
 
   return (
@@ -96,12 +172,16 @@ export default function RenterProfile({ onLogout }) {
         <div className="flex flex-col items-center pt-8 pb-5 px-4">
           {/* Avatar with edit badge */}
           <div className="relative mb-3">
-            <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-md">
-              <img
-                src={USER.avatar}
-                alt={USER.name}
-                className="w-full h-full object-cover"
-              />
+            <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-md bg-gray-200 flex items-center justify-center text-gray-500 font-extrabold text-xl">
+              {currentUser.avatar ? (
+                <img
+                  src={currentUser.avatar}
+                  alt={currentUser.full_name || currentUser.name || 'User'}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span>{getInitials(currentUser.full_name || currentUser.name)}</span>
+              )}
             </div>
             {/* Green edit dot */}
             <div className="absolute bottom-0.5 right-0.5 w-6 h-6 bg-[#1a5c2a] rounded-full border-2 border-white flex items-center justify-center">
@@ -111,16 +191,26 @@ export default function RenterProfile({ onLogout }) {
 
           {/* Name */}
           <h1 className="text-lg font-extrabold text-gray-900 text-center leading-tight">
-            {USER.name}
+            {currentUser.full_name || currentUser.name || 'Renter Account'}
           </h1>
 
-          {/* Verified badge */}
-          {USER.verified && (
-            <div className="flex items-center gap-1 mt-1.5 bg-[#1a5c2a] text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full">
-              <CheckCircle size={10} />
-              Verified Renter
-            </div>
+          {/* Email Address */}
+          <p className="text-xs text-gray-400 text-center mt-1">
+            {currentUser.email || 'renter@mytalipapa.com'}
+          </p>
+
+          {/* Contact number */}
+          {currentUser.contact_number && (
+            <p className="text-[11px] text-gray-400 text-center mt-0.5">
+              {currentUser.contact_number}
+            </p>
           )}
+
+          {/* Verified badge */}
+          <div className="flex items-center gap-1 mt-3 bg-[#1a5c2a] text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full">
+            <CheckCircle size={10} />
+            Verified Renter
+          </div>
 
           {/* Edit Profile button */}
           <button className="mt-4 bg-[#1a5c2a] hover:bg-[#154d23] active:scale-[0.98] text-white text-sm font-bold px-8 py-2.5 rounded-xl transition-all duration-200 shadow-sm">
@@ -149,33 +239,45 @@ export default function RenterProfile({ onLogout }) {
         </div>
 
         {/* ── Active Rental Info card ── */}
-        <div className="mx-4 md:mx-6 mt-5 bg-[#e8621a] rounded-2xl p-4 relative overflow-hidden">
-          {/* ACTIVE badge */}
-          <span className="absolute top-3.5 right-3.5 bg-white/25 text-white text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-full">
-            {RENTAL.status}
-          </span>
+        {activeRental ? (
+          <div className="mx-4 md:mx-6 mt-5 bg-[#e8621a] rounded-2xl p-4 relative overflow-hidden shadow-sm">
+            {/* ACTIVE badge */}
+            <span className="absolute top-3.5 right-3.5 bg-white/25 text-white text-[9px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full">
+              {activeRental.status}
+            </span>
 
-          <p className="text-white font-extrabold text-sm mb-0.5">Active Rental Info</p>
-          <p className="text-white/75 text-[11px] mb-4">{RENTAL.section}</p>
+            <p className="text-white font-extrabold text-sm mb-0.5">Active Rental Info</p>
+            <p className="text-white/75 text-[11px] mb-4">{activeRental.section}</p>
 
-          {/* Stall + Rate fields */}
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            <div className="bg-white/20 rounded-xl px-3 py-2.5">
-              <p className="text-white/70 text-[9px] font-bold uppercase tracking-wider mb-0.5">Stall Number</p>
-              <p className="text-white font-extrabold text-sm">{RENTAL.stallNumber}</p>
+            {/* Stall + Rate fields */}
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div className="bg-white/20 rounded-xl px-3 py-2.5">
+                <p className="text-white/70 text-[9px] font-bold uppercase tracking-wider mb-0.5">Stall Number</p>
+                <p className="text-white font-extrabold text-sm">{activeRental.stallNumber}</p>
+              </div>
+              <div className="bg-white/20 rounded-xl px-3 py-2.5">
+                <p className="text-white/70 text-[9px] font-bold uppercase tracking-wider mb-0.5">Monthly Rate</p>
+                <p className="text-white font-extrabold text-sm">{activeRental.monthlyRate}</p>
+              </div>
             </div>
-            <div className="bg-white/20 rounded-xl px-3 py-2.5">
-              <p className="text-white/70 text-[9px] font-bold uppercase tracking-wider mb-0.5">Monthly Rate</p>
-              <p className="text-white font-extrabold text-sm">{RENTAL.monthlyRate}</p>
+
+            {/* Next payment due */}
+            <div className="flex items-center gap-1.5 text-white/90 text-[11px] font-semibold">
+              <Calendar size={12} />
+              Next payment due: <span className="font-extrabold">{activeRental.nextDue}</span>
             </div>
           </div>
-
-          {/* Next payment due */}
-          <div className="flex items-center gap-1.5 text-white/90 text-[11px] font-semibold">
-            <Calendar size={12} />
-            Next payment due: <span className="font-extrabold">{RENTAL.nextDue}</span>
+        ) : !loadingRental && (
+          <div className="mx-4 md:mx-6 mt-5 bg-white border border-gray-100 rounded-2xl p-5 text-center shadow-sm">
+            <div className="w-12 h-12 bg-[#edf5ed] rounded-full flex items-center justify-center mx-auto mb-3">
+              <ShoppingBag size={20} className="text-[#1a5c2a]" />
+            </div>
+            <p className="font-bold text-gray-800 text-sm">No Active Lease</p>
+            <p className="text-xs text-gray-400 mt-1 max-w-xs mx-auto">
+              Once your stall rental inquiry is approved by the contractor, your active rental lease info will appear here.
+            </p>
           </div>
-        </div>
+        )}
 
         {/* ── Logout button ── */}
         <div className="mx-4 md:mx-6 mt-4 mb-2">

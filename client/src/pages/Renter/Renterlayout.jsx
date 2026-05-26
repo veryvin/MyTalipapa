@@ -12,6 +12,14 @@ import StallDetails       from './StallDetails'
 import RenterApplications from './RenterApplications'
 import Renterprofile      from './Renterprofile'
 
+const LogoutIcon = () => (
+  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+    <polyline points="16,17 21,12 16,7"/>
+    <line x1="21" y1="12" x2="9" y2="12"/>
+  </svg>
+)
+
 const NAV_ITEMS = [
   { id: 'home',         label: 'Home',         Icon: Home     },
   { id: 'navigate',     label: 'Navigate',     Icon: Map      },
@@ -81,6 +89,7 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, onLogout }) {
   )
 }
 
+
 /* ── Mobile bottom tab bar ───────────────────────────────────── */
 function BottomBar({ active, setActive }) {
   return (
@@ -122,11 +131,14 @@ export default function RenterLayout() {
   const [activeTab,        setActiveTab]        = useState('home')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [selectedStall,    setSelectedStall]    = useState(null)
+  const [prefillStall,     setPrefillStall]     = useState(null)
+  const [showLogout,       setShowLogout]       = useState(false)
 
   /* useCallback keeps navigate stable — never undefined on re-renders */
   const navigate = useCallback((tab) => {
     setActiveTab(tab)
     if (tab !== 'stalls') setSelectedStall(null)
+    if (tab !== 'applications') setPrefillStall(null)
   }, [])
 
   const openStallDetail = useCallback((stall) => {
@@ -146,18 +158,39 @@ export default function RenterLayout() {
         return <RenterDashboard onNavigate={navigate} onOpenStall={openStallDetail} />
 
       case 'stalls':
+        const getBusinessUseFromSection = (section) => {
+          const sec = (section || "").toLowerCase();
+          if (sec.includes("fish") || sec.includes("sea")) return "Fishes";
+          if (sec.includes("meat")) return "Meat";
+          if (sec.includes("veg") || sec.includes("produce") || sec.includes("fruit")) return "Vegetables";
+          return "";
+        };
+
         return selectedStall
-          ? <StallDetails stall={selectedStall} onBack={() => setSelectedStall(null)} onNavigate={navigate} />
+          ? (
+            <StallDetails 
+              stall={selectedStall} 
+              onBack={() => setSelectedStall(null)} 
+              onNavigate={navigate} 
+              onInquiry={(stall) => {
+                setPrefillStall({ 
+                  preferredStall: `Stall #${stall.stallNumber || stall.id}`,
+                  intendedBusinessUse: getBusinessUseFromSection(stall.section || stall.category)
+                })
+                setActiveTab('applications')
+              }}
+            />
+          )
           : <RenterStalls onNavigate={navigate} onOpenStall={openStallDetail} />
 
       case 'applications':
-        return <RenterApplications onNavigate={navigate} />
+        return <RenterApplications onNavigate={navigate} prefill={prefillStall} />
 
       case 'navigate':
         return <PlaceholderPage label="Navigate" />
 
       case 'profile':
-        return <Renterprofile onNavigate={navigate} onLogout={handleLogout} />
+        return <Renterprofile onNavigate={navigate} onLogout={() => setShowLogout(true)} />
 
       default:
         return <PlaceholderPage label={activeTab} />
@@ -171,7 +204,7 @@ export default function RenterLayout() {
         setActive={navigate}
         collapsed={sidebarCollapsed}
         setCollapsed={setSidebarCollapsed}
-        onLogout={handleLogout}
+        onLogout={() => setShowLogout(true)}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -179,6 +212,21 @@ export default function RenterLayout() {
       </div>
 
       <BottomBar active={activeTab} setActive={navigate} />
+
+      {/* ── Logout Modal ── */}
+      {showLogout && (
+        <div className="logout-overlay" onClick={() => setShowLogout(false)}>
+          <div className="logout-modal" onClick={e => e.stopPropagation()}>
+            <div className="logout-modal-icon"><LogoutIcon /></div>
+            <h3 className="logout-modal-title">Log Out?</h3>
+            <p className="logout-modal-msg">You'll be signed out of your renter session.</p>
+            <div className="logout-modal-actions">
+              <button className="logout-cancel-btn" onClick={() => setShowLogout(false)}>Cancel</button>
+              <button className="logout-confirm-btn" id="confirm-logout" onClick={handleLogout}>Yes, Log Out</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

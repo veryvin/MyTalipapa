@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const authRoutes = require('./routes/auth');
 const contractorRoutes = require('./routes/contractor');
+const renterRoutes = require('./routes/renter');
 
 dotenv.config();
 
@@ -26,6 +27,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 
 app.use('/api', authRoutes);
 app.use('/api/contractor', contractorRoutes);
+app.use('/api/renter', renterRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
