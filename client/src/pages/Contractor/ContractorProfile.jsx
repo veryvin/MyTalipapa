@@ -92,9 +92,6 @@ export default function ContractorProfile() {
             </svg>
             <span className="notif-dot" />
           </button>
-          <button className="header-logout-btn" aria-label="Log out" onClick={() => setShowLogout(true)}>
-            <LogoutIcon />
-          </button>
         </div>
       </header>
 
@@ -114,11 +111,6 @@ export default function ContractorProfile() {
               <span className="nav-label">{item.label}</span>
             </button>
           ))}
-          <div className="sidebar-logout-spacer" />
-          <button className="sidebar-nav-item sidebar-logout-item" id="sidebar-logout" onClick={() => setShowLogout(true)}>
-            <span className="nav-icon"><LogoutIcon /></span>
-            <span className="nav-label">Log Out</span>
-          </button>
         </nav>
 
         {/* Main */}

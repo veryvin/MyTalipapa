@@ -33,14 +33,29 @@ const LogoutIcon = () => (
   </svg>
 );
 
-// Map section names to display labels and colors for the floor plan legend
 const SECTION_META = {
-  Meat:       { label: "Meat Section",   color: "#b91c1c", bg: "#fee2e2", border: "#fca5a5" },
-  Fishes:     { label: "Fishes Section", color: "#0369a1", bg: "#e0f2fe", border: "#7dd3fc" },
-  Vegetables: { label: "Vegetables",     color: "#15803d", bg: "#dcfce7", border: "#86efac" },
+  Meat:       { label: "Meat",       color: "#b91c1c", bg: "#fee2e2", border: "#fca5a5" },
+  Fishes:     { label: "Fishes",     color: "#0369a1", bg: "#e0f2fe", border: "#7dd3fc" },
+  Vegetables: { label: "Vegetables", color: "#15803d", bg: "#dcfce7", border: "#86efac" },
+};
+
+const FLOOR_META = {
+  upper: { label: "Upper Floor", icon: "⬆️" },
+  lower: { label: "Lower Floor", icon: "⬇️" },
 };
 
 const STATUS_LABEL = { available: "Available", occupied: "Occupied", pending: "Pending" };
+
+// Sort stalls: by floorCol (letter/number) then floorRow (int)
+function sortStalls(list) {
+  return [...list].sort((a, b) => {
+    const colA = (a.floorCol ?? "").toString();
+    const colB = (b.floorCol ?? "").toString();
+    if (colA < colB) return -1;
+    if (colA > colB) return 1;
+    return (a.floorRow ?? 0) - (b.floorRow ?? 0);
+  });
+}
 
 export default function ContractorStalls() {
   const [activeNav, setActiveNav] = useState('nav-stalls');
@@ -50,11 +65,15 @@ export default function ContractorStalls() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedStall, setSelectedStall] = useState(null);
 
-  // ── Data from MongoDB ────────────────────────────────────
   const [stalls, setStalls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { userName, loading: authLoading } = useCurrentUser();
+
+  // Active section tab (Fishes / Meat / Vegetables)
+  const [activeSection, setActiveSection] = useState(null);
+  // Active floor tab (upper / lower)
+  const [activeFloor, setActiveFloor] = useState(null);
 
   useEffect(() => {
     fetch('http://localhost:5000/api/contractor/stalls')
@@ -72,55 +91,97 @@ export default function ContractorStalls() {
       });
   }, []);
 
-  // ── Group stalls by section ──────────────────────────────
-  const SECTIONS = useMemo(() => {
-    return stalls.reduce((acc, stall) => {
-      const key = stall.section || "Unknown";
-      if (!acc[key]) acc[key] = [];
-      acc[key].push(stall);
-      return acc;
-    }, {});
+  // All unique section keys from DB
+  const sectionKeys = useMemo(() => {
+    const keys = [...new Set(stalls.map(s => s.section).filter(Boolean))];
+    // Sort in preferred order
+    const order = ["Fishes", "Meat", "Vegetables"];
+    return keys.sort((a, b) => {
+      const ia = order.indexOf(a);
+      const ib = order.indexOf(b);
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    });
   }, [stalls]);
 
-  // Default active section to first available section from DB
-  const sectionKeys = Object.keys(SECTIONS);
-  const [activeSection, setActiveSection] = useState(null);
-
-  // Once data loads, set default active section
+  // Set default section once data loads
   useEffect(() => {
     if (sectionKeys.length > 0 && !activeSection) {
       setActiveSection(sectionKeys[0]);
     }
   }, [sectionKeys, activeSection]);
 
-  // ── Occupancy stats (fix NaN: guard against 0 total) ────
-  const allStalls = useMemo(() => Object.values(SECTIONS).flat(), [SECTIONS]);
-  const totalStalls = allStalls.length;
-  const occupied = allStalls.filter(s => s.status === "occupied").length;
+  // All unique floor areas for the active section
+  const floorKeys = useMemo(() => {
+    if (!activeSection) return [];
+    const floors = [...new Set(
+      stalls
+        .filter(s => s.section === activeSection)
+        .map(s => s.floorArea)
+        .filter(Boolean)
+    )];
+    // Sort: upper before lower
+    return floors.sort((a, b) => {
+      const order = ["upper", "lower"];
+      return order.indexOf(a) - order.indexOf(b);
+    });
+  }, [stalls, activeSection]);
+
+  // Set default floor when section changes
+  useEffect(() => {
+    if (floorKeys.length > 0) {
+      setActiveFloor(floorKeys[0]);
+    } else {
+      setActiveFloor(null);
+    }
+  }, [floorKeys.join(",")]);
+
+  // Occupancy stats
+  const totalStalls = stalls.length;
+  const occupied = stalls.filter(s => s.status === "occupied").length;
   const occupancyPct = totalStalls > 0 ? Math.round((occupied / totalStalls) * 100) : 0;
 
-  // ── Filtered stalls for active section ──────────────────
-  const sectionStalls = useMemo(() => {
+  // Section stall counts
+  const sectionCounts = useMemo(() => {
+    return sectionKeys.reduce((acc, sec) => {
+      acc[sec] = stalls.filter(s => s.section === sec).length;
+      return acc;
+    }, {});
+  }, [stalls, sectionKeys]);
+
+  // Filtered + sorted stalls for the active section + floor
+  const displayStalls = useMemo(() => {
     if (!activeSection) return [];
-    const list = SECTIONS[activeSection] || [];
-    if (filterStatus === "all") return list;
-    return list.filter(s => s.status === filterStatus);
-  }, [SECTIONS, activeSection, filterStatus]);
+    let list = stalls.filter(s => s.section === activeSection);
+    if (activeFloor) {
+      list = list.filter(s => s.floorArea === activeFloor);
+    }
+    if (filterStatus !== "all") {
+      list = list.filter(s => s.status === filterStatus);
+    }
+    return sortStalls(list);
+  }, [stalls, activeSection, activeFloor, filterStatus]);
+
+  // Group displayStalls by floorCol for visual column grouping
+  const stallsByCol = useMemo(() => {
+    const map = {};
+    for (const stall of displayStalls) {
+      const col = stall.floorCol ?? "?";
+      if (!map[col]) map[col] = [];
+      map[col].push(stall);
+    }
+    // Sort keys
+    return Object.entries(map).sort(([a], [b]) => {
+      if (a < b) return -1;
+      if (a > b) return 1;
+      return 0;
+    });
+  }, [displayStalls]);
 
   const filterOptions = ["all", "available", "occupied", "pending"];
-
-  const handleNav = (item) => {
-    setActiveNav(item.id);
-    navigate(item.path);
-  };
-
-  const handleLogout = () => navigate('/login');
-
-  // Get display label for stall — stallNumber field from DB, fallback to _id
-  const getStallLabel = (stall) => stall.stallNumber || stall._id;
-
-  // Get section color theme
   const getSectionMeta = (section) => SECTION_META[section] || { color: "#374151", bg: "#f3f4f6", border: "#d1d5db" };
+
+  const handleNav = (item) => { setActiveNav(item.id); navigate(item.path); };
+  const handleLogout = () => navigate('/login');
 
   return (
     <div className="dashboard-root">
@@ -194,7 +255,6 @@ export default function ContractorStalls() {
             <p className="stalls-page-sub">Real-time stall availability and management.</p>
           </div>
 
-          {/* Loading / Error states */}
           {loading && (
             <div className="stalls-state-msg">
               <div className="stalls-spinner" />
@@ -202,9 +262,7 @@ export default function ContractorStalls() {
             </div>
           )}
           {error && (
-            <div className="stalls-error-msg">
-              ⚠️ Failed to load stalls: {error}
-            </div>
+            <div className="stalls-error-msg">⚠️ Failed to load stalls: {error}</div>
           )}
 
           {!loading && !error && (
@@ -224,7 +282,7 @@ export default function ContractorStalls() {
                 </div>
               </div>
 
-              {/* Section Tabs */}
+              {/* ── Section Tabs (Fishes / Meat / Vegetables) ── */}
               <div className="stalls-section-tabs-wrap">
                 <div className="stalls-section-tabs">
                   {sectionKeys.map(sec => {
@@ -236,19 +294,41 @@ export default function ContractorStalls() {
                         style={activeSection === sec ? { background: meta.color, borderColor: meta.color } : {}}
                         onClick={() => { setActiveSection(sec); setFilterStatus("all"); }}
                       >
-                        <span
-                          className="tab-section-dot"
-                          style={{ background: meta.color }}
-                        />
+                        <span className="tab-section-dot" style={{ background: meta.color }} />
                         {sec}
-                        <span className="tab-count">{SECTIONS[sec].length}</span>
+                        <span className="tab-count">{sectionCounts[sec] ?? 0}</span>
                       </button>
                     );
                   })}
                 </div>
               </div>
 
-              {/* Section Header + Filter */}
+              {/* ── Floor Sub-Tabs (Upper / Lower) ── */}
+              {floorKeys.length > 1 && (
+                <div className="stalls-floor-tabs-wrap">
+                  <div className="stalls-floor-tabs">
+                    {floorKeys.map(floor => {
+                      const fm = FLOOR_META[floor] || { label: floor, icon: "🏢" };
+                      const floorCount = stalls.filter(
+                        s => s.section === activeSection && s.floorArea === floor
+                      ).length;
+                      return (
+                        <button
+                          key={floor}
+                          className={`stalls-floor-tab${activeFloor === floor ? " floor-tab-active" : ""}`}
+                          onClick={() => { setActiveFloor(floor); setFilterStatus("all"); }}
+                        >
+                          <span className="floor-tab-icon">{fm.icon}</span>
+                          {fm.label}
+                          <span className="floor-tab-count">{floorCount}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Section + Floor Header + Filter ── */}
               <div className="stalls-section-header">
                 <div className="stalls-section-name-wrap">
                   {activeSection && (
@@ -263,8 +343,13 @@ export default function ContractorStalls() {
                       {activeSection}
                     </span>
                   )}
+                  {activeFloor && floorKeys.length > 0 && (
+                    <span className="floor-label-badge">
+                      {FLOOR_META[activeFloor]?.label || activeFloor}
+                    </span>
+                  )}
                   <span className="stalls-section-sub">
-                    {sectionStalls.length} stall{sectionStalls.length !== 1 ? 's' : ''}
+                    {displayStalls.length} stall{displayStalls.length !== 1 ? 's' : ''}
                     {filterStatus !== 'all' ? ` · ${STATUS_LABEL[filterStatus]}` : ''}
                   </span>
                 </div>
@@ -292,27 +377,38 @@ export default function ContractorStalls() {
                 </div>
               </div>
 
-              {/* Stall Grid */}
-              <div className="stalls-grid">
-                {sectionStalls.map(stall => {
-                  // Use MongoDB _id as React key, stallNumber as display
-                  const key = stall._id || stall.id || stall.stallNumber;
-                  const label = stall.stallNumber || stall.id;
-                  return (
-                    <button
-                      key={key}
-                      className={`stall-cell stall-${stall.status}`}
-                      onClick={() => setSelectedStall(stall)}
-                      title={`Stall ${label} · ${stall.section} · ${STATUS_LABEL[stall.status]}`}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-                {sectionStalls.length === 0 && (
-                  <p className="stalls-empty">No stalls match this filter.</p>
-                )}
-              </div>
+              {/* ── Stall Grid grouped by Column ── */}
+              {stallsByCol.length === 0 ? (
+                <p className="stalls-empty">No stalls match this filter.</p>
+              ) : (
+                <div
+                  className="stalls-columns-wrap"
+                  style={{ "--col-count": stallsByCol.length }}
+                >
+                  {stallsByCol.map(([col, colStalls]) => (
+                    <div key={col} className="stalls-column-group">
+                      <div className="stalls-col-header">Col {col}</div>
+                      <div className="stalls-col-cells">
+                        {colStalls.map(stall => {
+                          const key = stall._id || stall.stallNumber;
+                          // Display full stallNumber as stored in DB
+                          const label = stall.stallNumber || "?";
+                          return (
+                            <button
+                              key={key}
+                              className={`stall-cell stall-${stall.status}`}
+                              onClick={() => setSelectedStall(stall)}
+                              title={`Stall ${label} · ${stall.section} · ${stall.floorArea} · Row ${stall.floorRow} · ${STATUS_LABEL[stall.status]}`}
+                            >
+                              {label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Legend */}
               <div className="stalls-legend">
@@ -346,20 +442,30 @@ export default function ContractorStalls() {
             <div className={`stall-modal-badge stall-modal-${selectedStall.status}`}>
               {STATUS_LABEL[selectedStall.status]}
             </div>
-            <h2 className="stall-modal-number">
-              Stall #{selectedStall.stallNumber || selectedStall.id}
-            </h2>
-            <p className="stall-modal-section">{selectedStall.section}</p>
+            <h2 className="stall-modal-number">Stall #{selectedStall.stallNumber}</h2>
+            <p className="stall-modal-section">
+              {selectedStall.section}
+              {selectedStall.floorArea && (
+                <span className="modal-floor-tag">
+                  {" · "}{FLOOR_META[selectedStall.floorArea]?.label || selectedStall.floorArea}
+                </span>
+              )}
+            </p>
 
             <div className="stall-modal-meta-row">
-              {selectedStall.size && (
-                <span className="stall-modal-meta-chip">📐 {selectedStall.size} {selectedStall.sizeUnit}</span>
+              {selectedStall.floorArea && (
+                <span className="stall-modal-meta-chip">
+                  {FLOOR_META[selectedStall.floorArea]?.icon} {FLOOR_META[selectedStall.floorArea]?.label || selectedStall.floorArea}
+                </span>
+              )}
+              {selectedStall.floorCol && (
+                <span className="stall-modal-meta-chip">Col {selectedStall.floorCol}</span>
+              )}
+              {selectedStall.floorRow && (
+                <span className="stall-modal-meta-chip">Row {selectedStall.floorRow}</span>
               )}
               {selectedStall.monthlyRate && (
                 <span className="stall-modal-meta-chip">💰 ₱{selectedStall.monthlyRate.toLocaleString()}/mo</span>
-              )}
-              {selectedStall.floorArea && (
-                <span className="stall-modal-meta-chip">🗺 {selectedStall.floorArea} · Col {selectedStall.floorCol}</span>
               )}
             </div>
 
@@ -438,10 +544,22 @@ export default function ContractorStalls() {
         .tab-count { background: rgba(0,0,0,0.12); color: inherit; font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 99px; }
         .stalls-tab-active .tab-count { background: rgba(255,255,255,0.25); }
 
+        /* Floor Sub-Tabs */
+        .stalls-floor-tabs-wrap { overflow-x: auto; scrollbar-width: none; }
+        .stalls-floor-tabs-wrap::-webkit-scrollbar { display: none; }
+        .stalls-floor-tabs { display: flex; gap: 6px; min-width: max-content; }
+        .stalls-floor-tab { display: flex; align-items: center; gap: 5px; padding: 6px 14px; border-radius: var(--r-sm); border: 1.5px solid var(--color-border); background: var(--color-surface); font-size: 11px; font-weight: 700; color: var(--color-text-muted); cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.2s; white-space: nowrap; }
+        .stalls-floor-tab:hover { border-color: var(--color-brand-green); color: var(--color-text); }
+        .floor-tab-active { background: #f0fdf4 !important; border-color: var(--color-brand-green) !important; color: var(--color-brand-green) !important; }
+        .floor-tab-icon { font-size: 12px; }
+        .floor-tab-count { background: #e5e7eb; color: #6b7280; font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 99px; }
+        .floor-tab-active .floor-tab-count { background: #bbf7d0; color: #15803d; }
+
         /* Section Header */
-        .stalls-section-header { display: flex; align-items: center; justify-content: space-between; margin-top: 2px; }
-        .stalls-section-name-wrap { display: flex; align-items: center; gap: 8px; }
+        .stalls-section-header { display: flex; align-items: center; justify-content: space-between; margin-top: 2px; flex-wrap: wrap; gap: 6px; }
+        .stalls-section-name-wrap { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
         .section-color-badge { font-size: 12px; font-weight: 800; padding: 4px 12px; border-radius: var(--r-full); border: 1.5px solid; }
+        .floor-label-badge { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: var(--r-full); background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; }
         .stalls-section-sub { font-size: 12px; color: var(--color-text-muted); font-weight: 500; }
         .stalls-filter-wrap { position: relative; }
         .stalls-filter-btn { display: flex; align-items: center; gap: 6px; background: var(--color-surface); border: 1.5px solid var(--color-border); border-radius: var(--r-sm); padding: 7px 12px; font-size: 12px; font-weight: 700; color: var(--color-text-mid); cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.2s; position: relative; }
@@ -453,14 +571,19 @@ export default function ContractorStalls() {
         .stalls-filter-option:hover { background: #f9fafb; }
         .filter-selected { color: var(--color-brand-green); background: var(--color-brand-green-light) !important; }
 
-        /* Stall Grid */
-        .stalls-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
-        .stall-cell { aspect-ratio: 1; border-radius: var(--r-sm); border: 2px solid transparent; font-size: 11px; font-weight: 800; font-family: 'Inter', sans-serif; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2; padding: 4px; word-break: break-all; }
-        .stall-cell:hover { transform: scale(1.08); box-shadow: var(--shadow-md); z-index: 2; position: relative; }
+        /* Column-grouped stall layout — stretches full width */
+        .stalls-columns-wrap { display: grid; grid-template-columns: repeat(var(--col-count, 6), 1fr); gap: 8px; width: 100%; }
+        .stalls-column-group { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+        .stalls-col-header { text-align: center; font-size: 10px; font-weight: 800; color: var(--color-text-muted); background: #f3f4f6; border-radius: 6px; padding: 3px 0; letter-spacing: 0.5px; text-transform: uppercase; }
+        .stalls-col-cells { display: flex; flex-direction: column; gap: 6px; }
+
+        /* Stall Cell — full width of its column, compact fixed height */
+        .stall-cell { width: 100%; height: 44px; border-radius: 8px; border: 2px solid transparent; font-size: 11px; font-weight: 800; font-family: 'Inter', sans-serif; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2; padding: 4px; word-break: break-all; }
+        .stall-cell:hover { transform: scale(1.06); box-shadow: var(--shadow-md); z-index: 2; position: relative; }
         .stall-available { background: #dcfce7; border-color: #86efac; color: #15803d; }
         .stall-occupied { background: #fed7aa; border-color: #fdba74; color: #c2410c; }
         .stall-pending { background: #fef9c3; border-color: #fde047; color: #a16207; }
-        .stalls-empty { grid-column: 1 / -1; text-align: center; color: var(--color-text-faint); font-size: 13px; padding: 40px 0; }
+        .stalls-empty { text-align: center; color: var(--color-text-faint); font-size: 13px; padding: 40px 0; }
 
         /* Legend */
         .stalls-legend { display: flex; align-items: center; gap: 20px; justify-content: center; padding: 8px 0 4px; flex-wrap: wrap; }
@@ -478,6 +601,7 @@ export default function ContractorStalls() {
         .stall-modal-pending { background: #fef9c3; color: #a16207; }
         .stall-modal-number { font-size: 26px; font-weight: 900; color: var(--color-text); margin: 4px 0 0; }
         .stall-modal-section { font-size: 12px; color: var(--color-text-muted); margin: 0 0 4px; font-weight: 500; }
+        .modal-floor-tag { font-weight: 600; color: var(--color-text-mid); }
         .stall-modal-meta-row { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
         .stall-modal-meta-chip { font-size: 11px; font-weight: 600; background: #f3f4f6; color: var(--color-text-mid); padding: 4px 10px; border-radius: 99px; }
         .stall-modal-amenities { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
@@ -491,17 +615,13 @@ export default function ContractorStalls() {
 
         @media (min-width: 640px) {
           .stalls-page-title { font-size: 24px; }
-          .stalls-grid { grid-template-columns: repeat(6, 1fr); gap: 10px; }
           .stall-cell { font-size: 12px; }
           .occupancy-banner-pct { font-size: 22px; }
         }
         @media (min-width: 1024px) {
           .stalls-main { padding-bottom: 32px; }
-          .stalls-grid { grid-template-columns: repeat(8, 1fr); gap: 12px; }
           .stall-cell { font-size: 13px; border-radius: 10px; }
-        }
-        @media (min-width: 1280px) {
-          .stalls-grid { grid-template-columns: repeat(10, 1fr); }
+          .stalls-columns-wrap { gap: 12px; }
         }
       `}</style>
     </div>

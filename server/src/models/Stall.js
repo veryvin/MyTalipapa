@@ -3,8 +3,8 @@ const mongoose = require('mongoose');
 
 const stallSchema = new mongoose.Schema({
   stallNumber:    { type: String, required: true },
-  section:        { type: String, required: true },  // "Meat" | "Fishes" | "Vegetables"
-  color:          { type: String },                  // "meat" | "fishes" | "vegetables"
+  section:        { type: String, required: true },
+  color:          { type: String },
   floorArea:      { type: String, enum: ['upper', 'lower'] },
   floorCol:       { type: String },
   floorRow:       { type: Number },
@@ -20,12 +20,13 @@ const stallSchema = new mongoose.Schema({
     autoRenew: { type: Boolean, default: false },
     listedAt:  { type: Date },
   },
+  // ✅ tenant is an object with defaults — never null
   tenant: {
-    name:       String,
-    contact:    String,
-    email:      String,
-    leaseStart: Date,
-    leaseEnd:   Date,
+    name:       { type: String, default: null },
+    contact:    { type: String, default: null },
+    email:      { type: String, default: null },
+    leaseStart: { type: Date,   default: null },
+    leaseEnd:   { type: Date,   default: null },
   },
 }, { timestamps: true });
 

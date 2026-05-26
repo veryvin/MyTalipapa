@@ -126,7 +126,7 @@ export default function ContractorApplication() {
 
     try {
       const res = await fetch(`/api/contractor/applications/${id}/status`, {
-        method: 'PATCH',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action }), // "approve" | "reject"
       });
