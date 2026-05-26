@@ -3,13 +3,14 @@
  * Shell that owns activeTab + sidebarCollapsed state and renders
  * whichever page the nav points to.
  */
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Home, Map, Store, FileText, User, LogOut } from 'lucide-react'
 
-import RenterDashboard     from './RenterDashboard'
-import RenterStalls        from './RenterStalls'
-import StallDetails        from './StallDetails'
-import RenterApplications  from './RenterApplications'
+import RenterDashboard    from './RenterDashboard'
+import RenterStalls       from './RenterStalls'
+import StallDetails       from './StallDetails'
+import RenterApplications from './RenterApplications'
+import Renterprofile      from './Renterprofile'
 
 const NAV_ITEMS = [
   { id: 'home',         label: 'Home',         Icon: Home     },
@@ -19,7 +20,7 @@ const NAV_ITEMS = [
   { id: 'profile',      label: 'Profile',      Icon: User     },
 ]
 
-// ── Sidebar (desktop only) ────────────────────────────────────
+/* ── Sidebar (desktop) ───────────────────────────────────────── */
 function Sidebar({ active, setActive, collapsed, setCollapsed, onLogout }) {
   return (
     <aside
@@ -27,7 +28,6 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, onLogout }) {
         collapsed ? 'w-16' : 'w-56'
       }`}
     >
-      {/* Logo */}
       <div className={`flex items-center gap-2 px-4 py-5 border-b border-gray-100 ${collapsed ? 'justify-center' : ''}`}>
         <div className="w-8 h-8 bg-[#1a5c2a] rounded-lg flex items-center justify-center shrink-0">
           <Store size={15} color="white" />
@@ -35,7 +35,6 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, onLogout }) {
         {!collapsed && <span className="font-extrabold text-gray-900 text-base tracking-tight">MyTalipapa</span>}
       </div>
 
-      {/* Nav links */}
       <nav className="flex-1 py-4 px-2 space-y-0.5">
         {NAV_ITEMS.map(({ id, label, Icon }) => (
           <button
@@ -48,37 +47,27 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, onLogout }) {
                 : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
             } ${collapsed ? 'justify-center' : ''}`}
           >
-            <Icon
-              size={18}
-              className={active === id ? 'text-[#1a5c2a]' : 'text-gray-400 group-hover:text-gray-600'}
-            />
+            <Icon size={18} className={active === id ? 'text-[#1a5c2a]' : 'text-gray-400 group-hover:text-gray-600'} />
             {!collapsed && <span>{label}</span>}
-            {!collapsed && active === id && (
-              <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#1a5c2a]" />
-            )}
+            {!collapsed && active === id && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#1a5c2a]" />}
           </button>
         ))}
       </nav>
 
-      {/* Logout + collapse */}
       <div className="p-3 border-t border-gray-100 space-y-1">
         {onLogout && (
           <button
             onClick={onLogout}
             title={collapsed ? 'Logout' : ''}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 transition-all ${
-              collapsed ? 'justify-center' : ''
-            }`}
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 transition-all ${collapsed ? 'justify-center' : ''}`}
           >
             <LogOut size={15} />
             {!collapsed && 'Logout'}
           </button>
         )}
         <button
-          onClick={() => setCollapsed(c => !c)}
-          className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-gray-400 hover:bg-gray-50 hover:text-gray-700 text-xs font-medium transition-all ${
-            collapsed ? 'justify-center' : ''
-          }`}
+          onClick={() => setCollapsed((c) => !c)}
+          className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-gray-400 hover:bg-gray-50 hover:text-gray-700 text-xs font-medium transition-all ${collapsed ? 'justify-center' : ''}`}
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             {collapsed
@@ -92,7 +81,7 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, onLogout }) {
   )
 }
 
-// ── Mobile Bottom Tab Bar ─────────────────────────────────────
+/* ── Mobile bottom tab bar ───────────────────────────────────── */
 function BottomBar({ active, setActive }) {
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
@@ -119,7 +108,7 @@ function BottomBar({ active, setActive }) {
   )
 }
 
-// ── Placeholder for unbuilt pages ─────────────────────────────
+/* ── Placeholder ─────────────────────────────────────────────── */
 function PlaceholderPage({ label }) {
   return (
     <div className="flex-1 flex items-center justify-center text-gray-400 text-sm font-medium">
@@ -128,26 +117,27 @@ function PlaceholderPage({ label }) {
   )
 }
 
-// ── Layout shell ─────────────────────────────────────────────
+/* ── Layout shell ────────────────────────────────────────────── */
 export default function RenterLayout() {
   const [activeTab,        setActiveTab]        = useState('home')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [selectedStall,    setSelectedStall]    = useState(null)
 
+  /* useCallback keeps navigate stable — never undefined on re-renders */
+  const navigate = useCallback((tab) => {
+    setActiveTab(tab)
+    if (tab !== 'stalls') setSelectedStall(null)
+  }, [])
+
+  const openStallDetail = useCallback((stall) => {
+    setSelectedStall(stall)
+    setActiveTab('stalls')
+  }, [])
+
   const handleLogout = () => {
     localStorage.removeItem('authToken')
     localStorage.removeItem('user')
     window.location.href = '/login'
-  }
-
-  const navigate = (tab) => {
-    setActiveTab(tab)
-    if (tab !== 'stalls') setSelectedStall(null)
-  }
-
-  const openStallDetail = (stall) => {
-    setSelectedStall(stall)
-    setActiveTab('stalls')
   }
 
   const renderPage = () => {
@@ -167,7 +157,7 @@ export default function RenterLayout() {
         return <PlaceholderPage label="Navigate" />
 
       case 'profile':
-        return <PlaceholderPage label="Profile" />
+        return <Renterprofile onNavigate={navigate} onLogout={handleLogout} />
 
       default:
         return <PlaceholderPage label={activeTab} />
