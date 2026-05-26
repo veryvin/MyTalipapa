@@ -7,7 +7,7 @@ import ContractorRecords from './pages/Contractor/ContractorRecords'
 import ContractorApplications from './pages/Contractor/ContractorApplications'
 import ContractorStalls from './pages/Contractor/ContractorStalls'
 import ContractorProfile from './pages/Contractor/ContractorProfile'
-import RenterLayout from './pages/Renter/RenterLayout'
+import RenterLayout from './pages/Renter/Renterlayout'
 
 export default function App() {
   return (

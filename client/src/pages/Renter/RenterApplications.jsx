@@ -6,12 +6,13 @@
  *   onNavigate(tab) – navigate to another tab in RenterLayout
  *   prefill         – optional { preferredStall } from StallDetails
  */
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   ArrowLeft, Store, Send, Clock, ChevronDown,
   CheckCircle, XCircle, AlertCircle,
   MapPin, Calendar, Eye, Bell, User,
 } from 'lucide-react'
+import { getUser } from '../../utils/auth'
 
 /* ── Static data ─────────────────────────────────────────────── */
 const MY_APPLICATIONS = [
@@ -21,9 +22,9 @@ const MY_APPLICATIONS = [
 ]
 
 const BUSINESS_TYPES = [
-  'Food & Beverages', 'Fresh Produce', 'Dry Goods & Grocery',
-  'Clothing & Apparel', 'Electronics & Gadgets',
-  'Health & Beauty', 'Handicrafts & Souvenirs', 'Other',
+  'Fishes',
+  'Meat',
+  'Vegetables',
 ]
 
 const MARKET_IMAGES = [
@@ -129,18 +130,57 @@ export default function RenterApplications({ prefill }) {
   const [view,      setView]      = useState('list')
   const [submitted, setSubmitted] = useState(false)
   const [loading,   setLoading]   = useState(false)
+  const [applications, setApplications] = useState([])
 
   const [form, setForm] = useState({
-    fullName:            '',
-    contactNumber:       '',
-    emailAddress:        '',
+    fullName:            getUser()?.full_name || getUser()?.name || '',
+    contactNumber:       getUser()?.contact_number || '',
+    emailAddress:        getUser()?.email || '',
     preferredStall:      prefill?.preferredStall ?? '',
-    intendedBusinessUse: '',
+    intendedBusinessUse: prefill?.intendedBusinessUse ?? '',
     additionalMessage:   '',
   })
 
-  const totalActive  = MY_APPLICATIONS.filter(a => a.status !== 'Rejected').length
-  const totalPending = MY_APPLICATIONS.filter(a => a.status === 'Pending').length
+  const fetchApplications = () => {
+    const user = getUser();
+    const emailParam = user && user.email ? `?email=${encodeURIComponent(user.email)}` : '';
+    
+    fetch(`/api/renter/applications${emailParam}`)
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch applications');
+        return res.json();
+      })
+      .then(data => {
+        setApplications(data);
+      })
+      .catch(err => {
+        console.error('Fetch applications error:', err);
+        // Fallback to static mock data on error so it doesn't break if server is down
+        setApplications([
+          { id: 'app-1', stall: '#042', zone: 'Zone A', status: 'Approved',  submittedOn: 'Oct 24, 2023' },
+          { id: 'app-2', stall: '#115', zone: 'Zone C', status: 'Pending',   submittedOn: 'Nov 02, 2023' },
+          { id: 'app-3', stall: '#009', zone: 'Zone B', status: 'Rejected',  submittedOn: 'Sep 15, 2023' },
+        ]);
+      });
+  };
+
+  useEffect(() => {
+    fetchApplications();
+  }, []);
+
+  useEffect(() => {
+    if (prefill?.preferredStall) {
+      setForm(f => ({ 
+        ...f, 
+        preferredStall: prefill.preferredStall,
+        intendedBusinessUse: prefill.intendedBusinessUse ?? f.intendedBusinessUse
+      }))
+      setView('form')
+    }
+  }, [prefill])
+
+  const totalActive  = applications.filter(a => a.status !== 'Rejected').length
+  const totalPending = applications.filter(a => a.status === 'Pending').length
 
   const setField = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
 
@@ -148,9 +188,54 @@ export default function RenterApplications({ prefill }) {
   const goToList = () => { setView('list'); setSubmitted(false) }
 
   const handleSubmit = () => {
+    if (loading || submitted) return
     if (!form.fullName || !form.contactNumber || !form.preferredStall) return
     setLoading(true)
-    setTimeout(() => { setLoading(false); setSubmitted(true) }, 900)
+
+    const payload = {
+      fullName: form.fullName,
+      contactNumber: form.contactNumber,
+      email: form.emailAddress || (getUser()?.email) || '',
+      preferredStall: form.preferredStall,
+      intendedBusinessUse: form.intendedBusinessUse || 'Other',
+      additionalMessage: form.additionalMessage || '',
+    };
+
+    fetch('/api/renter/applications', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Submission failed');
+        return res.json();
+      })
+      .then(() => {
+        setLoading(false);
+        setSubmitted(true);
+        fetchApplications(); // refresh applications list
+        
+        // Auto-redirect to list view after 2.5 seconds
+        setTimeout(() => {
+          setView('list');
+          setForm({
+            fullName:            getUser()?.full_name || getUser()?.name || '',
+            contactNumber:       getUser()?.contact_number || '',
+            emailAddress:        getUser()?.email || '',
+            preferredStall:      '',
+            intendedBusinessUse: '',
+            additionalMessage:   '',
+          });
+          setSubmitted(false);
+        }, 2500);
+      })
+      .catch(err => {
+        console.error('Submit application error:', err);
+        setLoading(false);
+        alert('Failed to submit application: ' + err.message);
+      });
   }
 
   return (
@@ -198,9 +283,15 @@ export default function RenterApplications({ prefill }) {
 
             {/* Application list */}
             <div className="space-y-3">
-              {MY_APPLICATIONS.map((app) => (
-                <ApplicationCard key={app.id} app={app} />
-              ))}
+              {applications.length > 0 ? (
+                applications.map((app) => (
+                  <ApplicationCard key={app.id || app._id} app={app} />
+                ))
+              ) : (
+                <div className="bg-white border border-gray-100 rounded-2xl py-8 px-4 text-center text-sm font-semibold text-gray-400 shadow-sm">
+                  🏪 No rental inquiries submitted yet.
+                </div>
+              )}
             </div>
 
             <p className="text-center text-[10px] text-gray-300 font-semibold tracking-wider uppercase hidden md:block pt-1">
@@ -295,12 +386,14 @@ export default function RenterApplications({ prefill }) {
             {/* Submit button */}
             <button
               onClick={handleSubmit}
-              disabled={loading || !form.fullName || !form.contactNumber || !form.preferredStall}
+              disabled={loading || submitted || !form.fullName || !form.contactNumber || !form.preferredStall}
               className="w-full flex items-center justify-center gap-2 bg-[#e8621a] hover:bg-[#d45a16] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm rounded-2xl py-3.5 transition-all duration-200 shadow-sm active:scale-[0.98]"
             >
               {loading
                 ? <span className="animate-pulse">Submitting…</span>
-                : <><Send size={15} /> Submit Inquiry</>
+                : submitted
+                  ? <span className="flex items-center gap-1.5"><CheckCircle size={15} /> Submitted Successfully</span>
+                  : <><Send size={15} /> Submit Inquiry</>
               }
             </button>
 

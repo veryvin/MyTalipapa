@@ -7,20 +7,28 @@ import { useState, useCallback, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Home, Map, Store, FileText, User, LogOut } from 'lucide-react'
 
-import RenterDashboard    from './RenterDashboard'
-import RenterStalls       from './RenterStalls'
-import StallDetails       from './StallDetails'
+import RenterDashboard from './RenterDashboard'
+import RenterStalls from './RenterStalls'
+import StallDetails from './StallDetails'
 import RenterApplications from './RenterApplications'
-import Renterprofile      from './Renterprofile'
-import MarketTour360      from '../MarketTour360'
-import ArFinder           from './ArFinder'
+import Renterprofile from './Renterprofile'
+import MarketTour360 from '../MarketTour360'
+import ArFinder from './ArFinder'
+
+const LogoutIcon = () => (
+  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <polyline points="16,17 21,12 16,7" />
+    <line x1="21" y1="12" x2="9" y2="12" />
+  </svg>
+)
 
 const NAV_ITEMS = [
-  { id: 'home',         label: 'Home',         Icon: Home     },
-  { id: 'navigate',     label: 'Navigate',     Icon: Map      },
-  { id: 'stalls',       label: 'Stalls',       Icon: Store    },
+  { id: 'home', label: 'Home', Icon: Home },
+  { id: 'navigate', label: 'Navigate', Icon: Map },
+  { id: 'stalls', label: 'Stalls', Icon: Store },
   { id: 'applications', label: 'Applications', Icon: FileText },
-  { id: 'profile',      label: 'Profile',      Icon: User     },
+  { id: 'profile', label: 'Profile', Icon: User },
 ]
 
 /* ── Sidebar (desktop) ───────────────────────────────────────── */
@@ -51,11 +59,10 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, onLogout }) {
             key={id}
             onClick={() => setActive(id)}
             title={collapsed ? label : ''}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group ${
-              active === id
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group ${active === id
                 ? 'bg-[#edf5ed] text-[#1a5c2a]'
                 : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
-            } ${collapsed ? 'justify-center' : ''}`}
+              } ${collapsed ? 'justify-center' : ''}`}
           >
             <Icon size={18} className={active === id ? 'text-[#1a5c2a]' : 'text-gray-400 group-hover:text-gray-600'} />
             {!collapsed && <span>{label}</span>}
@@ -79,6 +86,7 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, onLogout }) {
     </aside>
   )
 }
+
 
 /* ── Mobile bottom tab bar ───────────────────────────────────── */
 function BottomBar({ active, setActive }) {
@@ -120,15 +128,17 @@ function PlaceholderPage({ label }) {
 export default function RenterLayout() {
   const location = useLocation()
   const routerNavigate = useNavigate()
-  const [activeTab,        setActiveTab]        = useState('home')
+  const [activeTab, setActiveTab] = useState('home')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
-  const [selectedStall,    setSelectedStall]    = useState(null)
+  const [selectedStall, setSelectedStall] = useState(null)
+  const [prefillStall, setPrefillStall] = useState(null)
+  const [showLogout, setShowLogout] = useState(false)
 
   /* useCallback keeps navigate stable — never undefined on re-renders */
   const navigate = useCallback((tab) => {
     setActiveTab(tab)
     if (tab !== 'stalls') setSelectedStall(null)
-    
+
     // Redirect to the corresponding route
     if (tab === 'home') routerNavigate('/renter/dashboard')
     else if (tab === 'navigate') routerNavigate('/renter/market-tour')
@@ -187,7 +197,20 @@ export default function RenterLayout() {
       case 'stalls':
         console.log('[RenterLayout] rendering RenterStalls or StallDetails')
         return selectedStall
-          ? <StallDetails stall={selectedStall} onBack={() => setSelectedStall(null)} onNavigate={navigate} />
+          ? (
+            <StallDetails
+              stall={selectedStall}
+              onBack={() => setSelectedStall(null)}
+              onNavigate={navigate}
+              onInquiry={(stall) => {
+                setPrefillStall({
+                  preferredStall: `Stall #${stall.stallNumber || stall.id}`,
+                  intendedBusinessUse: getBusinessUseFromSection(stall.section || stall.category)
+                })
+                setActiveTab('applications')
+              }}
+            />
+          )
           : <RenterStalls onNavigate={navigate} onOpenStall={openStallDetail} />
 
       case 'applications':
@@ -214,7 +237,7 @@ export default function RenterLayout() {
         setActive={navigate}
         collapsed={sidebarCollapsed}
         setCollapsed={setSidebarCollapsed}
-        onLogout={handleLogout}
+        onLogout={() => setShowLogout(true)}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -222,6 +245,21 @@ export default function RenterLayout() {
       </div>
 
       <BottomBar active={activeTab} setActive={navigate} />
+
+      {/* ── Logout Modal ── */}
+      {showLogout && (
+        <div className="logout-overlay" onClick={() => setShowLogout(false)}>
+          <div className="logout-modal" onClick={e => e.stopPropagation()}>
+            <div className="logout-modal-icon"><LogoutIcon /></div>
+            <h3 className="logout-modal-title">Log Out?</h3>
+            <p className="logout-modal-msg">You'll be signed out of your renter session.</p>
+            <div className="logout-modal-actions">
+              <button className="logout-cancel-btn" onClick={() => setShowLogout(false)}>Cancel</button>
+              <button className="logout-confirm-btn" id="confirm-logout" onClick={handleLogout}>Yes, Log Out</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
