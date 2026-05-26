@@ -27,6 +27,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 
 app.use('/api', authRoutes);
 app.use('/api/contractor', contractorRoutes);
+app.use('/api/admin', contractorRoutes);
 app.use('/api/renter', renterRoutes);
 
 app.listen(PORT, () => {

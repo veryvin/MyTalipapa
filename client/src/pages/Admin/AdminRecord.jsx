@@ -6,7 +6,7 @@ const NAV_ITEMS = [
   {
     id: 'nav-dashboard',
     label: 'Dashboard',
-    path: '/contractor/dashboard',
+    path: '/admin/dashboard',
     icon: (
       <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -19,7 +19,7 @@ const NAV_ITEMS = [
   {
     id: 'nav-stalls',
     label: 'Stalls',
-    path: '/contractor/stalls',
+    path: '/admin/stalls',
     icon: (
       <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
@@ -30,7 +30,7 @@ const NAV_ITEMS = [
   {
     id: 'nav-apps',
     label: 'Apps',
-    path: '/contractor/applications',
+    path: '/admin/applications',
     icon: (
       <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -43,7 +43,7 @@ const NAV_ITEMS = [
   {
     id: 'nav-records',
     label: 'Records',
-    path: '/contractor/records',
+    path: '/admin/records',
     icon: (
       <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <circle cx="12" cy="12" r="10" />
@@ -54,7 +54,7 @@ const NAV_ITEMS = [
   {
     id: 'nav-profile',
     label: 'Profile',
-    path: '/contractor/profile',
+    path: '/admin/profile',
     icon: (
       <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -80,7 +80,7 @@ const STATUS_CONFIG = {
 
 const SORT_OPTIONS = ["Recent", "Name A-Z", "Status", "Stall #"];
 
-export default function ContractorRecords() {
+export default function AdminRecord() {
   const [activeNav, setActiveNav] = useState('nav-records');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { userName, loading: authLoading } = useCurrentUser();
@@ -93,7 +93,7 @@ export default function ContractorRecords() {
 
   useEffect(() => {
     setLoading(true);
-    fetch('/api/contractor/records')
+    fetch('/api/admin/records')
       .then(res => {
         if (!res.ok) throw new Error(`Server error: ${res.status}`);
         return res.json();
@@ -173,7 +173,7 @@ export default function ContractorRecords() {
           <div className="logout-modal" onClick={e => e.stopPropagation()}>
             <div className="logout-modal-icon"><LogoutIcon /></div>
             <h3 className="logout-modal-title">Log Out?</h3>
-            <p className="logout-modal-msg">You'll be signed out of your contractor session.</p>
+            <p className="logout-modal-msg">You'll be signed out of your admin session.</p>
             <div className="logout-modal-actions">
               <button className="logout-cancel-btn" onClick={() => setShowLogoutModal(false)}>Cancel</button>
               <button className="logout-confirm-btn" onClick={handleLogout}>Yes, Log Out</button>

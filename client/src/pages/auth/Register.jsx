@@ -194,6 +194,8 @@ setSuccess('immediate');
         navigate(
           form.role === 'contractor'
             ? '/contractor/dashboard'
+            : form.role === 'admin'
+            ? '/admin/dashboard'
             : '/renter/dashboard'
         )
       }
@@ -211,64 +213,63 @@ setSuccess('immediate');
                 {/* ── ROLE PICKER ── */}
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-2">I am a...</label>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-3 gap-2">
 
                     {/* Renter */}
                     <button
                       type="button"
                       onClick={() => selectRole('renter')}
-                      className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${
+                      className={`flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all ${
                         form.role === 'renter'
                           ? 'border-green-700 bg-green-50'
                           : 'border-gray-200 bg-gray-50 hover:border-gray-300'
                       }`}
                     >
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
                         form.role === 'renter' ? 'bg-green-700' : 'bg-gray-200'
                       }`}>
-                        <ShoppingBag size={20} className={form.role === 'renter' ? 'text-white' : 'text-gray-500'} />
+                        <ShoppingBag size={16} className={form.role === 'renter' ? 'text-white' : 'text-gray-500'} />
                       </div>
                       <div className="text-center">
-                        <p className={`text-sm font-semibold ${form.role === 'renter' ? 'text-green-800' : 'text-gray-700'}`}>
+                        <p className={`text-xs font-semibold ${form.role === 'renter' ? 'text-green-800' : 'text-gray-700'}`}>
                           Renter
                         </p>
-                        <p className="text-[10px] text-gray-400 leading-tight mt-0.5">
-                          I want to rent a stall
+                        <p className="text-[8px] text-gray-400 leading-tight mt-0.5">
+                          Rent stall
                         </p>
                       </div>
                       {form.role === 'renter' && (
-                        <span className="text-xs font-bold text-green-700">✓ Selected</span>
+                        <span className="text-[10px] font-bold text-green-700">✓ Selected</span>
                       )}
                     </button>
 
-                    {/* Contractor / Operator */}
+                    {/* Contractor */}
                     <button
                       type="button"
                       onClick={() => selectRole('contractor')}
-                      className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${
+                      className={`flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all ${
                         form.role === 'contractor'
                           ? 'border-green-700 bg-green-50'
                           : 'border-gray-200 bg-gray-50 hover:border-gray-300'
                       }`}
                     >
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
                         form.role === 'contractor' ? 'bg-green-700' : 'bg-gray-200'
                       }`}>
-                        <Store size={20} className={form.role === 'contractor' ? 'text-white' : 'text-gray-500'} />
+                        <Store size={16} className={form.role === 'contractor' ? 'text-white' : 'text-gray-500'} />
                       </div>
                       <div className="text-center">
-                        <p className={`text-sm font-semibold ${form.role === 'contractor' ? 'text-green-800' : 'text-gray-700'}`}>
+                        <p className={`text-xs font-semibold ${form.role === 'contractor' ? 'text-green-800' : 'text-gray-700'}`}>
                           Contractor
                         </p>
-                        <p className="text-[10px] text-gray-400 leading-tight mt-0.5">
-                          I manage stalls
+                        <p className="text-[8px] text-gray-400 leading-tight mt-0.5">
+                          Manage stalls
                         </p>
                       </div>
                       {form.role === 'contractor' && (
-                        <span className="text-xs font-bold text-green-700">✓ Selected</span>
+                        <span className="text-[10px] font-bold text-green-700">✓ Selected</span>
                       )}
                     </button>
-
                   </div>
                 </div>
 

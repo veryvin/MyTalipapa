@@ -37,6 +37,8 @@ async function handleLogin(e) {
     // Redirect based on role
     if (result.user && result.user.role === 'renter') {
       window.location.href = '/renter/dashboard'
+    } else if (result.user && result.user.role === 'admin') {
+      window.location.href = '/admin/dashboard'
     } else {
       window.location.href = '/contractor/dashboard'
     }
@@ -59,7 +61,7 @@ async function handleLogin(e) {
           </div>
           <h1 className="text-3xl font-bold" style={{ color: '#1a5c2a' }}>MyTalipapa</h1>
           <p className="text-xs tracking-widest text-gray-500 mt-1 uppercase">
-            {role === 'renter' ? 'Vendor Portal' : 'Contractor Portal'}
+            {role === 'renter' ? 'Vendor Portal' : role === 'admin' ? 'Admin Portal' : 'Contractor Portal'}
           </p>
         </div>
 
@@ -88,6 +90,16 @@ async function handleLogin(e) {
             >
               Contractor
             </button>
+            <button
+              onClick={() => setRole('admin')}
+              className="flex-1 py-2.5 text-sm font-semibold transition-all"
+              style={{
+                backgroundColor: role === 'admin' ? '#1a5c2a' : 'white',
+                color: role === 'admin' ? 'white' : '#6b7280'
+              }}
+            >
+              Admin
+            </button>
           </div>
 
           {error && (
@@ -105,7 +117,7 @@ async function handleLogin(e) {
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  placeholder={role === 'renter' ? 'vendor@mytalipapa.com' : 'name@contractor.com'}
+                  placeholder={role === 'renter' ? 'vendor@mytalipapa.com' : role === 'admin' ? 'admin@mytalipapa.com' : 'name@contractor.com'}
                   required
                   className="flex-1 bg-transparent text-sm focus:outline-none"
                 />

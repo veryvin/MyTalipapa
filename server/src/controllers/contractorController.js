@@ -203,31 +203,38 @@ exports.updateApplicationStatus = async (req, res) => {
   }
 };
 
-// ── GET /api/contractor/records ──────────────────────────
+ // ── GET /api/contractor/records ──────────────────────────
 exports.getRecords = async (req, res) => {
   try {
     const approved = await Application.find({ status: 'approved' }).sort({ reviewedAt: -1 });
-
+    const Payment = require('../models/Payment'); // import here to avoid circular deps
     const records = await Promise.all(approved.map(async (app) => {
       const stall = await findStallByAppStallNumber(app.preferredStall);
+      // fetch payment history for this renter
+      const payments = await Payment.find({ renter: app._id }).sort({ date: -1 });
+      const history = payments.map(p => ({
+        date: new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        amount: `₱${p.amount.toLocaleString()}`,
+        status: p.status,
+      }));
+      const lastPaid = payments.find(p => p.status === 'paid');
+      const lastPayment = lastPaid ? new Date(lastPaid.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
       return {
-        id:          app._id.toString(),
-        name:        app.fullName,
-        phone:       app.contactNumber,
-        email:       app.email,
-        stall:       stall ? `Stall #${stall.stallNumber}` : `Stall #${app.preferredStall}`,
-        stallId:     stall?._id?.toString() || null,
-        status:      'active',
-        since:       app.reviewedAt
-          ? new Date(app.reviewedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-          : '',
-        initials:    app.initials,
-        amountDue:   stall?.monthlyRate ? `₱${stall.monthlyRate.toLocaleString()}` : '—',
-        lastPayment: '—',
-        section:     stall?.section || '',
+        id: app._id.toString(),
+        name: app.fullName,
+        phone: app.contactNumber,
+        email: app.email,
+        stall: stall ? `Stall #${stall.stallNumber}` : `Stall #${app.preferredStall}`,
+        stallId: stall?._id?.toString() || null,
+        status: 'active',
+        since: app.reviewedAt ? new Date(app.reviewedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '',
+        initials: app.initials,
+        amountDue: stall?.monthlyRate ? `₱${stall.monthlyRate.toLocaleString()}` : '—',
+        lastPayment,
+        section: stall?.section || '',
+        history,
       };
     }));
-
     res.json(records);
   } catch (err) {
     console.error('getRecords error:', err);
