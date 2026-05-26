@@ -78,7 +78,126 @@ router.post('/register', async (req, res) => {
   }
 });
 
-module.exports = router;
+// ---------------------------------------------------
+// POST /api/contractor/register-application
+// ---------------------------------------------------
+router.post('/contractor/register-application', async (req, res) => {
+  const {
+    fullName,
+    businessName,
+    email,
+    password,
+    contactNumber,
+    selectedStalls,
+  } = req.body;
+
+  if (
+    !fullName ||
+    !businessName ||
+    !email ||
+    !password ||
+    !contactNumber ||
+    !selectedStalls
+  ) {
+    return res.status(400).json({ error: 'All fields are required.' });
+  }
+
+  try {
+    const userExists = await User.findOne({ email: email.toLowerCase() });
+    const ContractorApplication = require('../models/ContractorApplication');
+
+    if (userExists) {
+      if (userExists.role !== 'contractor') {
+        return res.status(409).json({ error: 'An account with this email already exists.' });
+      }
+      if (userExists.status === 'pending') {
+        return res.status(409).json({ error: 'A pending application with this email already exists.' });
+      }
+      if (userExists.status === 'approved') {
+        return res.status(409).json({ error: 'An approved contractor account with this email already exists.' });
+      }
+      // If rejected, we allow them to resubmit
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+
+    let application;
+    let userRecord;
+
+    if (userExists && userExists.status === 'rejected') {
+      // Update existing User
+      userExists.full_name = fullName;
+      userExists.contact_number = contactNumber;
+      userExists.passwordHash = passwordHash;
+      userExists.status = 'pending';
+      await userExists.save();
+      userRecord = userExists;
+
+      // Update existing ContractorApplication
+      const app = await ContractorApplication.findOne({ email: email.toLowerCase() });
+      if (app) {
+        app.fullName = fullName;
+        app.businessName = businessName;
+        app.contactNumber = contactNumber;
+        app.passwordHash = passwordHash;
+        app.selectedStalls = selectedStalls;
+        app.status = 'pending';
+        app.rejectionReason = undefined; // clear rejection reason
+        app.appliedAt = new Date();
+        await app.save();
+        application = app;
+      } else {
+        application = await ContractorApplication.create({
+          fullName,
+          businessName,
+          contactNumber,
+          email: email.toLowerCase(),
+          passwordHash,
+          selectedStalls,
+          status: 'pending',
+        });
+      }
+    } else {
+      // Create new application
+      application = await ContractorApplication.create({
+        fullName,
+        businessName,
+        contactNumber,
+        email: email.toLowerCase(),
+        passwordHash,
+        selectedStalls,
+        status: 'pending',
+      });
+
+      // Create new User with status 'pending'
+      userRecord = await User.create({
+        full_name: fullName,
+        email: email.toLowerCase(),
+        contact_number: contactNumber,
+        role: 'contractor',
+        passwordHash,
+        status: 'pending',
+        agreed: true,
+      });
+    }
+
+    return res.status(201).json({
+      message: 'Application submitted successfully',
+      application,
+      user: {
+        id: userRecord._id,
+        email: userRecord.email,
+        full_name: userRecord.full_name,
+        role: userRecord.role,
+        status: userRecord.status,
+      }
+    });
+  } catch (err) {
+    console.error('Contractor application registration error:', err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
 
 
 // POST /api/login
@@ -93,6 +212,16 @@ router.post('/login', async (req, res) => {
     const user = await User.findOne({ email: email.toLowerCase() });
 
     if (!user) {
+      // Check if there is a pending or rejected contractor application
+      const ContractorApplication = require('../models/ContractorApplication');
+      const app = await ContractorApplication.findOne({ email: email.toLowerCase() }).sort({ createdAt: -1 });
+      if (app) {
+        if (app.status === 'pending') {
+          return res.status(403).json({ error: 'Your registration is still pending admin review.' });
+        } else if (app.status === 'rejected') {
+          return res.status(403).json({ error: 'Your registration application was rejected by the admin.' });
+        }
+      }
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
@@ -118,6 +247,7 @@ router.post('/login', async (req, res) => {
         email: user.email,
         full_name: user.full_name,
         role: user.role,
+        status: user.status || 'approved',
       },
       token,
     });
@@ -127,3 +257,5 @@ router.post('/login', async (req, res) => {
     return res.status(500).json({ error: 'Server error' });
   }
 });
+
+module.exports = router;

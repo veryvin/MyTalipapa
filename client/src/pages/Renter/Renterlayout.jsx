@@ -124,6 +124,14 @@ function PlaceholderPage({ label }) {
   )
 }
 
+const getBusinessUseFromSection = (section) => {
+  const sec = (section || "").toLowerCase();
+  if (sec.includes("fish") || sec.includes("sea")) return "Fishes";
+  if (sec.includes("meat")) return "Meat";
+  if (sec.includes("veg") || sec.includes("produce")) return "Vegetables";
+  return "";
+};
+
 /* ── Layout shell ────────────────────────────────────────────── */
 export default function RenterLayout() {
   const location = useLocation()
@@ -215,7 +223,7 @@ export default function RenterLayout() {
 
       case 'applications':
         console.log('[RenterLayout] rendering RenterApplications')
-        return <RenterApplications onNavigate={navigate} />
+        return <RenterApplications onNavigate={navigate} prefill={prefillStall} />
 
       case 'navigate':
         console.log('[RenterLayout] rendering MarketTour360')

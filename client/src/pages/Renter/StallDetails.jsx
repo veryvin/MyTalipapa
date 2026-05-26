@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React from "react";
 
 // --- Icons ---
 const Icon = ({ d, size = 20, className = "" }) => (
@@ -93,38 +93,6 @@ const stallData = {
   ],
 };
 
-// --- Sidebar (reused from parent) ---
-const Sidebar = ({ active, setActive, collapsed, setCollapsed }) => (
-  <aside
-    onMouseEnter={() => setCollapsed(false)}
-    onMouseLeave={() => setCollapsed(true)}
-    className="hidden md:flex flex-col bg-white border-r border-gray-100 h-screen sticky top-0 transition-all duration-300 shrink-0"
-    style={{ width: collapsed ? '4rem' : '14rem' }}
-  >
-    <div className={`flex items-center gap-2 px-4 py-5 border-b border-gray-100 ${collapsed ? "justify-center" : ""}`}>
-      <div className="w-8 h-8 bg-[#2d6a2d] rounded-lg flex items-center justify-center shrink-0">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><path d="M9 22V12h6v10" /></svg>
-      </div>
-      {!collapsed && <span className="font-bold text-gray-900 text-base tracking-tight">MyTalipapa</span>}
-    </div>
-    <nav className="flex-1 py-4 px-2 space-y-0.5">
-      {navItems.map(item => (
-        <button
-          key={item.path}
-          onClick={() => setActive(item.path)}
-          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group ${active === item.path ? "bg-[#edf5ed] text-[#2d6a2d]" : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
-            } ${collapsed ? "justify-center" : ""}`}
-          title={collapsed ? item.label : ""}
-        >
-          <span className={active === item.path ? "text-[#2d6a2d]" : "text-gray-400 group-hover:text-gray-600"}>{item.icon}</span>
-          {!collapsed && <span>{item.label}</span>}
-          {!collapsed && active === item.path && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#2d6a2d]" />}
-        </button>
-      ))}
-    </nav>
-  </aside>
-);
-
 const stallImages = {
   produce: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&h=400&fit=crop",
   fruits: "https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=800&h=400&fit=crop",
@@ -143,27 +111,65 @@ const getStallImage = (section) => {
   return stallImages.dryGoods;
 };
 
+const mapAmenity = (amenity) => {
+  if (typeof amenity === "object" && amenity !== null) {
+    return amenity;
+  }
+  const str = String(amenity).toLowerCase();
+  if (str.includes("water")) {
+    return {
+      label: "Water Supply",
+      icon: <WaterIcon />,
+      color: "text-[#2d6a2d] bg-[#edf5ed] border-[#c3dfc3]"
+    };
+  }
+  if (str.includes("power") || str.includes("elect") || str.includes("220v") || str.includes("outlet")) {
+    return {
+      label: "220V Outlets",
+      icon: <PowerIcon />,
+      color: "text-amber-700 bg-amber-50 border-amber-200"
+    };
+  }
+  if (str.includes("waste") || str.includes("trash") || str.includes("garbage") || str.includes("manage")) {
+    return {
+      label: "Waste Management",
+      icon: <WasteIcon />,
+      color: "text-sky-700 bg-sky-50 border-sky-200"
+    };
+  }
+  return {
+    label: String(amenity),
+    icon: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+      </svg>
+    ),
+    color: "text-gray-700 bg-gray-50 border-gray-200"
+  };
+};
+
 // --- Stall Detail Page ---
-export default function StallDetail({ stall = stallData, onBack, onNavigate }) {
-  const [activeNav, setActiveNav] = useState("stalls");
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+export default function StallDetail({ stall = stallData, onBack, onNavigate, onInquiry }) {
+  const displayId = stall.stallNumber || stall.id || stall._id?.toString() || "";
+  const displayImg = stall.img || getStallImage(stall.section || stall.category);
+  const displaySection = stall.section || stall.category || "";
+  const displayPrice = stall.monthlyRate || stall.rate || 0;
+  const displayDescription = stall.description || "No description available.";
+  const displayZone = stall.zone || "";
+  const displaySize = stall.size || 0;
+  const status = stall.status || "available";
+  const rawAmenities = stall.amenities && stall.amenities.length > 0 ? stall.amenities : stallData.amenities;
+  const activeAmenities = rawAmenities.map(mapAmenity);
+  const displayContractorName = stall.contractorName || "None";
 
   const handleNavClick = (path) => {
-    setActiveNav(path);
     if (onNavigate) {
       onNavigate(path);
     }
   };
 
   return (
-    <div className="flex h-screen bg-[#f5f5f0] font-sans overflow-hidden">
-      <Sidebar
-        active={activeNav}
-        setActive={handleNavClick}
-        collapsed={sidebarCollapsed}
-        setCollapsed={setSidebarCollapsed}
-      />
-
+    <div className="flex-1 flex flex-col overflow-hidden bg-[#f5f5f0] font-sans">
       <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
         {/* Desktop Top Header */}
         <header className="hidden md:flex bg-white border-b border-gray-100 px-6 py-4 items-center justify-between sticky top-0 z-30 shadow-sm">
@@ -289,8 +295,8 @@ export default function StallDetail({ stall = stallData, onBack, onNavigate }) {
             </p>
           </div>
 
-          {/* Zone + Size */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Zone + Size + Contractor */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="bg-white rounded-2xl px-4 py-3.5 border border-gray-100 shadow-sm flex items-center gap-3">
               <div className="w-8 h-8 bg-[#edf5ed] rounded-lg flex items-center justify-center text-[#2d6a2d] shrink-0">
                 <ZoneIcon />
@@ -307,6 +313,15 @@ export default function StallDetail({ stall = stallData, onBack, onNavigate }) {
               <div>
                 <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Size</p>
                 <p className="text-sm font-bold text-gray-900">{displaySize} sqm</p>
+              </div>
+            </div>
+            <div className="bg-white rounded-2xl px-4 py-3.5 border border-gray-100 shadow-sm flex items-center gap-3">
+              <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 shrink-0">
+                <ProfileIcon />
+              </div>
+              <div>
+                <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Contractor Manager</p>
+                <p className="text-sm font-bold text-gray-900">{displayContractorName}</p>
               </div>
             </div>
           </div>
@@ -366,17 +381,30 @@ export default function StallDetail({ stall = stallData, onBack, onNavigate }) {
               View in 360° Tour
             </button>
             <button
-              onClick={() => handleNavClick("applications")}
-              className="w-full py-3 rounded-xl bg-[#e87722] hover:bg-[#d06618] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors shadow-sm"
+              disabled={status !== "available"}
+              onClick={() => {
+                if (onInquiry) {
+                  onInquiry(stall);
+                } else {
+                  handleNavClick("applications");
+                }
+              }}
+              className={`w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all shadow-sm ${
+                status === "available"
+                  ? "bg-[#e87722] hover:bg-[#d06618] text-white"
+                  : "bg-gray-200 text-gray-400 cursor-not-allowed border border-gray-300/30"
+              }`}
             >
               <InquiryIcon />
-              Send Rental Inquiry
+              {status === "occupied"
+                ? "Stall Occupied"
+                : status === "pending"
+                ? "Application Pending"
+                : "Send Rental Inquiry"}
             </button>
           </div>
         </div>
       </main>
-
-      <BottomBar active={activeNav} setActive={handleNavClick} />
     </div>
   );
 }

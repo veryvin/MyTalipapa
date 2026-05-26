@@ -26,8 +26,46 @@ async function findStallByAppStallNumber(raw) {
 // ── GET /api/contractor/stalls ────────────────────────────
 exports.getStalls = async (req, res) => {
   try {
-    const stalls = await Stall.find({}).sort({ section: 1, floorArea: 1, floorCol: 1, floorRow: 1 });
-    res.json(stalls);
+    const { email, unmanaged, hasContractor } = req.query;
+    let query = {};
+    if (email) {
+      query = { managedBy: email.toLowerCase() };
+    } else if (unmanaged === 'true') {
+      query = {
+        $or: [
+          { managedBy: { $exists: false } },
+          { managedBy: null },
+          { managedBy: '' }
+        ]
+      };
+    } else if (hasContractor === 'true') {
+      query = {
+        managedBy: { $exists: true, $nin: [null, ''] }
+      };
+    }
+    const stalls = await Stall.find(query).sort({ section: 1, floorArea: 1, floorCol: 1, floorRow: 1 });
+
+    // Find all users who are contractors to map their emails to names
+    const User = require('../models/User');
+    const contractors = await User.find({ role: 'contractor' }, 'email full_name');
+    const contractorMap = {};
+    contractors.forEach(c => {
+      if (c.email) {
+        contractorMap[c.email.toLowerCase()] = c.full_name;
+      }
+    });
+
+    const stallsWithContractor = stalls.map(stall => {
+      const stallObj = stall.toObject();
+      if (stallObj.managedBy) {
+        stallObj.contractorName = contractorMap[stallObj.managedBy.toLowerCase()] || stallObj.managedBy;
+      } else {
+        stallObj.contractorName = 'None';
+      }
+      return stallObj;
+    });
+
+    res.json(stallsWithContractor);
   } catch (err) {
     console.error('getStalls error:', err);
     res.status(500).json({ error: 'Failed to fetch stalls' });
@@ -68,10 +106,16 @@ exports.updateStallStatus = async (req, res) => {
 // ── GET /api/contractor/applications ─────────────────────
 exports.getApplications = async (req, res) => {
   try {
+    const { email } = req.query;
     const apps = await Application.find({}).sort({ appliedAt: -1 });
 
     const mapped = await Promise.all(apps.map(async (app) => {
       const stall = await findStallByAppStallNumber(app.preferredStall);
+
+      // Filter by contractor email if query param is provided
+      if (email && (!stall || stall.managedBy !== email.toLowerCase())) {
+        return null;
+      }
 
       let stallDisplay = '';
       if (app.stallLabel) {
@@ -106,7 +150,7 @@ exports.getApplications = async (req, res) => {
       };
     }));
 
-    res.json(mapped);
+    res.json(mapped.filter(Boolean));
   } catch (err) {
     console.error('getApplications error:', err);
     res.status(500).json({ error: 'Failed to fetch applications' });
@@ -206,10 +250,17 @@ exports.updateApplicationStatus = async (req, res) => {
  // ── GET /api/contractor/records ──────────────────────────
 exports.getRecords = async (req, res) => {
   try {
+    const { email } = req.query;
     const approved = await Application.find({ status: 'approved' }).sort({ reviewedAt: -1 });
     const Payment = require('../models/Payment'); // import here to avoid circular deps
     const records = await Promise.all(approved.map(async (app) => {
       const stall = await findStallByAppStallNumber(app.preferredStall);
+      
+      // Filter by contractor email if query param is provided
+      if (email && (!stall || stall.managedBy !== email.toLowerCase())) {
+        return null;
+      }
+
       // fetch payment history for this renter
       const payments = await Payment.find({ renter: app._id }).sort({ date: -1 });
       const history = payments.map(p => ({
@@ -235,9 +286,119 @@ exports.getRecords = async (req, res) => {
         history,
       };
     }));
-    res.json(records);
+    res.json(records.filter(Boolean));
   } catch (err) {
     console.error('getRecords error:', err);
     res.status(500).json({ error: 'Failed to fetch records' });
+  }
+};
+
+// ── GET /api/admin/contractor-applications ───────────────
+exports.getContractorApplications = async (req, res) => {
+  try {
+    const { email } = req.query;
+    const ContractorApplication = require('../models/ContractorApplication');
+    let query = {};
+    if (email) {
+      query = { email: email.toLowerCase() };
+    }
+
+    const apps = await ContractorApplication.find(query).sort({ appliedAt: -1 });
+    const formatted = apps.map(app => {
+      const initials = app.fullName
+        ? app.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+        : '';
+      return {
+        id: app._id.toString(),
+        fullName: app.fullName,
+        businessName: app.businessName,
+        contactNumber: app.contactNumber,
+        email: app.email,
+        selectedStalls: app.selectedStalls,
+        status: app.status,
+        rejectionReason: app.rejectionReason || '',
+        appliedAt: app.appliedAt
+          ? new Date(app.appliedAt).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })
+          : '',
+        initials,
+      };
+    });
+    res.json(formatted);
+  } catch (err) {
+    console.error('getContractorApplications error:', err);
+    res.status(500).json({ error: 'Failed to fetch contractor applications' });
+  }
+};
+
+// ── POST /api/admin/contractor-applications/:id/status ────
+exports.updateContractorApplicationStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { action, rejectionReason } = req.body; // "approve" | "reject", optional rejectionReason
+
+    if (!['approve', 'reject'].includes(action)) {
+      return res.status(400).json({ error: 'Invalid action. Use "approve" or "reject".' });
+    }
+
+    const ContractorApplication = require('../models/ContractorApplication');
+    const app = await ContractorApplication.findById(id);
+    if (!app) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+
+    const User = require('../models/User');
+    if (action === 'approve') {
+      const userExists = await User.findOne({ email: app.email.toLowerCase() });
+      if (userExists) {
+        userExists.status = 'approved';
+        await userExists.save();
+      } else {
+        // Fallback: Create new user if they didn't have one (for older records)
+        await User.create({
+          full_name: app.fullName,
+          email: app.email.toLowerCase(),
+          contact_number: app.contactNumber,
+          role: 'contractor',
+          passwordHash: app.passwordHash,
+          status: 'approved',
+          agreed: true,
+        });
+      }
+
+      // Update stalls to be managed by this contractor email
+      if (app.selectedStalls && app.selectedStalls.length > 0) {
+        await Stall.updateMany(
+          { stallNumber: { $in: app.selectedStalls } },
+          { $set: { managedBy: app.email.toLowerCase() } }
+        );
+      }
+
+      app.status = 'approved';
+      app.rejectionReason = undefined; // clear rejection reason on approval
+    } else {
+      // Reject action
+      const userExists = await User.findOne({ email: app.email.toLowerCase() });
+      if (userExists) {
+        userExists.status = 'rejected';
+        await userExists.save();
+      }
+
+      app.status = 'rejected';
+      app.rejectionReason = rejectionReason || 'Your application was rejected by the admin.';
+    }
+
+    await app.save();
+
+    res.json({
+      message: `Application successfully ${action}d`,
+      application: app,
+    });
+  } catch (err) {
+    console.error('updateContractorApplicationStatus error:', err);
+    res.status(500).json({ error: 'Failed to update contractor application status' });
   }
 };

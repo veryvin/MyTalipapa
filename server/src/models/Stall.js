@@ -9,6 +9,7 @@ const stallSchema = new mongoose.Schema({
   floorCol:       { type: String },
   floorRow:       { type: Number },
   hasStallNumber: { type: Boolean, default: true },
+  managedBy:      { type: String, default: null }, // Contractor email
   status:         { type: String, enum: ['available', 'occupied', 'pending'], default: 'available' },
   size:           { type: Number, default: 12 },
   sizeUnit:       { type: String, default: 'sqm' },

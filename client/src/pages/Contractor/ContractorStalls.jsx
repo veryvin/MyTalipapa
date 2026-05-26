@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useCurrentUser } from '../../utils/auth';
+import { useCurrentUser, getUser } from '../../utils/auth';
+import ContractorLockScreen from './ContractorLockScreen';
 
 const NAV_ITEMS = [
   {
@@ -75,8 +76,12 @@ export default function ContractorStalls() {
   // Active floor tab (upper / lower)
   const [activeFloor, setActiveFloor] = useState(null);
 
+  const user = getUser();
+  const userEmail = user?.email || '';
+
   useEffect(() => {
-    fetch('http://localhost:5000/api/contractor/stalls')
+    if (!userEmail) return;
+    fetch(`http://localhost:5000/api/contractor/stalls?email=${userEmail}`)
       .then(res => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
@@ -89,7 +94,7 @@ export default function ContractorStalls() {
         setError(err.message);
         setLoading(false);
       });
-  }, []);
+  }, [userEmail]);
 
   // All unique section keys from DB
   const sectionKeys = useMemo(() => {
@@ -184,7 +189,8 @@ export default function ContractorStalls() {
   const handleLogout = () => navigate('/login');
 
   return (
-    <div className="dashboard-root">
+    <ContractorLockScreen>
+      <div className="dashboard-root">
       {/* Logout Modal */}
       {showLogoutModal && (
         <div className="logout-overlay" onClick={() => setShowLogoutModal(false)}>
@@ -624,6 +630,7 @@ export default function ContractorStalls() {
           .stalls-columns-wrap { gap: 12px; }
         }
       `}</style>
-    </div>
+      </div>
+    </ContractorLockScreen>
   );
 }

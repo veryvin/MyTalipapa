@@ -93,7 +93,7 @@ export default function RenterStalls({ onNavigate, onOpenStall }) {
   const [filter, setFilter] = useState("All");
 
   useEffect(() => {
-    fetch("/api/contractor/stalls")
+    fetch("/api/contractor/stalls?hasContractor=true")
       .then((res) => res.json())
       .then((data) => setStalls(data))
       .catch(() => {

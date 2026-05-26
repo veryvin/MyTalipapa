@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useCurrentUser } from '../../utils/auth';
+import { useCurrentUser, getUser } from '../../utils/auth';
+import ContractorLockScreen from './ContractorLockScreen';
 
 const NAV_ITEMS = [
   {
@@ -91,9 +92,13 @@ export default function ContractorRecords() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const user = getUser();
+  const userEmail = user?.email || '';
+
   useEffect(() => {
+    if (!userEmail) return;
     setLoading(true);
-    fetch('/api/contractor/records')
+    fetch(`/api/contractor/records?email=${userEmail}`)
       .then(res => {
         if (!res.ok) throw new Error(`Server error: ${res.status}`);
         return res.json();
@@ -107,7 +112,7 @@ export default function ContractorRecords() {
         setError('Failed to load records. Please refresh.');
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [userEmail]);
 
   const RENTERS = records;
 
@@ -152,21 +157,26 @@ export default function ContractorRecords() {
   // Loading and error states
   if (loading) {
     return (
-      <div className="dashboard-root">
-        <p style={{ padding: '24px', textAlign: 'center', color: 'var(--color-text)' }}>Loading records...</p>
-      </div>
+      <ContractorLockScreen>
+        <div className="dashboard-root">
+          <p style={{ padding: '24px', textAlign: 'center', color: 'var(--color-text)' }}>Loading records...</p>
+        </div>
+      </ContractorLockScreen>
     );
   }
   if (error) {
     return (
-      <div className="dashboard-root">
-        <p style={{ color: 'red', padding: '24px', textAlign: 'center' }}>{error}</p>
-      </div>
+      <ContractorLockScreen>
+        <div className="dashboard-root">
+          <p style={{ color: 'red', padding: '24px', textAlign: 'center' }}>{error}</p>
+        </div>
+      </ContractorLockScreen>
     );
   }
 
   return (
-    <div className="dashboard-root">
+    <ContractorLockScreen>
+      <div className="dashboard-root">
       {/* Logout Modal */}
       {showLogoutModal && (
         <div className="logout-overlay" onClick={() => setShowLogoutModal(false)}>
@@ -543,6 +553,7 @@ export default function ContractorRecords() {
           .rec-stat-value { font-size: 44px; }
         }
       `}</style>
-    </div>
+      </div>
+    </ContractorLockScreen>
   );
 }

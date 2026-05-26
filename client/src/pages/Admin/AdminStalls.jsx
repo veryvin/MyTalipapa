@@ -477,6 +477,14 @@ export default function AdminStalls() {
               </div>
             )}
 
+            {/* Contractor Info Row */}
+            <div className="stall-modal-info" style={{ marginBottom: '4px', marginTop: '4px' }}>
+              <div className="stall-modal-row">
+                <span>Contractor Manager</span>
+                <strong>{selectedStall.contractorName || selectedStall.managedBy || 'None'}</strong>
+              </div>
+            </div>
+
             {selectedStall.status === "occupied" && selectedStall.tenant && (
               <div className="stall-modal-info">
                 <div className="stall-modal-row"><span>Vendor</span><strong>{selectedStall.tenant.name}</strong></div>

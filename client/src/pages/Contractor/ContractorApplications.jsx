@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useCurrentUser } from '../../utils/auth';
+import { useCurrentUser, getUser } from '../../utils/auth';
+import ContractorLockScreen from './ContractorLockScreen';
 
 const NAV_ITEMS = [
   {
@@ -91,10 +92,14 @@ export default function ContractorApplication() {
     a => a.status === tab.toLowerCase()
   );
 
+  const user = getUser();
+  const userEmail = user?.email || '';
+
   // ── Fetch applications on mount ──────────────────────────
   useEffect(() => {
+    if (!userEmail) return;
     setLoadingApps(true);
-    fetch('/api/contractor/applications')
+    fetch(`/api/contractor/applications?email=${userEmail}`)
       .then(res => {
         if (!res.ok) throw new Error(`Server error: ${res.status}`);
         return res.json();
@@ -108,7 +113,7 @@ export default function ContractorApplication() {
         setError('Failed to load applications. Please refresh.');
       })
       .finally(() => setLoadingApps(false));
-  }, []);
+  }, [userEmail]);
 
   const handleNav = (item) => {
     setActiveNav(item.id);
@@ -260,7 +265,8 @@ export default function ContractorApplication() {
   };
 
   return (
-    <div className="dashboard-root">
+    <ContractorLockScreen>
+      <div className="dashboard-root">
       {/* Logout Modal */}
       {showLogoutModal && (
         <div className="logout-overlay" onClick={() => setShowLogoutModal(false)}>
@@ -501,6 +507,7 @@ export default function ContractorApplication() {
           .apps-tab { font-size: 14px; padding: 10px 16px; }
         }
       `}</style>
-    </div>
+      </div>
+    </ContractorLockScreen>
   );
 }

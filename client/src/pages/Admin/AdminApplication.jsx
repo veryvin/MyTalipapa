@@ -76,23 +76,38 @@ const TABS = ["Pending", "Approved", "Rejected"];
 
 export default function AdminApplication() {
   const [tab, setTab] = useState("Pending");
+  const [appType, setAppType] = useState("renters"); // "renters" | "contractors"
+  
   const [applications, setApplications] = useState([]);
   const [loadingApps, setLoadingApps] = useState(true);
+  const [contractorApps, setContractorApps] = useState([]);
+  const [loadingContractorApps, setLoadingContractorApps] = useState(true);
+  
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState('nav-apps');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { userName, loading: authLoading } = useCurrentUser();
   const [processingId, setProcessingId] = useState(null);
+  
   const [selectedApp, setSelectedApp] = useState(null);
+  const [selectedContractorApp, setSelectedContractorApp] = useState(null);
   const [animating, setAnimating] = useState({});
 
   const filteredApps = applications.filter(
     a => a.status === tab.toLowerCase()
   );
 
+  const filteredContractorApps = contractorApps.filter(
+    a => a.status === tab.toLowerCase()
+  );
+
+  const pendingRentersCount = applications.filter(a => a.status === "pending").length;
+  const pendingContractorsCount = contractorApps.filter(a => a.status === "pending").length;
+  const totalPendingApps = pendingRentersCount + pendingContractorsCount;
+
   // ── Fetch applications on mount ──────────────────────────
-  useEffect(() => {
+  const fetchAllApps = () => {
     setLoadingApps(true);
     fetch('/api/admin/applications')
       .then(res => {
@@ -108,6 +123,24 @@ export default function AdminApplication() {
         setError('Failed to load applications. Please refresh.');
       })
       .finally(() => setLoadingApps(false));
+
+    setLoadingContractorApps(true);
+    fetch('/api/admin/contractor-applications')
+      .then(res => {
+        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        setContractorApps(data);
+      })
+      .catch(err => {
+        console.error('Failed to fetch contractor applications:', err);
+      })
+      .finally(() => setLoadingContractorApps(false));
+  };
+
+  useEffect(() => {
+    fetchAllApps();
   }, []);
 
   const handleNav = (item) => {
@@ -119,7 +152,7 @@ export default function AdminApplication() {
     navigate('/login');
   };
 
-  // ── Approve / Reject — persists to backend ───────────────
+  // ── Approve / Reject Rental Application ───────────────
   const handleAction = async (id, action) => {
     setProcessingId(id);
     setAnimating(prev => ({ ...prev, [id]: action }));
@@ -154,109 +187,226 @@ export default function AdminApplication() {
     }
   };
 
-  const pendingCount  = applications.filter(a => a.status === "pending").length;
-  const approvedCount = applications.filter(a => a.status === "approved").length;
-  const rejectedCount = applications.filter(a => a.status === "rejected").length;
+  // ── Approve / Reject Contractor Application ────────────
+  const handleContractorAction = async (id, action) => {
+    let rejectionReason = "";
+    if (action === 'reject') {
+      rejectionReason = window.prompt("Please enter a reason for rejection (optional):");
+      if (rejectionReason === null) return; // User cancelled prompt
+    }
+
+    setProcessingId(id);
+    setAnimating(prev => ({ ...prev, [id]: action }));
+
+    try {
+      const res = await fetch(`/api/admin/contractor-applications/${id}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, rejectionReason }), // "approve" | "reject"
+      });
+
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+
+      // Update UI only after backend confirms
+      setContractorApps(prev =>
+        prev.map(a =>
+          a.id === id
+            ? { ...a, status: action === 'approve' ? 'approved' : 'rejected', rejectionReason }
+            : a
+        )
+      );
+    } catch (err) {
+      console.error('Failed to update contractor application:', err);
+      alert('Action failed. Please try again.');
+    } finally {
+      setProcessingId(null);
+      setAnimating(prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    }
+  };
+
+  const activeApps = appType === "renters" ? applications : contractorApps;
+
+  const pendingCount  = activeApps.filter(a => a.status === "pending").length;
+  const approvedCount = activeApps.filter(a => a.status === "approved").length;
+  const rejectedCount = activeApps.filter(a => a.status === "rejected").length;
   const tabCounts = { Pending: pendingCount, Approved: approvedCount, Rejected: rejectedCount };
 
   // ── Shared list renderer ─────────────────────────────────
   const renderList = () => {
-    if (loadingApps) {
-      return (
-        <div className="no-applications">
-          <span style={{ fontSize: 32 }}>⏳</span>
-          <span>Loading applications…</span>
-        </div>
-      );
-    }
-    if (error) {
-      return (
-        <div className="no-applications" style={{ color: '#dc2626' }}>
-          <span style={{ fontSize: 32 }}>⚠️</span>
-          <span>{error}</span>
-        </div>
-      );
-    }
-    if (filteredApps.length === 0) {
-      return (
-        <div className="no-applications">
-          <span style={{ fontSize: 32 }}>
-            {tab === "Pending" ? "📋" : tab === "Approved" ? "✅" : "❌"}
-          </span>
-          <span>No {tab.toLowerCase()} applications</span>
-        </div>
-      );
-    }
-    return filteredApps.map(app => (
-      <div
-        key={app.id}
-        className={`application-row apps-row-full${
-          animating[app.id] === "approve" ? " action-approved" : ""
-        }${
-          animating[app.id] === "reject" ? " action-rejected" : ""
-        }`}
-      >
-        <div className="app-avatar">
-          <span style={{ fontSize: 15, fontWeight: 800, color: "#6b7280" }}>
-            {app.initials}
-          </span>
-        </div>
-        <div className="app-info">
-          <div className="apps-name-row">
-            <span className="app-name">{app.name}</span>
-            <span className="apps-stall-badge" style={{ background: app.stallColor }}>
-              {app.stall}
+    if (appType === "renters") {
+      if (loadingApps) {
+        return (
+          <div className="no-applications">
+            <span style={{ fontSize: 32 }}>⏳</span>
+            <span>Loading applications…</span>
+          </div>
+        );
+      }
+      if (error) {
+        return (
+          <div className="no-applications" style={{ color: '#dc2626' }}>
+            <span style={{ fontSize: 32 }}>⚠️</span>
+            <span>{error}</span>
+          </div>
+        );
+      }
+      if (filteredApps.length === 0) {
+        return (
+          <div className="no-applications">
+            <span style={{ fontSize: 32 }}>
+              {tab === "Pending" ? "📋" : tab === "Approved" ? "✅" : "❌"}
+            </span>
+            <span>No {tab.toLowerCase()} applications</span>
+          </div>
+        );
+      }
+      return filteredApps.map(app => (
+        <div
+          key={app.id}
+          className={`application-row apps-row-full${
+            animating[app.id] === "approve" ? " action-approved" : ""
+          }${
+            animating[app.id] === "reject" ? " action-rejected" : ""
+          }`}
+        >
+          <div className="app-avatar">
+            <span style={{ fontSize: 15, fontWeight: 800, color: "#6b7280" }}>
+              {app.initials}
             </span>
           </div>
-          <span className="app-meta">{app.phone}</span>
-          <div className="apps-meta-row">
-            <span className="apps-date">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline", marginRight: 3 }}>
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-              </svg>
-              Applied: {app.applied}
-            </span>
-            <span className="app-type" style={{ color: app.typeColor }}>{app.type}</span>
+          <div className="app-info">
+            <div className="apps-name-row">
+              <span className="app-name">{app.name}</span>
+              <span className="apps-stall-badge" style={{ background: app.stallColor }}>
+                {app.stall}
+              </span>
+            </div>
+            <span className="app-meta">{app.phone}</span>
+            <div className="apps-meta-row">
+              <span className="apps-date">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline", marginRight: 3 }}>
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                Applied: {app.applied}
+              </span>
+              <span className="app-type" style={{ color: app.typeColor }}>{app.type}</span>
+            </div>
           </div>
-        </div>
-        <div className="apps-action-col">
-          {tab === "Pending" ? (
-            <>
-              <button className="apps-view-btn" onClick={() => setSelectedApp(app)}>View Details</button>
-              <div className="app-actions">
-                <button
-                  className="btn-reject"
-                  disabled={processingId === app.id}
-                  onClick={() => handleAction(app.id, "reject")}
-                  aria-label="Reject"
-                >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                </button>
-                <button
-                  className="btn-approve"
-                  disabled={processingId === app.id}
-                  onClick={() => handleAction(app.id, "approve")}
-                >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12"/>
-                  </svg>
-                  Approve
-                </button>
-              </div>
-            </>
-          ) : (
+          <div className="apps-action-col">
             <div className="apps-status-row">
               <button className="apps-view-btn" onClick={() => setSelectedApp(app)}>View Details</button>
               <span className={`apps-status-chip apps-status-${app.status}`}>
-                {app.status === "approved" ? "✓ Approved" : "✗ Rejected"}
+                {app.status === "approved" ? "✓ Approved" : app.status === "rejected" ? "✗ Rejected" : "Pending"}
               </span>
             </div>
-          )}
+          </div>
         </div>
-      </div>
-    ));
+      ));
+    } else {
+      // appType === "contractors"
+      if (loadingContractorApps) {
+        return (
+          <div className="no-applications">
+            <span style={{ fontSize: 32 }}>⏳</span>
+            <span>Loading contractor registrations…</span>
+          </div>
+        );
+      }
+      if (filteredContractorApps.length === 0) {
+        return (
+          <div className="no-applications">
+            <span style={{ fontSize: 32 }}>
+              {tab === "Pending" ? "📋" : tab === "Approved" ? "✅" : "❌"}
+            </span>
+            <span>No {tab.toLowerCase()} contractor registrations</span>
+          </div>
+        );
+      }
+      return filteredContractorApps.map(app => (
+        <div
+          key={app.id}
+          className={`application-row apps-row-full${
+            animating[app.id] === "approve" ? " action-approved" : ""
+          }${
+            animating[app.id] === "reject" ? " action-rejected" : ""
+          }`}
+        >
+          <div className="app-avatar">
+            <span style={{ fontSize: 15, fontWeight: 800, color: "#6b7280" }}>
+              {app.initials}
+            </span>
+          </div>
+          <div className="app-info">
+            <div className="apps-name-row">
+              <span className="app-name">{app.fullName}</span>
+              <span className="text-[10px] bg-yellow-50 border border-yellow-200 text-yellow-700 font-extrabold px-2.5 py-0.5 rounded-full uppercase">
+                {app.status}
+              </span>
+            </div>
+            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">{app.businessName}</p>
+            <span className="app-meta">{app.contactNumber}</span>
+            <div className="mt-2.5">
+              <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block mb-1">Selected Stalls</span>
+              <div className="flex flex-wrap gap-1">
+                {app.selectedStalls.map(stallNum => (
+                  <span key={stallNum} className="text-[10px] font-extrabold bg-gray-100 text-gray-700 px-2 py-0.5 rounded-md border border-gray-200">
+                    #{stallNum}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="apps-meta-row mt-2.5">
+              <span className="apps-date">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline", marginRight: 3 }}>
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                Submitted: {app.appliedAt}
+              </span>
+            </div>
+          </div>
+          <div className="apps-action-col">
+            {tab === "Pending" ? (
+              <>
+                <button className="apps-view-btn" onClick={() => setSelectedContractorApp(app)}>View Full Details</button>
+                <div className="app-actions">
+                  <button
+                    className="btn-reject"
+                    disabled={processingId === app.id}
+                    onClick={() => handleContractorAction(app.id, "reject")}
+                    aria-label="Reject"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                  <button
+                    className="btn-approve"
+                    disabled={processingId === app.id}
+                    onClick={() => handleContractorAction(app.id, "approve")}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Approve
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="apps-status-row">
+                <button className="apps-view-btn" onClick={() => setSelectedContractorApp(app)}>View Full Details</button>
+                <span className={`apps-status-chip apps-status-${app.status}`}>
+                  {app.status === "approved" ? "✓ Approved" : "✗ Rejected"}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      ));
+    }
   };
 
   return (
@@ -317,7 +467,14 @@ export default function AdminApplication() {
               onClick={() => handleNav(item)}
             >
               <span className="nav-icon">{item.icon}</span>
-              <span className="nav-label">{item.label}</span>
+              <span className="nav-label flex items-center gap-2">
+                {item.label}
+                {item.id === 'nav-apps' && totalPendingApps > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full bg-red-500 text-[9px] font-black text-white leading-none">
+                    {totalPendingApps}
+                  </span>
+                )}
+              </span>
             </button>
           ))}
           <div className="sidebar-logout-spacer" />
@@ -339,8 +496,48 @@ export default function AdminApplication() {
 
         <main className="dashboard-main apps-main">
           <div className="apps-title-block">
-            <h1 className="apps-page-title">Rental Applications</h1>
-            <p className="apps-page-sub">Manage and review new stall requests from vendors.</p>
+            <h1 className="apps-page-title">
+              {appType === "renters" ? "Rental Applications" : "Contractor Registrations"}
+            </h1>
+            <p className="apps-page-sub">
+              {appType === "renters" 
+                ? "Manage and review new stall requests from vendors." 
+                : "Review and manage pending applications for market stall contractors."}
+            </p>
+          </div>
+
+          {/* Premium Segmented Toggle Control */}
+          <div className="flex bg-gray-200/60 p-1.5 rounded-2xl mb-2 w-full max-w-md border border-gray-100">
+            <button
+              onClick={() => { setAppType("renters"); setTab("Pending"); }}
+              className={`flex-1 py-3 text-center text-xs font-bold rounded-xl transition-all relative ${
+                appType === "renters"
+                  ? "bg-white text-green-700 shadow-sm border border-gray-150/40"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Renter Applications
+              {pendingRentersCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white border-2 border-white">
+                  {pendingRentersCount}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => { setAppType("contractors"); setTab("Pending"); }}
+              className={`flex-1 py-3 text-center text-xs font-bold rounded-xl transition-all relative ${
+                appType === "contractors"
+                  ? "bg-white text-green-700 shadow-sm border border-gray-150/40"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Contractor Registrations
+              {pendingContractorsCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white border-2 border-white">
+                  {pendingContractorsCount}
+                </span>
+              )}
+            </button>
           </div>
 
           {/* Tab Bar */}
@@ -383,7 +580,7 @@ export default function AdminApplication() {
         ))}
       </nav>
 
-      {/* Detail Modal */}
+      {/* Renter Detail Modal */}
       {selectedApp && (
         <div className="logout-overlay" onClick={() => setSelectedApp(null)}>
           <div className="app-detail-modal" onClick={e => e.stopPropagation()}>
@@ -420,31 +617,98 @@ export default function AdminApplication() {
                 </span>
               </div>
             </div>
-            {selectedApp.status === "pending" && (
-              <div className="app-detail-actions">
+            <button className="stall-modal-close" onClick={() => setSelectedApp(null)}>Close</button>
+          </div>
+        </div>
+      )}
+
+      {/* Contractor Detail Modal */}
+      {selectedContractorApp && (
+        <div className="logout-overlay" onClick={() => setSelectedContractorApp(null)}>
+          <div className="app-detail-modal text-left" onClick={e => e.stopPropagation()}>
+            <div className="app-detail-header border-b border-gray-100 pb-4 mb-4">
+              <div className="app-avatar app-detail-avatar w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center font-extrabold text-lg text-gray-500">
+                {selectedContractorApp.initials}
+              </div>
+              <div className="text-left">
+                <h2 className="app-detail-name text-lg font-extrabold text-gray-800">{selectedContractorApp.fullName}</h2>
+                <span className="app-detail-phone text-xs text-gray-400 font-bold uppercase tracking-wider">{selectedContractorApp.businessName}</span>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gray-50 p-3 rounded-xl">
+                  <span className="block text-[10px] text-gray-400 font-bold uppercase tracking-wider">Contact Number</span>
+                  <span className="text-xs font-semibold text-gray-700">{selectedContractorApp.contactNumber}</span>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-xl">
+                  <span className="block text-[10px] text-gray-400 font-bold uppercase tracking-wider">Email Address</span>
+                  <span className="text-xs font-semibold text-gray-700 overflow-hidden text-ellipsis block">{selectedContractorApp.email}</span>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-xl">
+                  <span className="block text-[10px] text-gray-400 font-bold uppercase tracking-wider">Date Submitted</span>
+                  <span className="text-xs font-semibold text-gray-700">{selectedContractorApp.appliedAt}</span>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-xl">
+                  <span className="block text-[10px] text-gray-400 font-bold uppercase tracking-wider">Status</span>
+                  <span className={`inline-block text-[10px] font-extrabold px-2 py-0.5 rounded-full mt-0.5 ${
+                    selectedContractorApp.status === "approved"
+                      ? "bg-green-100 text-green-700"
+                      : selectedContractorApp.status === "rejected"
+                      ? "bg-red-100 text-red-700"
+                      : "bg-yellow-100 text-yellow-700"
+                  }`}>
+                    {selectedContractorApp.status.toUpperCase()}
+                  </span>
+                </div>
+              </div>
+
+              {selectedContractorApp.status === "rejected" && selectedContractorApp.rejectionReason && (
+                <div className="bg-red-50 border border-red-100 p-3.5 rounded-xl">
+                  <span className="block text-[10px] text-red-700 font-bold uppercase tracking-wider mb-1">Rejection Reason</span>
+                  <p className="text-xs text-red-800 font-semibold">{selectedContractorApp.rejectionReason}</p>
+                </div>
+              )}
+
+              <div>
+                <span className="block text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-2">Selected Stalls</span>
+                <div className="flex flex-wrap gap-1.5 max-h-[120px] overflow-y-auto pr-1">
+                  {selectedContractorApp.selectedStalls.map(stallNum => (
+                    <span key={stallNum} className="text-xs font-extrabold bg-gray-100 text-gray-700 px-3 py-1.5 rounded-xl border border-gray-200">
+                      Stall #{stallNum}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {selectedContractorApp.status === "pending" && (
+              <div className="flex gap-2 mt-6">
                 <button
-                  className="btn-reject"
-                  style={{ flex: 1, justifyContent: "center", gap: 6 }}
-                  onClick={() => { handleAction(selectedApp.id, "reject"); setSelectedApp(null); }}
+                  className="btn-reject flex-1 justify-center gap-1.5"
+                  onClick={() => {
+                    handleContractorAction(selectedContractorApp.id, "reject");
+                    setSelectedContractorApp(null);
+                  }}
                 >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
                   Reject
                 </button>
                 <button
-                  className="btn-approve"
-                  style={{ flex: 1, justifyContent: "center", gap: 6 }}
-                  onClick={() => { handleAction(selectedApp.id, "approve"); setSelectedApp(null); }}
+                  className="btn-approve flex-1 justify-center gap-1.5"
+                  onClick={() => {
+                    handleContractorAction(selectedContractorApp.id, "approve");
+                    setSelectedContractorApp(null);
+                  }}
                 >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12"/>
-                  </svg>
                   Approve
                 </button>
               </div>
             )}
-            <button className="stall-modal-close" onClick={() => setSelectedApp(null)}>Close</button>
+            
+            <button className="stall-modal-close mt-4 w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200" onClick={() => setSelectedContractorApp(null)}>
+              Close
+            </button>
           </div>
         </div>
       )}

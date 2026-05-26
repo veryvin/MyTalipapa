@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCurrentUser } from '../../utils/auth';
 import adminPhoto from '../../images/ContractorSample.jpg'  // swap with your actual image path
+import ContractorLockScreen from './ContractorLockScreen';
 
 
 const NAV_ITEMS = [
@@ -61,7 +62,8 @@ export default function ContractorProfile() {
   const handleLogout = () => navigate('/login')
 
   return (
-    <div className="profile-root">
+    <ContractorLockScreen>
+      <div className="profile-root">
 
       {/* ── Logout Modal ── */}
       {showLogout && (
@@ -201,6 +203,7 @@ export default function ContractorProfile() {
         ))}
       </nav>
 
-    </div>
+      </div>
+    </ContractorLockScreen>
   )
 }
