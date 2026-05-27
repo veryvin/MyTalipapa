@@ -13,6 +13,7 @@ import {
   MapPin, Calendar, Eye, Bell, User,
 } from 'lucide-react'
 import { getUser } from '../../utils/auth'
+import NotificationBell from '../../components/NotificationBell'
 
 /* ── Static data ─────────────────────────────────────────────── */
 const MY_APPLICATIONS = [
@@ -54,7 +55,7 @@ const selectCls =
   'transition-all duration-200 appearance-none cursor-pointer'
 
 /* ── ApplicationCard ─────────────────────────────────────────── */
-function ApplicationCard({ app }) {
+function ApplicationCard({ app, onViewDetails }) {
   const { pill, Icon, label } = STATUS_CFG[app.status] || STATUS_CFG.Pending
 
   return (
@@ -83,7 +84,10 @@ function ApplicationCard({ app }) {
             {app.submittedOn}
           </div>
         </div>
-        <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-500 hover:bg-gray-50 active:scale-95 transition-all">
+        <button 
+          onClick={() => onViewDetails && onViewDetails(app)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-500 hover:bg-gray-50 active:scale-95 transition-all"
+        >
           <Eye size={12} />
           View Details
         </button>
@@ -114,9 +118,7 @@ function TopBar({ showBack, onBack }) {
       </div>
 
       <div className="flex items-center gap-2 w-20 justify-end">
-        <button className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-50 transition">
-          <Bell size={17} className="text-gray-500" />
-        </button>
+        <NotificationBell />
         <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
           <User size={15} className="text-gray-400" />
         </div>
@@ -131,6 +133,7 @@ export default function RenterApplications({ prefill }) {
   const [submitted, setSubmitted] = useState(false)
   const [loading,   setLoading]   = useState(false)
   const [applications, setApplications] = useState([])
+  const [selectedApp, setSelectedApp] = useState(null)
 
   const [form, setForm] = useState({
     fullName:            getUser()?.full_name || getUser()?.name || '',
@@ -285,7 +288,11 @@ export default function RenterApplications({ prefill }) {
             <div className="space-y-3">
               {applications.length > 0 ? (
                 applications.map((app) => (
-                  <ApplicationCard key={app.id || app._id} app={app} />
+                  <ApplicationCard 
+                    key={app.id || app._id} 
+                    app={app} 
+                    onViewDetails={setSelectedApp} 
+                  />
                 ))
               ) : (
                 <div className="bg-white border border-gray-100 rounded-2xl py-8 px-4 text-center text-sm font-semibold text-gray-400 shadow-sm">
@@ -446,6 +453,95 @@ export default function RenterApplications({ prefill }) {
           </div>
         )}
       </div>
+      {/* ── Detail Modal ── */}
+      {selectedApp && (
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setSelectedApp(null)}
+        >
+          <div 
+            className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-gray-100 flex flex-col animate-in fade-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#f0f7f0] flex items-center justify-center text-gray-500 font-extrabold text-sm shrink-0">
+                  {selectedApp.fullName
+                    ? selectedApp.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                    : 'AP'}
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-gray-900 leading-tight">
+                    Application Details
+                  </h3>
+                  <p className="text-[10px] text-gray-400 mt-0.5">{selectedApp.zone || selectedApp.section || 'Market Stall'}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setSelectedApp(null)}
+                className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-[#f9fafb] rounded-xl p-3 flex flex-col gap-1">
+                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Stall Number</span>
+                  <span className="text-xs font-semibold text-gray-800">{selectedApp.stall}</span>
+                </div>
+                <div className="bg-[#f9fafb] rounded-xl p-3 flex flex-col gap-1">
+                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Business Type</span>
+                  <span className="text-xs font-semibold text-gray-800">{selectedApp.intendedBusinessUse || 'N/A'}</span>
+                </div>
+                <div className="bg-[#f9fafb] rounded-xl p-3 flex flex-col gap-1">
+                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Submitted On</span>
+                  <span className="text-xs font-semibold text-gray-800">{selectedApp.submittedOn || selectedApp.date}</span>
+                </div>
+                <div className="bg-[#f9fafb] rounded-xl p-3 flex flex-col gap-1">
+                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Status</span>
+                  <span className={`inline-flex items-center self-start px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                    selectedApp.status === 'Approved' ? 'bg-green-50 text-green-700' :
+                    selectedApp.status === 'Rejected' ? 'bg-red-50 text-red-500' :
+                    'bg-orange-50 text-orange-700'
+                  }`}>
+                    {selectedApp.status}
+                  </span>
+                </div>
+              </div>
+
+              {/* Message */}
+              {selectedApp.additionalMessage && (
+                <div className="bg-[#f9fafb] rounded-xl p-3 flex flex-col gap-1.5">
+                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Additional Message</span>
+                  <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap">{selectedApp.additionalMessage}</p>
+                </div>
+              )}
+
+              {/* Rejection Reason */}
+              {selectedApp.status === 'Rejected' && selectedApp.rejectionReason && (
+                <div className="bg-red-50 border border-red-100 rounded-xl p-3 flex flex-col gap-1.5">
+                  <span className="text-[9px] font-bold text-red-500 uppercase tracking-wider">Rejection Reason</span>
+                  <p className="text-xs text-red-700 leading-relaxed">{selectedApp.rejectionReason}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+              <button 
+                onClick={() => setSelectedApp(null)}
+                className="w-full py-2.5 bg-[#1a5c2a] hover:bg-[#154d23] active:scale-95 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
+              >
+                Close Details
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

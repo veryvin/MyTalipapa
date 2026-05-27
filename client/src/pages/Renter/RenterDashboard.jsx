@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Bell,
   LogOut,
   Store,
   FileText,
@@ -13,13 +12,15 @@ import {
   Phone,
   Mail,
   Globe,
-  Camera
+  Camera,
+  Clock
 } from 'lucide-react'
+import NotificationBell from '../../components/NotificationBell'
 
-export default function RenterDashboard() {
+export default function RenterDashboard({ onNavigate, onOpenStall }) {
   const navigate = useNavigate()
 
-  const [currentUser] = useState(() => {
+  const [currentUser, setCurrentUser] = useState(() => {
     try {
       const token = localStorage.getItem('authToken')
       const storedUser = localStorage.getItem('user')
@@ -31,19 +32,9 @@ export default function RenterDashboard() {
     }
   })
 
-  const activeStall = {
-    stallNumber: '#045',
-    section: 'Produce Section B',
-    monthlyRate: '₱3,500',
-    status: 'Active',
-    leaseStart: 'Nov 01, 2025',
-    leaseEnd: 'Nov 01, 2026',
-  }
-
-  const applications = [
-    { id: 'app-1', stall: '#045', section: 'Produce Section B',        date: 'Oct 25, 2025', status: 'Approved', fee: '₱3,500/mo' },
-    { id: 'app-2', stall: '#012', section: 'Meat & Poultry Section A', date: 'Oct 24, 2025', status: 'Rejected', fee: '₱4,200/mo' },
-  ]
+  const [applications, setApplications] = useState([])
+  const [activeStall, setActiveStall] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   const alerts = [
     { id: 'alert-1', type: 'info',    message: 'Market cleanup is scheduled for next Monday. Stall operations will start at 9:00 AM.', date: 'May 22, 2026' },
@@ -51,14 +42,58 @@ export default function RenterDashboard() {
   ]
 
   const appStats = {
-    pending:  applications.filter(a => a.status === 'Pending').length  || 3,
-    approved: applications.filter(a => a.status === 'Approved').length || 12,
-    rejected: applications.filter(a => a.status === 'Rejected').length || 1,
+    pending:  applications.filter(a => a.status === 'Pending').length,
+    approved: applications.filter(a => a.status === 'Approved').length,
+    rejected: applications.filter(a => a.status === 'Rejected').length,
   }
 
   useEffect(() => {
-    if (!currentUser) navigate('/login')
-  }, [currentUser, navigate])
+    if (!currentUser) {
+      navigate('/login')
+      return
+    }
+
+    const emailParam = `?email=${encodeURIComponent(currentUser.email)}`
+    const token = localStorage.getItem('authToken')
+    
+    setLoading(true)
+
+    const fetchApps = fetch(`/api/renter/applications${emailParam}`).then(res => {
+      if (!res.ok) throw new Error('Failed to fetch applications')
+      return res.json()
+    })
+
+    const fetchLease = fetch(`/api/renter/active-lease${emailParam}`).then(res => {
+      if (!res.ok) throw new Error('Failed to fetch active lease')
+      return res.json()
+    })
+
+    const fetchProfile = token
+      ? fetch('/api/profile', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+          .then(res => res.ok ? res.json() : null)
+          .catch(err => {
+            console.error('Failed to fetch user profile:', err)
+            return null
+          })
+      : Promise.resolve(null)
+
+    Promise.all([fetchApps, fetchLease, fetchProfile])
+      .then(([appsData, leaseData, profileData]) => {
+        setApplications(appsData)
+        setActiveStall(leaseData)
+        if (profileData) {
+          setCurrentUser(profileData)
+          localStorage.setItem('user', JSON.stringify(profileData))
+        }
+        setLoading(false)
+      })
+      .catch(err => {
+        console.error('Error fetching dashboard data:', err)
+        setLoading(false)
+      })
+  }, [currentUser?.email, navigate])
 
   const handleLogout = () => {
     localStorage.removeItem('authToken')
@@ -67,6 +102,15 @@ export default function RenterDashboard() {
   }
 
   if (!currentUser) return null
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center bg-[#f5f5f0] h-full">
+        <div className="w-10 h-10 border-4 border-[#1a5c2a] border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-xs text-gray-500 font-semibold mt-3 animate-pulse">Loading dashboard...</p>
+      </div>
+    )
+  }
 
   const firstName = currentUser?.full_name?.split(' ')[0] || 'Juan'
 
@@ -96,10 +140,7 @@ export default function RenterDashboard() {
             <span className="text-xs font-bold text-gray-800">Hello, {firstName}!</span>
             <span className="text-[10px] text-gray-400">Stall Owner</span>
           </div>
-          <button className="relative p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors">
-            <Bell size={18} />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-          </button>
+          <NotificationBell />
           <button
             onClick={handleLogout}
             className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-red-500 hover:bg-red-50 transition-all"
@@ -211,32 +252,42 @@ export default function RenterDashboard() {
                 <p className="text-[10px] text-gray-400">Current tenancy information</p>
               </div>
             </div>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-800 uppercase tracking-wide">
-              {activeStall.status}
-            </span>
+            {activeStall && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-800 uppercase tracking-wide">
+                {activeStall.status}
+              </span>
+            )}
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[
-              { label: 'Stall No.',    value: activeStall.stallNumber, cls: 'text-base font-extrabold text-gray-800' },
-              { label: 'Section',      value: activeStall.section,     cls: 'text-xs font-extrabold text-gray-800 truncate' },
-              { label: 'Monthly Rent', value: activeStall.monthlyRate, cls: 'text-base font-extrabold text-green-800' },
-              { label: 'Expiry',       value: activeStall.leaseEnd,    cls: 'text-xs font-extrabold text-red-500' },
-            ].map(cell => (
-              <div key={cell.label} className="bg-gray-50 rounded-xl p-3">
-                <p className="text-[9px] text-gray-400 font-semibold uppercase tracking-wider mb-1">{cell.label}</p>
-                <p className={cell.cls}>{cell.value}</p>
+          {activeStall ? (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { label: 'Stall No.',    value: activeStall.stallNumber, cls: 'text-base font-extrabold text-gray-800' },
+                  { label: 'Section',      value: activeStall.section,     cls: 'text-xs font-extrabold text-gray-800 truncate' },
+                  { label: 'Monthly Rent', value: activeStall.monthlyRate, cls: 'text-base font-extrabold text-green-800' },
+                  { label: 'Expiry',       value: activeStall.leaseEnd,    cls: 'text-xs font-extrabold text-red-500' },
+                ].map(cell => (
+                  <div key={cell.label} className="bg-gray-50 rounded-xl p-3">
+                    <p className="text-[9px] text-gray-400 font-semibold uppercase tracking-wider mb-1">{cell.label}</p>
+                    <p className={cell.cls}>{cell.value}</p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <div className="mt-4 pt-4 border-t border-gray-50">
-            <div className="flex justify-between text-xs text-gray-400 mb-1.5">
-              <span className="font-semibold">Lease Progress</span>
-              <span>Started {activeStall.leaseStart}</span>
+              <div className="mt-4 pt-4 border-t border-gray-50">
+                <div className="flex justify-between text-xs text-gray-400 mb-1.5">
+                  <span className="font-semibold">Lease Progress</span>
+                  <span>Started {activeStall.leaseStart}</span>
+                </div>
+                <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full bg-[#1a5c2a]" style={{ width: '100%' }} />
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-6 text-xs text-gray-400 font-semibold">
+              🏪 You do not have an active stall lease yet.
             </div>
-            <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-              <div className="h-full rounded-full bg-[#1a5c2a]" style={{ width: '58%' }} />
-            </div>
-          </div>
+          )}
         </div>
 
         {/* ── APPLICATIONS TABLE ── */}
@@ -251,9 +302,14 @@ export default function RenterDashboard() {
                 <p className="text-[10px] text-gray-400">Applications submitted for market leases</p>
               </div>
             </div>
-            <button className="text-[11px] font-bold text-[#1a5c2a] hover:text-[#14451f] flex items-center gap-0.5">
-              Apply <ChevronRight size={13} />
-            </button>
+            {onNavigate && (
+              <button
+                onClick={() => onNavigate('applications')}
+                className="text-[11px] font-bold text-[#1a5c2a] hover:text-[#14451f] flex items-center gap-0.5"
+              >
+                Apply <ChevronRight size={13} />
+              </button>
+            )}
           </div>
           <div className="overflow-x-auto -mx-1">
             <table className="w-full min-w-[420px] text-left text-xs border-collapse">
@@ -266,24 +322,36 @@ export default function RenterDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 text-gray-700">
-                {applications.map(app => (
-                  <tr key={app.id} className="hover:bg-gray-50 transition-all">
-                    <td className="py-3 px-1">
-                      <div className="font-bold text-gray-800">{app.stall}</div>
-                      <div className="text-[10px] text-gray-400">{app.section}</div>
-                    </td>
-                    <td className="py-3 px-1 text-gray-500">{app.date}</td>
-                    <td className="py-3 px-1 font-bold text-gray-800">{app.fee}</td>
-                    <td className="py-3 px-1">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                        app.status === 'Approved' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-500'
-                      }`}>
-                        {app.status === 'Approved' ? <CheckCircle size={9} /> : <XCircle size={9} />}
-                        {app.status}
-                      </span>
+                {applications.length > 0 ? (
+                  applications.map(app => (
+                    <tr key={app.id || app._id} className="hover:bg-gray-50 transition-all">
+                      <td className="py-3 px-1">
+                        <div className="font-bold text-gray-800">{app.stall}</div>
+                        <div className="text-[10px] text-gray-400">{app.section || app.zone}</div>
+                      </td>
+                      <td className="py-3 px-1 text-gray-500">{app.date || app.submittedOn}</td>
+                      <td className="py-3 px-1 font-bold text-gray-800">{app.fee}</td>
+                      <td className="py-3 px-1">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                          app.status === 'Approved' ? 'bg-green-50 text-green-700' :
+                          app.status === 'Rejected' ? 'bg-red-50 text-red-500' :
+                          'bg-orange-50 text-orange-700'
+                        }`}>
+                          {app.status === 'Approved' ? <CheckCircle size={9} /> :
+                           app.status === 'Rejected' ? <XCircle size={9} /> :
+                           <Clock size={9} />}
+                          {app.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4" className="py-6 text-center text-xs text-gray-400 font-semibold">
+                      🏪 No applications submitted yet.
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>

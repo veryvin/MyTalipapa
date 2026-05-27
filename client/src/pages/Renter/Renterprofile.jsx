@@ -14,6 +14,7 @@ import {
   ShoppingBag, Calendar, CheckCircle, Edit,
 } from 'lucide-react'
 import { getUser, saveUser, getToken } from '../../utils/auth'
+import NotificationBell from '../../components/NotificationBell'
 
 /* ── Section header label ────────────────────────────────────── */
 function SectionLabel({ children }) {
@@ -145,84 +146,35 @@ export default function RenterProfile({ onLogout }) {
   }, [])
 
   useEffect(() => {
-    const user = getUser();
     if (!user || !user.email) {
       setLoadingRental(false);
       return;
     }
 
-    fetch('/api/contractor/stalls')
+    fetch(`/api/renter/active-lease?email=${encodeURIComponent(user.email)}`)
       .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch stalls');
+        if (!res.ok) throw new Error('Failed to fetch active lease');
         return res.json();
       })
-      .then(stalls => {
-        // Direct search: Find any stall where status is occupied and the tenant email matches the logged-in user
-        const myStall = stalls.find(s => 
-          s.status === 'occupied' && 
-          s.tenant && 
-          s.tenant.email && 
-          s.tenant.email.toLowerCase() === user.email.toLowerCase()
-        );
-
-        if (myStall) {
-          // Calculate next due date (30 days from leaseStart)
-          let dueDateStr = 'Next Month';
-          if (myStall.tenant.leaseStart) {
-            const baseDate = new Date(myStall.tenant.leaseStart);
-            baseDate.setDate(baseDate.getDate() + 30);
-            dueDateStr = baseDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-          }
-
+      .then(data => {
+        if (data) {
           setActiveRental({
-            stallNumber: `Stall #${myStall.stallNumber}`,
-            section: `${myStall.section} Section`,
-            monthlyRate: myStall.monthlyRate ? `₱${myStall.monthlyRate.toLocaleString()}` : '₱4,500',
-            nextDue: dueDateStr,
-            status: 'ACTIVE'
+            stallNumber: data.stallNumber,
+            section: `${data.section} Section`,
+            monthlyRate: data.monthlyRate,
+            nextDue: data.nextDue,
+            status: data.status.toUpperCase()
           });
-          setLoadingRental(false);
         } else {
-          // Fallback: Check approved applications in case the stall's tenant field wasn't updated yet
-          const emailParam = `?email=${encodeURIComponent(user.email)}`;
-          fetch(`/api/renter/applications${emailParam}`)
-            .then(res => res.json())
-            .then(apps => {
-              const approved = apps.find(a => a.status?.toLowerCase() === 'approved');
-              if (approved) {
-                const cleanNum = (approved.preferredStall || "").replace(/\D/g, '');
-                const stallObj = stalls.find(s => (s.stallNumber === cleanNum || s.stallNumber === approved.preferredStall));
-                
-                let dueDateStr = 'Next Month';
-                if (approved.reviewedAt || approved.appliedAt) {
-                  const baseDate = new Date(approved.reviewedAt || approved.appliedAt);
-                  baseDate.setDate(baseDate.getDate() + 30);
-                  dueDateStr = baseDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                }
-
-                setActiveRental({
-                  stallNumber: stallObj ? `Stall #${stallObj.stallNumber}` : approved.preferredStall,
-                  section: stallObj ? `${stallObj.section} Section` : (approved.intendedBusinessUse ? `${approved.intendedBusinessUse} Section` : 'General Section'),
-                  monthlyRate: stallObj?.monthlyRate ? `₱${stallObj.monthlyRate.toLocaleString()}` : '₱4,500',
-                  nextDue: dueDateStr,
-                  status: 'ACTIVE'
-                });
-              } else {
-                setActiveRental(null);
-              }
-              setLoadingRental(false);
-            })
-            .catch(() => {
-              setActiveRental(null);
-              setLoadingRental(false);
-            });
+          setActiveRental(null);
         }
+        setLoadingRental(false);
       })
       .catch(err => {
         console.error('Error fetching profile lease details:', err);
         setLoadingRental(false);
       });
-  }, []);
+  }, [user?.email]);
 
   const handleLogout = () => {
     setLoggingOut(true)
@@ -246,9 +198,9 @@ export default function RenterProfile({ onLogout }) {
           <ShoppingBag size={15} />
           MyTalipapa
         </div>
-        <button className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-50 transition ml-auto">
-          <Bell size={17} className="text-gray-500" />
-        </button>
+        <div className="ml-auto flex items-center">
+          <NotificationBell />
+        </div>
       </header>
 
       {/* ── Scrollable body ── */}

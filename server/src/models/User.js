@@ -10,6 +10,8 @@ const UserSchema = new mongoose.Schema(
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'approved' },
     agreed: { type: Boolean, default: false },
     profilePicture: { type: String, default: null },
+    archiveAccessStatus: { type: String, enum: ['none', 'pending', 'approved'], default: 'none' },
+    archiveAccessApprovedAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

@@ -4,6 +4,7 @@ import { ChevronRight, Store } from "lucide-react";
 import { useCurrentUser, getUser } from '../../utils/auth';
 import ContractorSidebar from '../../components/ContractorSidebar';
 import ContractorLockScreen from './ContractorLockScreen';
+import NotificationBell from '../../components/NotificationBell';
 
 const NAV_ITEMS = [
   {
@@ -79,6 +80,7 @@ const STATUS_CONFIG = {
   active: { label: "ACTIVE", bg: "#16a34a", color: "#fff" },
   late_payment: { label: "LATE PAYMENT", bg: "#f97316", color: "#fff" },
   long_overdue: { label: "LONG OVERDUE", bg: "#dc2626", color: "#fff" },
+  archived: { label: "ARCHIVED", bg: "#6b7280", color: "#fff" },
 };
 
 const SORT_OPTIONS = ["Recent", "Name A-Z", "Status", "Stall #"];
@@ -94,11 +96,31 @@ export default function ContractorRecords() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const [contractorProfile, setContractorProfile] = useState(null);
+  const [isShowingArchives, setIsShowingArchives] = useState(false);
+  const [archivedRecords, setArchivedRecords] = useState([]);
+
   const user = getUser();
   const userEmail = user?.email || '';
 
+  // Fetch contractor profile for archive access status
   useEffect(() => {
-    if (!userEmail) return;
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+    fetch('/api/profile', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(res => {
+        if (res.ok) return res.json();
+        throw new Error('Failed to fetch profile');
+      })
+      .then(data => setContractorProfile(data))
+      .catch(err => console.error('Profile fetch error:', err));
+  }, []);
+
+  // Fetch active records
+  useEffect(() => {
+    if (!userEmail || isShowingArchives) return;
     setLoading(true);
     fetch(`/api/contractor/records?email=${userEmail}`)
       .then(res => {
@@ -114,15 +136,144 @@ export default function ContractorRecords() {
         setError('Failed to load records. Please refresh.');
       })
       .finally(() => setLoading(false));
-  }, [userEmail]);
+  }, [userEmail, isShowingArchives]);
 
-  const RENTERS = records;
+  // Fetch archived records
+  useEffect(() => {
+    if (!userEmail || !isShowingArchives) return;
+    const token = localStorage.getItem('authToken');
+    setLoading(true);
+    fetch('/api/contractor/records/archived', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        if (data.error) throw new Error(data.error);
+        setArchivedRecords(data);
+        setError(null);
+      })
+      .catch(err => {
+        console.error('Failed to fetch archived records:', err);
+        setError('Failed to load archived records: ' + err.message);
+      })
+      .finally(() => setLoading(false));
+  }, [userEmail, isShowingArchives]);
+
+  const RENTERS = isShowingArchives ? archivedRecords : records;
 
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState("Recent");
   const [sortOpen, setSortOpen] = useState(false);
   const [selectedRenter, setSelectedRenter] = useState(null);
   const [filterStatus, setFilterStatus] = useState("all");
+
+  // Cash payment form states
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [payAmount, setPayAmount] = useState('');
+  const [payDate, setPayDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [recordingPayment, setRecordingPayment] = useState(false);
+
+  const handleNav = (item) => {
+    setActiveNav(item.id);
+    navigate(item.path);
+  };
+
+  const handleLogout = () => {
+    navigate('/login');
+  };
+
+  const closeRenterModal = () => {
+    setSelectedRenter(null);
+    setShowPaymentForm(false);
+  };
+
+  const handleRequestArchiveAccess = async () => {
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+    try {
+      const res = await fetch('/api/contractor/archive-request', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to request access');
+      setContractorProfile(prev => ({
+        ...prev,
+        archiveAccessStatus: 'pending'
+      }));
+      alert('Archive access request submitted to the administrator.');
+    } catch (err) {
+      console.error(err);
+      alert('Error requesting access: ' + err.message);
+    }
+  };
+
+  const handleMoveOut = async () => {
+    if (!selectedRenter) return;
+    if (!window.confirm(`Are you sure you want to move out ${selectedRenter.name} from ${selectedRenter.stall}? This will archive their tenancy record and free up the stall.`)) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/contractor/records/${selectedRenter.id}/archive`, {
+        method: 'POST'
+      });
+      if (!res.ok) throw new Error('Failed to archive renter');
+      
+      // Re-fetch active records
+      const recordsRes = await fetch(`/api/contractor/records?email=${userEmail}`);
+      if (recordsRes.ok) {
+        const data = await recordsRes.json();
+        setRecords(data);
+      }
+      closeRenterModal();
+    } catch (err) {
+      console.error(err);
+      alert('Error moving out renter: ' + err.message);
+    }
+  };
+
+  const handleRecordPayment = async (e) => {
+    e.preventDefault();
+    if (!payAmount) return;
+    setRecordingPayment(true);
+    try {
+      const res = await fetch(`/api/contractor/records/${selectedRenter.id}/payments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: parseFloat(payAmount),
+          date: payDate,
+        })
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to record payment');
+      }
+      
+      // Re-fetch records to update state
+      const recordsRes = await fetch(`/api/contractor/records?email=${userEmail}`);
+      if (recordsRes.ok) {
+        const data = await recordsRes.json();
+        setRecords(data);
+        
+        // Find updated renter and update modal view
+        const updated = data.find(r => r.id === selectedRenter.id);
+        if (updated) {
+          setSelectedRenter(updated);
+        }
+      }
+      setShowPaymentForm(false);
+    } catch (err) {
+      console.error(err);
+      alert('Error recording payment: ' + err.message);
+    } finally {
+      setRecordingPayment(false);
+    }
+  };
 
   const totalRenters = RENTERS.length;
   const activeCount = RENTERS.filter(r => r.status === "active").length;
@@ -146,16 +297,6 @@ export default function ContractorRecords() {
     if (sort === "Stall #") list = [...list].sort((a, b) => a.stall.localeCompare(b.stall));
     return list;
   }, [search, sort, filterStatus, RENTERS]);
-
-  const handleNav = (item) => {
-    setActiveNav(item.id);
-    navigate(item.path);
-  };
-
-  const handleLogout = () => {
-    navigate('/login');
-  };
-
   // Loading and error states
   if (loading) {
     return (
@@ -221,12 +362,7 @@ export default function ContractorRecords() {
               <span className="welcome-role">Contractor</span>
             </div>
 
-            <button className="notif-btn" aria-label="Notifications">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-              </svg>
-              <span className="notif-dot"></span>
-            </button>
+            <NotificationBell />
             <button
               className="header-logout-btn"
               aria-label="Log out"
@@ -282,18 +418,66 @@ export default function ContractorRecords() {
             </div>
           </div>
 
-          {/* Status Filter Pills */}
-          <div className="rec-filter-pills">
-            {["all", "active", "late_payment", "long_overdue"].map(s => (
+          {/* Archive Toggle / Request Banner */}
+          <div className="flex justify-between items-center bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mt-4 mb-2">
+            <div className="text-left">
+              <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wide">Renter Archives</h3>
+              <p className="text-[10px] text-gray-400">View moved out and archived renter records</p>
+            </div>
+            {contractorProfile?.archiveAccessStatus === 'approved' ? (
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] text-gray-500 font-medium">
+                  {(() => {
+                    if (!contractorProfile.archiveAccessApprovedAt) return '';
+                    const approvedTime = new Date(contractorProfile.archiveAccessApprovedAt);
+                    const expiryTime = new Date(approvedTime.getTime() + 24 * 60 * 60 * 1000);
+                    const now = new Date();
+                    const diffMs = expiryTime - now;
+                    if (diffMs <= 0) return 'Access expired';
+                    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                    const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                    return `🕒 Access expires in: ${diffHours}h ${diffMins}m`;
+                  })()}
+                </span>
+                <button
+                  onClick={() => setIsShowingArchives(!isShowingArchives)}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+                    isShowingArchives
+                      ? 'bg-[#edf5ed] text-[#1a5c2a] border-[#1a5c2a]'
+                      : 'bg-white text-gray-700 border-gray-200 hover:border-[#1a5c2a]'
+                  }`}
+                >
+                  {isShowingArchives ? '← Show Active' : '📁 Show Archives'}
+                </button>
+              </div>
+            ) : contractorProfile?.archiveAccessStatus === 'pending' ? (
+              <span className="px-3 py-1.5 rounded-xl bg-orange-50 border border-orange-200 text-orange-700 text-xs font-bold">
+                ⏳ Request Pending Review
+              </span>
+            ) : (
               <button
-                key={s}
-                className={`rec-filter-pill${filterStatus === s ? " rec-pill-active" : ""}`}
-                onClick={() => setFilterStatus(s)}
+                onClick={handleRequestArchiveAccess}
+                className="px-4 py-2 bg-[#1a5c2a] hover:bg-[#154d23] text-white text-xs font-bold rounded-xl shadow-sm transition-all"
               >
-                {s === "all" ? "All" : STATUS_CONFIG[s].label}
+                🔑 Request Archive Access
               </button>
-            ))}
+            )}
           </div>
+
+          {/* Status Filter Pills */}
+          {!isShowingArchives && (
+            <div className="rec-filter-pills">
+              {["all", "active", "late_payment", "long_overdue"].map(s => (
+                <button
+                  key={s}
+                  className={`rec-filter-pill${filterStatus === s ? " rec-pill-active" : ""}`}
+                  onClick={() => setFilterStatus(s)}
+                >
+                  {s === "all" ? "All" : STATUS_CONFIG[s].label}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Activity Header */}
           <div className="rec-activity-header">
@@ -384,7 +568,7 @@ export default function ContractorRecords() {
 
       {/* Renter History Modal */}
       {selectedRenter && (
-        <div className="logout-overlay" onClick={() => setSelectedRenter(null)}>
+        <div className="logout-overlay" onClick={closeRenterModal}>
           <div className="rec-modal" onClick={e => e.stopPropagation()}>
             <div className="rec-modal-header">
               <div className="rec-avatar rec-modal-avatar">
@@ -422,10 +606,16 @@ export default function ContractorRecords() {
               </div>
               <div className="rec-modal-info-item">
                 <span className="app-detail-label">Amount Due</span>
-                <span className="app-detail-value" style={{ color: selectedRenter.status !== "active" ? "#dc2626" : "#15803d", fontWeight: 800 }}>
+                <span className="app-detail-value" style={{ color: selectedRenter.status !== "active" && selectedRenter.status !== "archived" ? "#dc2626" : "#15803d", fontWeight: 800 }}>
                   {selectedRenter.amountDue}
                 </span>
               </div>
+              {selectedRenter.status === 'archived' && (
+                <div className="rec-modal-info-item" style={{ gridColumn: '1 / -1' }}>
+                  <span className="app-detail-label">Moved Out / Archived Date</span>
+                  <span className="app-detail-value">{selectedRenter.archivedAt}</span>
+                </div>
+              )}
             </div>
             <div className="rec-modal-history">
               <h3 className="rec-modal-history-title">Payment History</h3>
@@ -445,7 +635,79 @@ export default function ContractorRecords() {
                 <p>No payment history available.</p>
               )}
             </div>
-            <button className="stall-modal-close" onClick={() => setSelectedRenter(null)}>Close</button>
+
+            {/* Cash Payment / Move Out Section (Only for active renters) */}
+            {selectedRenter.status !== 'archived' && (
+              <div className="rec-payment-record-section" style={{ borderTop: '1px solid #f3f4f6', paddingTop: '14px', marginTop: '4px' }}>
+                {!showPaymentForm ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <button
+                      type="button"
+                      className="pay-form-btn"
+                      onClick={() => {
+                        const cleanAmount = selectedRenter.amountDue ? selectedRenter.amountDue.replace(/[^\d]/g, '') : '';
+                        setPayAmount(cleanAmount);
+                        setPayDate(new Date().toISOString().split('T')[0]);
+                        setShowPaymentForm(true);
+                      }}
+                    >
+                      💵 Record Cash Payment
+                    </button>
+                    <button
+                      type="button"
+                      className="moveout-btn"
+                      onClick={handleMoveOut}
+                    >
+                      🚪 Move Out (Archive Renter)
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleRecordPayment} className="pay-form">
+                    <h4 className="pay-form-title">Record Cash Payment</h4>
+                    <div className="pay-input-group">
+                      <label className="pay-label">Cash Amount (₱)</label>
+                      <input
+                        type="number"
+                        required
+                        value={payAmount}
+                        onChange={(e) => setPayAmount(e.target.value)}
+                        placeholder="e.g. 4000"
+                        className="pay-input"
+                      />
+                    </div>
+                    <div className="pay-input-group">
+                      <label className="pay-label">Payment Date</label>
+                      <input
+                        type="date"
+                        required
+                        value={payDate}
+                        onChange={(e) => setPayDate(e.target.value)}
+                        className="pay-input"
+                      />
+                    </div>
+                    <div className="pay-form-actions">
+                      <button
+                        type="button"
+                        className="pay-cancel-btn"
+                        onClick={() => setShowPaymentForm(false)}
+                        disabled={recordingPayment}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="pay-submit-btn"
+                        disabled={recordingPayment}
+                      >
+                        {recordingPayment ? 'Saving…' : 'Submit'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            )}
+
+            <button className="stall-modal-close" onClick={closeRenterModal}>Close</button>
           </div>
         </div>
       )}
@@ -518,6 +780,20 @@ export default function ContractorRecords() {
         .rec-history-unpaid { background: #fee2e2; color: #dc2626; }
         .stall-modal-close { width: 100%; padding: 12px; background: var(--color-brand-green); color: #fff; border: none; border-radius: var(--r-md); font-size: 14px; font-weight: 700; font-family: 'Inter', sans-serif; cursor: pointer; transition: background 0.2s; }
         .stall-modal-close:hover { background: var(--color-green-mid); }
+        .pay-form-btn { width: 100%; padding: 10px; background: #1a5c2a; color: #fff; border: none; border-radius: var(--r-md); font-size: 13px; font-weight: 700; font-family: 'Inter', sans-serif; cursor: pointer; transition: background 0.2s; text-align: center; margin-bottom: 8px; }
+        .pay-form-btn:hover { background: #154d23; }
+        .moveout-btn { width: 100%; padding: 10px; background: #dc2626; color: #fff; border: none; border-radius: var(--r-md); font-size: 13px; font-weight: 700; font-family: 'Inter', sans-serif; cursor: pointer; transition: background 0.2s; text-align: center; margin-bottom: 8px; }
+        .moveout-btn:hover { background: #b91c1c; }
+        .pay-form { display: flex; flex-direction: column; gap: 10px; padding: 12px; background: #f9fafb; border: 1.5px dashed var(--color-border); border-radius: var(--r-md); margin-bottom: 8px; text-align: left; }
+        .pay-form-title { font-size: 12px; font-weight: 800; color: var(--color-text); margin: 0 0 4px; }
+        .pay-input-group { display: flex; flex-direction: column; gap: 4px; }
+        .pay-label { font-size: 10px; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; }
+        .pay-input { padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--r-sm); font-size: 13px; outline: none; background: #fff; color: #374151; }
+        .pay-form-actions { display: flex; gap: 8px; margin-top: 4px; }
+        .pay-submit-btn { flex: 1; padding: 8px; background: #1a5c2a; color: #fff; border: none; border-radius: var(--r-sm); font-size: 12px; font-weight: 700; cursor: pointer; }
+        .pay-submit-btn:hover { background: #154d23; }
+        .pay-cancel-btn { flex: 1; padding: 8px; background: #f3f4f6; color: #4b5563; border: 1px solid var(--color-border); border-radius: var(--r-sm); font-size: 12px; font-weight: 700; cursor: pointer; }
+        .pay-cancel-btn:hover { background: #e5e7eb; }
         .app-detail-label { font-size: 10px; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
         .app-detail-value { font-size: 13px; font-weight: 700; color: var(--color-text); }
         @media (min-width: 640px) {

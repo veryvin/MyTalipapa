@@ -21,4 +21,30 @@ router.get('/stalls', controller.getStalls);
 // Get renter records
 router.get('/records', controller.getRecords);
 
+// Record cash payment
+router.post('/records/:renterId/payments', controller.recordPayment);
+
+// Archive a renter (move out)
+router.post('/records/:renterId/archive', controller.archiveRenter);
+
+// Request archive access for contractor
+router.post('/archive-request', controller.requestArchiveAccess);
+
+// Get archived records (contractor, access-restricted)
+router.get('/records/archived', controller.getArchivedRecords);
+
+// Get archive requests list (admin)
+router.get('/admin/archive-requests', controller.getArchiveRequests);
+
+// Update archive request status (admin approval/denial)
+router.post('/admin/archive-requests/:userId/status', controller.updateArchiveRequestStatus);
+
+// Get archived records (admin, unrestricted)
+router.get('/admin/records/archived', controller.getAdminArchivedRecords);
+
+// Notifications routes
+router.get('/notifications', controller.getNotifications);
+router.post('/notifications/:id/read', controller.markAsRead);
+router.post('/notifications/read-all', controller.markAllAsRead);
+
 module.exports = router;

@@ -234,6 +234,17 @@ exports.updateApplicationStatus = async (req, res) => {
       { new: true }
     );
 
+    // Trigger notification to renter
+    const Notification = require('../models/Notification');
+    await Notification.create({
+      recipient: app.email.toLowerCase(),
+      title: action === 'approve' ? 'Application Approved' : 'Application Rejected',
+      message: action === 'approve'
+        ? `Your application for ${app.preferredStall} has been approved.`
+        : `Your application for ${app.preferredStall} has been rejected.`,
+      link: '/renter/applications'
+    });
+
     res.json({
       application:    updatedApp,
       stallUpdated:   !!stall,
@@ -251,7 +262,7 @@ exports.updateApplicationStatus = async (req, res) => {
 exports.getRecords = async (req, res) => {
   try {
     const { email } = req.query;
-    const approved = await Application.find({ status: 'approved' }).sort({ reviewedAt: -1 });
+    const approved = await Application.find({ status: 'approved', archived: { $ne: true } }).sort({ reviewedAt: -1 });
     const Payment = require('../models/Payment'); // import here to avoid circular deps
     const records = await Promise.all(approved.map(async (app) => {
       const stall = await findStallByAppStallNumber(app.preferredStall);
@@ -270,6 +281,26 @@ exports.getRecords = async (req, res) => {
       }));
       const lastPaid = payments.find(p => p.status === 'paid');
       const lastPayment = lastPaid ? new Date(lastPaid.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+      
+      // Calculate dynamic payment validity and status (1 month validity)
+      const baseDate = lastPaid ? lastPaid.date : (app.reviewedAt || app.appliedAt || new Date());
+      const nextDueDate = new Date(baseDate);
+      nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+
+      const now = new Date();
+      let renterStatus = 'active';
+
+      const diffMs = now - nextDueDate;
+      const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+      if (diffDays > 30) {
+        renterStatus = 'long_overdue';
+      } else if (diffDays > 0) {
+        renterStatus = 'late_payment';
+      } else {
+        renterStatus = 'active';
+      }
+
       return {
         id: app._id.toString(),
         name: app.fullName,
@@ -277,7 +308,7 @@ exports.getRecords = async (req, res) => {
         email: app.email,
         stall: stall ? `Stall #${stall.stallNumber}` : `Stall #${app.preferredStall}`,
         stallId: stall?._id?.toString() || null,
-        status: 'active',
+        status: renterStatus,
         since: app.reviewedAt ? new Date(app.reviewedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '',
         initials: app.initials,
         amountDue: stall?.monthlyRate ? `₱${stall.monthlyRate.toLocaleString()}` : '—',
@@ -379,6 +410,14 @@ exports.updateContractorApplicationStatus = async (req, res) => {
 
       app.status = 'approved';
       app.rejectionReason = undefined; // clear rejection reason on approval
+
+      const Notification = require('../models/Notification');
+      await Notification.create({
+        recipient: app.email.toLowerCase(),
+        title: 'Contractor Application Approved',
+        message: 'Congratulations! Your application to be a contractor has been approved.',
+        link: '/contractor/dashboard'
+      });
     } else {
       // Reject action
       const userExists = await User.findOne({ email: app.email.toLowerCase() });
@@ -389,6 +428,14 @@ exports.updateContractorApplicationStatus = async (req, res) => {
 
       app.status = 'rejected';
       app.rejectionReason = rejectionReason || 'Your application was rejected by the admin.';
+
+      const Notification = require('../models/Notification');
+      await Notification.create({
+        recipient: app.email.toLowerCase(),
+        title: 'Contractor Application Rejected',
+        message: `Your application to be a contractor was rejected. Reason: ${app.rejectionReason}`,
+        link: '/login'
+      });
     }
 
     await app.save();
@@ -400,5 +447,390 @@ exports.updateContractorApplicationStatus = async (req, res) => {
   } catch (err) {
     console.error('updateContractorApplicationStatus error:', err);
     res.status(500).json({ error: 'Failed to update contractor application status' });
+  }
+};
+
+// ── POST /api/contractor/records/:renterId/payments ──────────────────────────
+exports.recordPayment = async (req, res) => {
+  try {
+    const { renterId } = req.params;
+    const { amount, date } = req.body;
+
+    const Payment = require('../models/Payment');
+    const Application = require('../models/Application');
+
+    if (!amount) {
+      return res.status(400).json({ error: 'Amount is required' });
+    }
+
+    const app = await Application.findById(renterId);
+    if (!app) {
+      return res.status(404).json({ error: 'Renter application not found' });
+    }
+
+    const payment = await Payment.create({
+      renter: renterId,
+      amount: Number(amount),
+      date: date ? new Date(date) : new Date(),
+      status: 'paid', // Contractor cash inputs are immediately paid
+    });
+
+    const Notification = require('../models/Notification');
+    await Notification.create({
+      recipient: app.email.toLowerCase(),
+      title: 'Payment Recorded',
+      message: `Your cash payment of ₱${Number(amount).toLocaleString()} has been recorded.`,
+      link: '/renter/dashboard'
+    });
+
+    res.status(201).json(payment);
+  } catch (err) {
+    console.error('recordPayment error:', err);
+    res.status(500).json({ error: 'Failed to record payment' });
+  }
+};
+
+// ── POST /api/contractor/records/:renterId/archive ──────────────────────────
+exports.archiveRenter = async (req, res) => {
+  try {
+    const { renterId } = req.params;
+    const Application = require('../models/Application');
+    const Stall = require('../models/Stall');
+    const Notification = require('../models/Notification');
+
+    const app = await Application.findById(renterId);
+    if (!app) {
+      return res.status(404).json({ error: 'Renter application not found' });
+    }
+
+    // Mark application as archived
+    app.archived = true;
+    app.archivedAt = new Date();
+    await app.save();
+
+    // Find linked stall and free it up
+    const stall = await findStallByAppStallNumber(app.preferredStall);
+    if (stall) {
+      await Stall.findByIdAndUpdate(stall._id, {
+        $set: {
+          status: 'available',
+          tenant: {
+            name: null,
+            contact: null,
+            email: null,
+            leaseStart: null,
+            leaseEnd: null,
+          },
+          updatedAt: new Date(),
+        }
+      });
+    }
+
+    // Trigger notification to admin
+    await Notification.create({
+      recipient: 'admin',
+      title: 'Renter Moved Out',
+      message: `Renter ${app.fullName} has moved out of Stall #${stall ? stall.stallNumber : app.preferredStall}.`,
+      link: '/admin/records'
+    });
+
+    res.json({ message: 'Renter successfully moved out and archived.' });
+  } catch (err) {
+    console.error('archiveRenter error:', err);
+    res.status(500).json({ error: 'Failed to archive renter' });
+  }
+};
+
+// ── POST /api/contractor/archive-request ──────────────────────────
+exports.requestArchiveAccess = async (req, res) => {
+  try {
+    const jwt = require('jsonwebtoken');
+    const User = require('../models/User');
+    const Notification = require('../models/Notification');
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Unauthorized. No token provided.' });
+    }
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'mytalipapa-secret-key-12345');
+    
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    user.archiveAccessStatus = 'pending';
+    await user.save();
+
+    // Trigger notification to admin
+    await Notification.create({
+      recipient: 'admin',
+      title: 'Archive Access Request',
+      message: `Contractor ${user.full_name} has requested access to the renter archives.`,
+      link: '/admin/records'
+    });
+
+    res.json({ message: 'Archive access requested successfully.', archiveAccessStatus: 'pending' });
+  } catch (err) {
+    console.error('requestArchiveAccess error:', err);
+    res.status(500).json({ error: 'Failed to request archive access' });
+  }
+};
+
+// ── GET /api/contractor/records/archived ──────────────────────────
+exports.getArchivedRecords = async (req, res) => {
+  try {
+    const jwt = require('jsonwebtoken');
+    const User = require('../models/User');
+    const Application = require('../models/Application');
+    const Payment = require('../models/Payment');
+    const Stall = require('../models/Stall');
+    
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Unauthorized. No token provided.' });
+    }
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'mytalipapa-secret-key-12345');
+    
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Auto-expire archive access status if 24 hours have passed since approval
+    if (user.archiveAccessStatus === 'approved' && user.archiveAccessApprovedAt) {
+      const now = new Date();
+      const approvedTime = new Date(user.archiveAccessApprovedAt);
+      const diffMs = now - approvedTime;
+      const validityMs = 24 * 60 * 60 * 1000; // 24 hours
+      if (diffMs > validityMs) {
+        user.archiveAccessStatus = 'none';
+        user.archiveAccessApprovedAt = null;
+        await user.save();
+      }
+    }
+
+    // Verify they are approved for archives
+    if (user.archiveAccessStatus !== 'approved') {
+      return res.status(200).json({ error: 'Access denied. Archive request not approved.', archiveAccessStatus: user.archiveAccessStatus || 'none', isArchivedList: true });
+    }
+
+    const archivedApps = await Application.find({ archived: true }).sort({ archivedAt: -1 });
+
+    const records = await Promise.all(archivedApps.map(async (app) => {
+      const stall = await findStallByAppStallNumber(app.preferredStall);
+      
+      // Filter by contractor email (since contractor can only see stalls they manage)
+      if (!stall || stall.managedBy !== user.email.toLowerCase()) {
+        return null;
+      }
+
+      const payments = await Payment.find({ renter: app._id }).sort({ date: -1 });
+      const history = payments.map(p => ({
+        date: new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        amount: `₱${p.amount.toLocaleString()}`,
+        status: p.status,
+      }));
+      const lastPaid = payments.find(p => p.status === 'paid');
+      const lastPayment = lastPaid ? new Date(lastPaid.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+
+      return {
+        id: app._id.toString(),
+        name: app.fullName,
+        phone: app.contactNumber,
+        email: app.email,
+        stall: `Stall #${app.preferredStall}`,
+        status: 'archived',
+        since: app.reviewedAt ? new Date(app.reviewedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '',
+        archivedAt: app.archivedAt ? new Date(app.archivedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '',
+        initials: app.initials,
+        amountDue: '—',
+        lastPayment,
+        section: stall?.section || '',
+        history,
+      };
+    }));
+
+    res.json(records.filter(Boolean));
+  } catch (err) {
+    console.error('getArchivedRecords error:', err);
+    res.status(500).json({ error: 'Failed to fetch archived records' });
+  }
+};
+
+// ── GET /api/contractor/admin/archive-requests ──────────────────────────
+exports.getArchiveRequests = async (req, res) => {
+  try {
+    const User = require('../models/User');
+    const requests = await User.find({ role: 'contractor', archiveAccessStatus: 'pending' }, 'full_name email archiveAccessStatus');
+    res.json(requests);
+  } catch (err) {
+    console.error('getArchiveRequests error:', err);
+    res.status(500).json({ error: 'Failed to fetch archive requests' });
+  }
+};
+
+// ── POST /api/contractor/admin/archive-requests/:userId/status ──────────────────────────
+exports.updateArchiveRequestStatus = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { action } = req.body; // 'approve' or 'deny'
+    const User = require('../models/User');
+    const Notification = require('../models/Notification');
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (action === 'approve') {
+      user.archiveAccessStatus = 'approved';
+      user.archiveAccessApprovedAt = new Date();
+
+      // Trigger notification for contractor
+      await Notification.create({
+        recipient: user.email.toLowerCase(),
+        title: 'Archive Request Approved',
+        message: 'Your request to view renter archives has been approved. Access is valid for 24 hours.',
+        link: '/contractor/records'
+      });
+    } else {
+      user.archiveAccessStatus = 'none'; // denied
+      user.archiveAccessApprovedAt = null;
+
+      // Trigger notification for contractor
+      await Notification.create({
+        recipient: user.email.toLowerCase(),
+        title: 'Archive Request Denied',
+        message: 'Your request to view renter archives was denied by the administrator.',
+        link: '/contractor/records'
+      });
+    }
+
+    await user.save();
+    res.json({ message: `Archive request successfully ${action}d.`, user });
+  } catch (err) {
+    console.error('updateArchiveRequestStatus error:', err);
+    res.status(500).json({ error: 'Failed to update archive request status' });
+  }
+};
+
+// ── GET /api/contractor/admin/records/archived ──────────────────────────
+exports.getAdminArchivedRecords = async (req, res) => {
+  try {
+    const Application = require('../models/Application');
+    const Payment = require('../models/Payment');
+    const Stall = require('../models/Stall');
+
+    const archivedApps = await Application.find({ archived: true }).sort({ archivedAt: -1 });
+
+    const records = await Promise.all(archivedApps.map(async (app) => {
+      const stall = await findStallByAppStallNumber(app.preferredStall);
+      const payments = await Payment.find({ renter: app._id }).sort({ date: -1 });
+      const history = payments.map(p => ({
+        date: new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        amount: `₱${p.amount.toLocaleString()}`,
+        status: p.status,
+      }));
+      const lastPaid = payments.find(p => p.status === 'paid');
+      const lastPayment = lastPaid ? new Date(lastPaid.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+
+      return {
+        id: app._id.toString(),
+        name: app.fullName,
+        phone: app.contactNumber,
+        email: app.email,
+        stall: `Stall #${app.preferredStall}`,
+        status: 'archived',
+        since: app.reviewedAt ? new Date(app.reviewedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '',
+        archivedAt: app.archivedAt ? new Date(app.archivedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '',
+        initials: app.initials,
+        amountDue: '—',
+        lastPayment,
+        section: stall?.section || '',
+        history,
+      };
+    }));
+
+    res.json(records.filter(Boolean));
+  } catch (err) {
+    console.error('getAdminArchivedRecords error:', err);
+    res.status(500).json({ error: 'Failed to fetch admin archived records' });
+  }
+};
+
+// ── GET /api/contractor/notifications ──────────────────────────
+exports.getNotifications = async (req, res) => {
+  try {
+    const jwt = require('jsonwebtoken');
+    const User = require('../models/User');
+    const Notification = require('../models/Notification');
+
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Unauthorized. No token provided.' });
+    }
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'mytalipapa-secret-key-12345');
+
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    let recipient = user.email.toLowerCase();
+    if (user.role === 'admin') {
+      recipient = 'admin';
+    }
+
+    const notifications = await Notification.find({ recipient }).sort({ createdAt: -1 });
+    res.json(notifications);
+  } catch (err) {
+    console.error('getNotifications error:', err);
+    res.status(500).json({ error: 'Failed to fetch notifications' });
+  }
+};
+
+// ── POST /api/contractor/notifications/:id/read ──────────────────────────
+exports.markAsRead = async (req, res) => {
+  try {
+    const Notification = require('../models/Notification');
+    const notif = await Notification.findByIdAndUpdate(req.params.id, { read: true }, { new: true });
+    if (!notif) return res.status(404).json({ error: 'Notification not found' });
+    res.json(notif);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to mark notification as read' });
+  }
+};
+
+// ── POST /api/contractor/notifications/read-all ──────────────────────────
+exports.markAllAsRead = async (req, res) => {
+  try {
+    const jwt = require('jsonwebtoken');
+    const User = require('../models/User');
+    const Notification = require('../models/Notification');
+
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Unauthorized. No token provided.' });
+    }
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'mytalipapa-secret-key-12345');
+
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    let recipient = user.email.toLowerCase();
+    if (user.role === 'admin') {
+      recipient = 'admin';
+    }
+
+    await Notification.updateMany({ recipient, read: false }, { read: true });
+    res.json({ message: 'All notifications marked as read' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to mark all notifications as read' });
   }
 };

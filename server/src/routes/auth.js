@@ -279,6 +279,20 @@ router.get('/profile', async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: 'User not found.' });
     }
+
+    // Auto-expire archive access status if 24 hours have passed since approval
+    if (user.archiveAccessStatus === 'approved' && user.archiveAccessApprovedAt) {
+      const now = new Date();
+      const approvedTime = new Date(user.archiveAccessApprovedAt);
+      const diffMs = now - approvedTime;
+      const validityMs = 24 * 60 * 60 * 1000; // 24 hours
+      if (diffMs > validityMs) {
+        user.archiveAccessStatus = 'none';
+        user.archiveAccessApprovedAt = null;
+        await user.save();
+      }
+    }
+
     return res.status(200).json(user);
   } catch (err) {
     console.error('Fetch profile error:', err);

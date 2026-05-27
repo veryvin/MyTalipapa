@@ -25,6 +25,8 @@ const applicationSchema = new mongoose.Schema({
   // UI display helpers
   initials:    { type: String },   // e.g. "JR"
   avatarColor: { type: String },   // hex color for avatar background
+  archived:    { type: Boolean, default: false },
+  archivedAt:  { type: Date },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Application', applicationSchema);

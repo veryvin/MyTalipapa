@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ChevronRight, Store } from "lucide-react";
 import { useCurrentUser } from '../../utils/auth';
 import AdminSidebar from '../../components/AdminSidebar';
+import NotificationBell from '../../components/NotificationBell';
 
 const NAV_ITEMS = [
   {
@@ -78,6 +79,7 @@ const STATUS_CONFIG = {
   active: { label: "ACTIVE", bg: "#16a34a", color: "#fff" },
   late_payment: { label: "LATE PAYMENT", bg: "#f97316", color: "#fff" },
   long_overdue: { label: "LONG OVERDUE", bg: "#dc2626", color: "#fff" },
+  archived: { label: "ARCHIVED", bg: "#6b7280", color: "#fff" },
 };
 
 const SORT_OPTIONS = ["Recent", "Name A-Z", "Status", "Stall #"];
@@ -93,7 +95,12 @@ export default function AdminRecord() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const [archiveRequests, setArchiveRequests] = useState([]);
+  const [isShowingArchives, setIsShowingArchives] = useState(false);
+  const [archivedRecords, setArchivedRecords] = useState([]);
+
   useEffect(() => {
+    if (isShowingArchives) return;
     setLoading(true);
     fetch('/api/admin/records')
       .then(res => {
@@ -109,9 +116,57 @@ export default function AdminRecord() {
         setError('Failed to load records. Please refresh.');
       })
       .finally(() => setLoading(false));
+  }, [isShowingArchives]);
+
+  useEffect(() => {
+    fetch('/api/admin/admin/archive-requests')
+      .then(res => {
+        if (res.ok) return res.json();
+        throw new Error('Failed to fetch archive requests');
+      })
+      .then(data => setArchiveRequests(data))
+      .catch(err => console.error('Archive requests fetch error:', err));
   }, []);
 
-  const RENTERS = records;
+  useEffect(() => {
+    if (!isShowingArchives) return;
+    setLoading(true);
+    fetch('/api/admin/admin/records/archived')
+      .then(res => {
+        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        setArchivedRecords(data);
+        setError(null);
+      })
+      .catch(err => {
+        console.error('Failed to fetch archived records:', err);
+        setError('Failed to load archived records.');
+      })
+      .finally(() => setLoading(false));
+  }, [isShowingArchives]);
+
+  const handleArchiveRequest = async (userId, action) => {
+    try {
+      const res = await fetch(`/api/admin/admin/archive-requests/${userId}/status`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ action })
+      });
+      if (!res.ok) throw new Error(`Failed to ${action} request`);
+      
+      setArchiveRequests(prev => prev.filter(req => req._id !== userId));
+      alert(`Archive request successfully ${action}ed.`);
+    } catch (err) {
+      console.error(err);
+      alert(`Error updating request: ${err.message}`);
+    }
+  };
+
+  const RENTERS = isShowingArchives ? archivedRecords : records;
 
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState("Recent");
@@ -211,12 +266,7 @@ export default function AdminRecord() {
               <span className="welcome-role">Market Supervisor</span>
             </div>
 
-            <button className="notif-btn" aria-label="Notifications">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-              </svg>
-              <span className="notif-dot"></span>
-            </button>
+            <NotificationBell />
             <button
               className="header-logout-btn"
               aria-label="Log out"
@@ -254,6 +304,48 @@ export default function AdminRecord() {
             )}
           </div>
 
+          {/* Archive Access Requests Panel */}
+          {archiveRequests.length > 0 && (
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-orange-100 mb-4 mt-4">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-orange-500 text-lg">🔑</span>
+                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide">
+                  Archive Access Requests
+                </h3>
+                <span className="ml-2 px-2 py-0.5 bg-orange-50 text-orange-600 text-xs font-bold rounded-full">
+                  {archiveRequests.length} pending
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mb-4">
+                Contractors have requested access to view historical/archived renter records. Approving will allow them to toggle the archive view.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {archiveRequests.map((req) => (
+                  <div key={req._id} className="flex items-center justify-between p-3.5 bg-gray-50 rounded-xl border border-gray-100">
+                    <div>
+                      <div className="font-semibold text-xs text-gray-800">{req.full_name}</div>
+                      <div className="text-[10px] text-gray-400 font-medium">{req.email}</div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleArchiveRequest(req._id, 'deny')}
+                        className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-[10px] font-bold rounded-lg transition-all"
+                      >
+                        Deny
+                      </button>
+                      <button
+                        onClick={() => handleArchiveRequest(req._id, 'approve')}
+                        className="px-3 py-1.5 bg-[#1a5c2a] hover:bg-[#154d23] text-white text-[10px] font-bold rounded-lg transition-all"
+                      >
+                        Approve
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Stats Row */}
           <div className="rec-stats-row">
             <div className="rec-stat-card rec-stat-green">
@@ -272,18 +364,38 @@ export default function AdminRecord() {
             </div>
           </div>
 
-          {/* Status Filter Pills */}
-          <div className="rec-filter-pills">
-            {["all", "active", "late_payment", "long_overdue"].map(s => (
-              <button
-                key={s}
-                className={`rec-filter-pill${filterStatus === s ? " rec-pill-active" : ""}`}
-                onClick={() => setFilterStatus(s)}
-              >
-                {s === "all" ? "All" : STATUS_CONFIG[s].label}
-              </button>
-            ))}
+          {/* Archive Toggle Block */}
+          <div className="flex justify-between items-center bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mt-4 mb-2">
+            <div className="text-left">
+              <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wide">Renter Archives</h3>
+              <p className="text-[10px] text-gray-400">View all moved out and archived renter records</p>
+            </div>
+            <button
+              onClick={() => setIsShowingArchives(!isShowingArchives)}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+                isShowingArchives
+                  ? 'bg-[#edf5ed] text-[#1a5c2a] border-[#1a5c2a]'
+                  : 'bg-white text-gray-700 border-gray-200 hover:border-[#1a5c2a]'
+              }`}
+            >
+              {isShowingArchives ? '← Show Active' : '📁 Show Archives'}
+            </button>
           </div>
+
+          {/* Status Filter Pills */}
+          {!isShowingArchives && (
+            <div className="rec-filter-pills">
+              {["all", "active", "late_payment", "long_overdue"].map(s => (
+                <button
+                  key={s}
+                  className={`rec-filter-pill${filterStatus === s ? " rec-pill-active" : ""}`}
+                  onClick={() => setFilterStatus(s)}
+                >
+                  {s === "all" ? "All" : STATUS_CONFIG[s].label}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Activity Header */}
           <div className="rec-activity-header">
@@ -412,10 +524,16 @@ export default function AdminRecord() {
               </div>
               <div className="rec-modal-info-item">
                 <span className="app-detail-label">Amount Due</span>
-                <span className="app-detail-value" style={{ color: selectedRenter.status !== "active" ? "#dc2626" : "#15803d", fontWeight: 800 }}>
+                <span className="app-detail-value" style={{ color: selectedRenter.status !== "active" && selectedRenter.status !== "archived" ? "#dc2626" : "#15803d", fontWeight: 800 }}>
                   {selectedRenter.amountDue}
                 </span>
               </div>
+              {selectedRenter.status === 'archived' && (
+                <div className="rec-modal-info-item" style={{ gridColumn: '1 / -1' }}>
+                  <span className="app-detail-label">Moved Out / Archived Date</span>
+                  <span className="app-detail-value">{selectedRenter.archivedAt}</span>
+                </div>
+              )}
             </div>
             <div className="rec-modal-history">
               <h3 className="rec-modal-history-title">Payment History</h3>

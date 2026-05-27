@@ -160,6 +160,9 @@ export default function Register() {
       if (result.token) {
         localStorage.setItem('authToken', result.token)
       }
+      if (result.user) {
+        localStorage.setItem('user', JSON.stringify(result.user))
+      }
 
       setSuccess('immediate')
     } catch (err) {

@@ -167,18 +167,7 @@ async function handleLogin(e) {
           {/* Divider */}
           <div className="flex items-center gap-3 my-5">
             <div className="flex-1 h-px bg-gray-200" />
-            <span className="text-xs text-gray-400">or continue with</span>
             <div className="flex-1 h-px bg-gray-200" />
-          </div>
-
-          {/* Social Buttons */}
-          <div className="grid grid-cols-2 gap-3">
-            <button className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50">
-              <span>🇬</span> Google
-            </button>
-            <button className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50">
-              <span>📘</span> Facebook
-            </button>
           </div>
 
           <p className="text-center text-sm text-gray-500 mt-5">
