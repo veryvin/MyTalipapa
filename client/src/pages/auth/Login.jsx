@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Mail, Lock, Eye, EyeOff, } from 'lucide-react'
 
 export default function Login() {
@@ -145,7 +146,7 @@ async function handleLogin(e) {
                 </button>
               </div>
               <div className="text-right mt-1.5">
-                <a href="#" className="text-xs font-medium" style={{ color: '#f97316' }}>Forgot Password?</a>
+                <Link to="/forgot-password" className="text-xs font-medium" style={{ color: '#f97316' }}>Forgot Password?</Link>
               </div>
             </div>
 

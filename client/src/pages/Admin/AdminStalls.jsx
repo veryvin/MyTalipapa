@@ -97,6 +97,13 @@ export default function AdminStalls() {
   // All unique section keys from DB
   const sectionKeys = useMemo(() => {
     const keys = [...new Set(stalls.map(s => s.section).filter(Boolean))];
+    // Always ensure "Fishes", "Meat", "Vegetables" are included
+    const defaultSections = ["Fishes", "Meat", "Vegetables"];
+    defaultSections.forEach(ds => {
+      if (!keys.includes(ds)) {
+        keys.push(ds);
+      }
+    });
     // Sort in preferred order
     const order = ["Fishes", "Meat", "Vegetables"];
     return keys.sort((a, b) => {
@@ -528,7 +535,7 @@ export default function AdminStalls() {
         .occupancy-banner-counts { display: flex; justify-content: space-between; font-size: 11px; color: var(--color-text-muted); font-weight: 600; }
 
         /* Section Tabs */
-        .stalls-section-tabs-wrap { overflow-x: auto; scrollbar-width: none; }
+        .stalls-section-tabs-wrap { overflow-x: auto; scrollbar-width: none; flex-shrink: 0; }
         .stalls-section-tabs-wrap::-webkit-scrollbar { display: none; }
         .stalls-section-tabs { display: flex; gap: 8px; min-width: max-content; }
         .stalls-section-tab { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: var(--r-full); border: 1.5px solid var(--color-border); background: var(--color-surface); font-size: 12px; font-weight: 700; color: var(--color-text-muted); cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.2s; white-space: nowrap; }
@@ -540,7 +547,7 @@ export default function AdminStalls() {
         .stalls-tab-active .tab-count { background: rgba(255,255,255,0.25); }
 
         /* Floor Sub-Tabs */
-        .stalls-floor-tabs-wrap { overflow-x: auto; scrollbar-width: none; }
+        .stalls-floor-tabs-wrap { overflow-x: auto; scrollbar-width: none; flex-shrink: 0; }
         .stalls-floor-tabs-wrap::-webkit-scrollbar { display: none; }
         .stalls-floor-tabs { display: flex; gap: 6px; min-width: max-content; }
         .stalls-floor-tab { display: flex; align-items: center; gap: 5px; padding: 6px 14px; border-radius: var(--r-sm); border: 1.5px solid var(--color-border); background: var(--color-surface); font-size: 11px; font-weight: 700; color: var(--color-text-muted); cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.2s; white-space: nowrap; }

@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import LandingPage from './pages/Landingpage'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
+import ForgotPassword from './pages/auth/ForgotPassword'
 import ContractorDashboard from './pages/Contractor/ContractorDashboard'
 import ContractorRecords from './pages/Contractor/ContractorRecords'
 import ContractorApplications from './pages/Contractor/ContractorApplications'
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/contractor/dashboard" element={<ContractorDashboard />} />
         <Route path="/contractor/profile" element={<ContractorProfile />} />
         <Route path="/contractor/records" element={<ContractorRecords />} />

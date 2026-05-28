@@ -1,12 +1,12 @@
+const dotenv = require('dotenv');
+dotenv.config();
+
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const authRoutes = require('./routes/auth');
 const contractorRoutes = require('./routes/contractor');
 const renterRoutes = require('./routes/renter');
-
-dotenv.config();
 
 const app = express();
 app.use(cors());
@@ -30,6 +30,17 @@ app.use('/api', authRoutes);
 app.use('/api/contractor', contractorRoutes);
 app.use('/api/admin', contractorRoutes);
 app.use('/api/renter', renterRoutes);
+
+app.post('/api/log-error', (req, res) => {
+  console.error('\n----------------------------------------\n🚨 FRONTEND ERROR:', req.body.message);
+  if (req.body.error) {
+    console.error(req.body.error);
+  } else {
+    console.error(`At ${req.body.filename}:${req.body.lineno}:${req.body.colno}`);
+  }
+  console.error('----------------------------------------\n');
+  res.sendStatus(200);
+});
 
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);

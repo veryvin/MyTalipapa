@@ -3,6 +3,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { sendEmailOtp, sendSmsOtp } = require('../utils/sendOtp');
 
 const router = express.Router();
 
@@ -340,5 +341,234 @@ router.put('/profile', async (req, res) => {
     return res.status(500).json({ error: 'Server error' });
   }
 });
+
+// ---------------------------------------------------
+// POST /api/identify-account
+// ---------------------------------------------------
+router.post('/identify-account', async (req, res) => {
+  const { accountName } = req.body;
+
+  if (!accountName || !accountName.trim()) {
+    return res.status(400).json({ error: 'Account name or email is required.' });
+  }
+
+  try {
+    const trimmedName = accountName.trim();
+    let user = null;
+
+    // 1. Search by email
+    user = await User.findOne({ email: trimmedName.toLowerCase() });
+
+    // 2. Search by phone number
+    if (!user) {
+      user = await User.findOne({ contact_number: trimmedName });
+    }
+
+    // 3. Search by full name (case insensitive)
+    if (!user) {
+      user = await User.findOne({ full_name: { $regex: new RegExp('^' + trimmedName + '$', 'i') } });
+    }
+
+    if (!user) {
+      return res.status(404).json({ error: 'No account associated with that name or email was found.' });
+    }
+
+    // Helper functions to mask the receivers
+    const maskEmail = (email) => {
+      const parts = email.split('@');
+      if (parts.length !== 2) return email;
+      const [name, domain] = parts;
+      if (name.length <= 2) return `${name[0]}***@${domain}`;
+      return `${name[0]}${'*'.repeat(name.length - 2)}${name[name.length - 1]}@${domain}`;
+    };
+
+    const maskPhone = (phone) => {
+      const cleaned = phone.replace(/\D/g, '');
+      if (cleaned.length <= 4) return '******' + cleaned;
+      // Philippines phone format standard: +63 9** *** 1234
+      if (cleaned.startsWith('63') && cleaned.length === 12) {
+        return `+63 9${cleaned.substring(3, 5)}*** ${cleaned.substring(cleaned.length - 4)}`;
+      }
+      if (cleaned.startsWith('09') && cleaned.length === 11) {
+        return `+63 9${cleaned.substring(2, 4)}*** ${cleaned.substring(cleaned.length - 4)}`;
+      }
+      return `+${cleaned.substring(0, 3)} ${cleaned.substring(3, 5)}** *** ${cleaned.substring(cleaned.length - 4)}`;
+    };
+
+    return res.status(200).json({
+      userId: user._id,
+      maskedEmail: maskEmail(user.email),
+      maskedPhone: maskPhone(user.contact_number)
+    });
+  } catch (err) {
+    console.error('Identify account error:', err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ---------------------------------------------------
+// POST /api/forgot-password (Sends OTP to verified account)
+// ---------------------------------------------------
+router.post('/forgot-password', async (req, res) => {
+  const { userId, method } = req.body;
+
+  if (!userId || !method) {
+    return res.status(400).json({ error: 'User ID and recovery method are required.' });
+  }
+
+  if (method !== 'email' && method !== 'sms') {
+    return res.status(400).json({ error: 'Invalid delivery method. Must be email or sms.' });
+  }
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    // Rate limiting: Max 3 requests per 10 minutes
+    const now = Date.now();
+    const tenMinutesAgo = now - 10 * 60 * 1000;
+    user.otpRequests = (user.otpRequests || []).filter(timestamp => new Date(timestamp).getTime() > tenMinutesAgo);
+
+    if (user.otpRequests.length >= 3) {
+      return res.status(429).json({ error: 'Too many requests. You can request up to 3 OTP codes every 10 minutes.' });
+    }
+
+    // Log request timestamp
+    user.otpRequests.push(new Date());
+
+    // Generate 6-digit OTP code
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Cache plain OTP in global memory for local dev integration testing
+    if (process.env.NODE_ENV !== 'production') {
+      global.lastDevOtps = global.lastDevOtps || {};
+      global.lastDevOtps[user._id.toString()] = otp;
+    }
+
+    // Hash OTP using bcrypt
+    const salt = await bcrypt.genSalt(10);
+    const hashedOtp = await bcrypt.hash(otp, salt);
+
+    user.resetOtp = hashedOtp;
+    user.resetOtpExpires = new Date(now + 5 * 60 * 1000); // 5 minutes validity
+    await user.save();
+
+    // Dispatch the OTP via selected method (Nodemailer or Twilio)
+    if (method === 'email') {
+      await sendEmailOtp(user.email, otp);
+    } else {
+      await sendSmsOtp(user.contact_number, otp);
+    }
+
+    // Critical: Never return the OTP code itself to the client!
+    return res.status(200).json({
+      message: 'Verification code has been sent successfully.'
+    });
+  } catch (err) {
+    console.error('Forgot password send error:', err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ---------------------------------------------------
+// POST /api/verify-otp
+// ---------------------------------------------------
+router.post('/verify-otp', async (req, res) => {
+  const { userId, otp } = req.body;
+
+  if (!userId || !otp) {
+    return res.status(400).json({ error: 'User ID and OTP code are required.' });
+  }
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    // Check expiration
+    if (!user.resetOtp || !user.resetOtpExpires || new Date(user.resetOtpExpires).getTime() < Date.now()) {
+      return res.status(400).json({ error: 'Invalid or expired verification session. Please request a new code.' });
+    }
+
+    // Compare hashed OTP
+    const isMatch = await bcrypt.compare(otp, user.resetOtp);
+    if (!isMatch) {
+      return res.status(400).json({ error: 'Invalid verification code.' });
+    }
+
+    return res.status(200).json({ message: 'Verification code verified successfully.' });
+  } catch (err) {
+    console.error('Verify OTP error:', err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ---------------------------------------------------
+// POST /api/reset-password
+// ---------------------------------------------------
+router.post('/reset-password', async (req, res) => {
+  const { userId, otp, password } = req.body;
+
+  if (!userId || !otp || !password) {
+    return res.status(400).json({ error: 'All fields are required.' });
+  }
+
+  // Password Complexity Validation
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+  }
+
+  const hasLetter = /[a-zA-Z]/.test(password);
+  const hasDigitOrSpecial = /[\d\W]/.test(password);
+  if (!hasLetter || !hasDigitOrSpecial) {
+    return res.status(400).json({ error: 'Password must contain at least one letter and one number or special character.' });
+  }
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    // Re-verify OTP to confirm authenticity
+    if (!user.resetOtp || !user.resetOtpExpires || new Date(user.resetOtpExpires).getTime() < Date.now()) {
+      return res.status(400).json({ error: 'Invalid or expired verification session.' });
+    }
+
+    const isMatch = await bcrypt.compare(otp, user.resetOtp);
+    if (!isMatch) {
+      return res.status(400).json({ error: 'Invalid verification session.' });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+
+    // Apply new password and invalidate the OTP + clear requests
+    user.passwordHash = passwordHash;
+    user.resetOtp = null;
+    user.resetOtpExpires = null;
+    user.otpRequests = [];
+    await user.save();
+
+    return res.status(200).json({ message: 'Password has been reset successfully.' });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+if (process.env.NODE_ENV !== 'production') {
+  router.get('/dev/last-otp/:userId', (req, res) => {
+    const { userId } = req.params;
+    const otps = global.lastDevOtps || {};
+    const otp = otps[userId];
+    if (!otp) return res.status(404).json({ error: 'No dev OTP found for this user.' });
+    return res.status(200).json({ otp });
+  });
+}
 
 module.exports = router;

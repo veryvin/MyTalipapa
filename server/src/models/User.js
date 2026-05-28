@@ -12,6 +12,9 @@ const UserSchema = new mongoose.Schema(
     profilePicture: { type: String, default: null },
     archiveAccessStatus: { type: String, enum: ['none', 'pending', 'approved'], default: 'none' },
     archiveAccessApprovedAt: { type: Date, default: null },
+    resetOtp: { type: String, default: null },
+    resetOtpExpires: { type: Date, default: null },
+    otpRequests: { type: [Date], default: [] },
   },
   { timestamps: true }
 );
