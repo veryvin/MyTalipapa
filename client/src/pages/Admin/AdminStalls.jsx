@@ -49,14 +49,15 @@ const FLOOR_META = {
 
 const STATUS_LABEL = { available: "Available", occupied: "Occupied", pending: "Pending" };
 
-// Sort stalls: by floorCol (letter/number) then floorRow (int)
+// Sort stalls: by numeric/alphanumeric stallNumber
 function sortStalls(list) {
   return [...list].sort((a, b) => {
-    const colA = (a.floorCol ?? "").toString();
-    const colB = (b.floorCol ?? "").toString();
-    if (colA < colB) return -1;
-    if (colA > colB) return 1;
-    return (a.floorRow ?? 0) - (b.floorRow ?? 0);
+    const numA = parseInt(a.stallNumber) || 0;
+    const numB = parseInt(b.stallNumber) || 0;
+    if (numA !== numB) {
+      return numA - numB;
+    }
+    return (a.stallNumber || "").localeCompare(b.stallNumber || "");
   });
 }
 
@@ -75,8 +76,8 @@ export default function AdminStalls() {
 
   // Active section tab (Fishes / Meat / Vegetables)
   const [activeSection, setActiveSection] = useState(null);
-  // Active floor tab (upper / lower)
-  const [activeFloor, setActiveFloor] = useState(null);
+  // Active zone tab (A-H or 'all')
+  const [activeZone, setActiveZone] = useState('all');
 
   useEffect(() => {
     fetch('http://localhost:5000/api/admin/stalls')
@@ -120,30 +121,23 @@ export default function AdminStalls() {
     }
   }, [sectionKeys, activeSection]);
 
-  // All unique floor areas for the active section
-  const floorKeys = useMemo(() => {
+  // All unique zones for the active section
+  const zoneKeys = useMemo(() => {
     if (!activeSection) return [];
-    const floors = [...new Set(
+    const zones = [...new Set(
       stalls
         .filter(s => s.section === activeSection)
-        .map(s => s.floorArea)
+        .map(s => s.zone)
         .filter(Boolean)
     )];
-    // Sort: upper before lower
-    return floors.sort((a, b) => {
-      const order = ["upper", "lower"];
-      return order.indexOf(a) - order.indexOf(b);
-    });
+    // Sort alphabetically A-H
+    return zones.sort();
   }, [stalls, activeSection]);
 
-  // Set default floor when section changes
+  // Set default zone to "all" when section changes
   useEffect(() => {
-    if (floorKeys.length > 0) {
-      setActiveFloor(floorKeys[0]);
-    } else {
-      setActiveFloor(null);
-    }
-  }, [floorKeys.join(",")]);
+    setActiveZone("all");
+  }, [activeSection]);
 
   // Occupancy stats
   const totalStalls = stalls.length;
@@ -158,26 +152,26 @@ export default function AdminStalls() {
     }, {});
   }, [stalls, sectionKeys]);
 
-  // Filtered + sorted stalls for the active section + floor
+  // Filtered + sorted stalls for the active section + zone
   const displayStalls = useMemo(() => {
     if (!activeSection) return [];
     let list = stalls.filter(s => s.section === activeSection);
-    if (activeFloor) {
-      list = list.filter(s => s.floorArea === activeFloor);
+    if (activeZone && activeZone !== 'all') {
+      list = list.filter(s => s.zone === activeZone);
     }
     if (filterStatus !== "all") {
       list = list.filter(s => s.status === filterStatus);
     }
     return sortStalls(list);
-  }, [stalls, activeSection, activeFloor, filterStatus]);
+  }, [stalls, activeSection, activeZone, filterStatus]);
 
-  // Group displayStalls by floorCol for visual column grouping
-  const stallsByCol = useMemo(() => {
+  // Group displayStalls by zone for visual column grouping
+  const stallsByZone = useMemo(() => {
     const map = {};
     for (const stall of displayStalls) {
-      const col = stall.floorCol ?? "?";
-      if (!map[col]) map[col] = [];
-      map[col].push(stall);
+      const z = stall.zone ?? "?";
+      if (!map[z]) map[z] = [];
+      map[z].push(stall);
     }
     // Sort keys
     return Object.entries(map).sort(([a], [b]) => {
@@ -297,24 +291,33 @@ export default function AdminStalls() {
                 </div>
               </div>
 
-              {/* ── Floor Sub-Tabs (Upper / Lower) ── */}
-              {floorKeys.length > 1 && (
+              {/* ── Zone Sub-Tabs (A–H) ── */}
+              {zoneKeys.length > 1 && (
                 <div className="stalls-floor-tabs-wrap">
                   <div className="stalls-floor-tabs">
-                    {floorKeys.map(floor => {
-                      const fm = FLOOR_META[floor] || { label: floor, icon: "🏢" };
-                      const floorCount = stalls.filter(
-                        s => s.section === activeSection && s.floorArea === floor
+                    <button
+                      className={`stalls-floor-tab${activeZone === "all" ? " floor-tab-active" : ""}`}
+                      onClick={() => { setActiveZone("all"); setFilterStatus("all"); }}
+                    >
+                      <span className="floor-tab-icon">🌐</span>
+                      All Zones
+                      <span className="floor-tab-count">
+                        {stalls.filter(s => s.section === activeSection).length}
+                      </span>
+                    </button>
+                    {zoneKeys.map(zone => {
+                      const zoneCount = stalls.filter(
+                        s => s.section === activeSection && s.zone === zone
                       ).length;
                       return (
                         <button
-                          key={floor}
-                          className={`stalls-floor-tab${activeFloor === floor ? " floor-tab-active" : ""}`}
-                          onClick={() => { setActiveFloor(floor); setFilterStatus("all"); }}
+                          key={zone}
+                          className={`stalls-floor-tab${activeZone === zone ? " floor-tab-active" : ""}`}
+                          onClick={() => { setActiveZone(zone); setFilterStatus("all"); }}
                         >
-                          <span className="floor-tab-icon">{fm.icon}</span>
-                          {fm.label}
-                          <span className="floor-tab-count">{floorCount}</span>
+                          <span className="floor-tab-icon">📍</span>
+                          Zone {zone}
+                          <span className="floor-tab-count">{zoneCount}</span>
                         </button>
                       );
                     })}
@@ -322,7 +325,7 @@ export default function AdminStalls() {
                 </div>
               )}
 
-              {/* ── Section + Floor Header + Filter ── */}
+              {/* ── Section + Zone Header + Filter ── */}
               <div className="stalls-section-header">
                 <div className="stalls-section-name-wrap">
                   {activeSection && (
@@ -337,9 +340,9 @@ export default function AdminStalls() {
                       {activeSection}
                     </span>
                   )}
-                  {activeFloor && floorKeys.length > 0 && (
+                  {activeZone && activeZone !== "all" && (
                     <span className="floor-label-badge">
-                      {FLOOR_META[activeFloor]?.label || activeFloor}
+                      Zone {activeZone}
                     </span>
                   )}
                   <span className="stalls-section-sub">
@@ -371,19 +374,19 @@ export default function AdminStalls() {
                 </div>
               </div>
 
-              {/* ── Stall Grid grouped by Column ── */}
-              {stallsByCol.length === 0 ? (
+              {/* ── Stall Grid grouped by Zone ── */}
+              {stallsByZone.length === 0 ? (
                 <p className="stalls-empty">No stalls match this filter.</p>
               ) : (
                 <div
                   className="stalls-columns-wrap"
-                  style={{ "--col-count": stallsByCol.length }}
+                  style={{ "--col-count": stallsByZone.length }}
                 >
-                  {stallsByCol.map(([col, colStalls]) => (
-                    <div key={col} className="stalls-column-group">
-                      <div className="stalls-col-header">Col {col}</div>
+                  {stallsByZone.map(([zone, zoneStalls]) => (
+                    <div key={zone} className="stalls-column-group">
+                      <div className="stalls-col-header">Zone {zone}</div>
                       <div className="stalls-col-cells">
-                        {colStalls.map(stall => {
+                        {zoneStalls.map(stall => {
                           const key = stall._id || stall.stallNumber;
                           // Display full stallNumber as stored in DB
                           const label = stall.stallNumber || "?";
@@ -392,7 +395,7 @@ export default function AdminStalls() {
                               key={key}
                               className={`stall-cell stall-${stall.status}`}
                               onClick={() => setSelectedStall(stall)}
-                              title={`Stall ${label} · ${stall.section} · ${stall.floorArea} · Row ${stall.floorRow} · ${STATUS_LABEL[stall.status]}`}
+                              title={`Stall ${label} · ${stall.section} · Zone ${stall.zone} · ${STATUS_LABEL[stall.status]}`}
                             >
                               {label}
                             </button>
@@ -439,24 +442,11 @@ export default function AdminStalls() {
             <h2 className="stall-modal-number">Stall #{selectedStall.stallNumber}</h2>
             <p className="stall-modal-section">
               {selectedStall.section}
-              {selectedStall.floorArea && (
-                <span className="modal-floor-tag">
-                  {" · "}{FLOOR_META[selectedStall.floorArea]?.label || selectedStall.floorArea}
-                </span>
-              )}
             </p>
 
             <div className="stall-modal-meta-row">
-              {selectedStall.floorArea && (
-                <span className="stall-modal-meta-chip">
-                  {FLOOR_META[selectedStall.floorArea]?.icon} {FLOOR_META[selectedStall.floorArea]?.label || selectedStall.floorArea}
-                </span>
-              )}
-              {selectedStall.floorCol && (
-                <span className="stall-modal-meta-chip">Col {selectedStall.floorCol}</span>
-              )}
-              {selectedStall.floorRow && (
-                <span className="stall-modal-meta-chip">Row {selectedStall.floorRow}</span>
+              {selectedStall.zone && (
+                <span className="stall-modal-meta-chip">📍 Zone {selectedStall.zone}</span>
               )}
               {selectedStall.monthlyRate && (
                 <span className="stall-modal-meta-chip">💰 ₱{selectedStall.monthlyRate.toLocaleString()}/mo</span>

@@ -5,9 +5,7 @@ const stallSchema = new mongoose.Schema({
   stallNumber:    { type: String, required: true },
   section:        { type: String, required: true },
   color:          { type: String },
-  floorArea:      { type: String, enum: ['upper', 'lower'] },
-  floorCol:       { type: String },
-  floorRow:       { type: Number },
+  zone:           { type: String, enum: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'] },
   hasStallNumber: { type: Boolean, default: true },
   managedBy:      { type: String, default: null }, // Contractor email
   status:         { type: String, enum: ['available', 'occupied', 'pending'], default: 'available' },
