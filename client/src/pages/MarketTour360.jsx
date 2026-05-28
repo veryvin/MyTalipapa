@@ -17,11 +17,60 @@ import {
   Info,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   CheckCircle2,
   Store,
   Eye,
-  EyeOff
+  EyeOff,
+  Shield,
+  ShieldOff
 } from 'lucide-react'
+
+const getStallZone = (num, category) => {
+  const stallId = String(num);
+  if (category === 'meat') {
+    // Zone A: leftmost block (Column 1 & 2)
+    if (['1', '2', '3', '4', '5', '12', '13'].includes(stallId) || stallId.startsWith('empty')) {
+      return 'Zone A';
+    }
+    // Zone C: middle-left block (Column 5)
+    if (['1(u)', '2(u)', '3(u)', '4(u)', '8(u)', '9(u)', '10(u)'].includes(stallId)) {
+      return 'Zone C';
+    }
+    // Zone D: far-right block (Column 9)
+    if (['51', '52', '53', '54', '55', '56'].includes(stallId)) {
+      return 'Zone D';
+    }
+    // Zone B: bottom-left block (Column 3 & 4)
+    return 'Zone B';
+  } else if (category === 'fish') {
+    const numInt = parseInt(stallId.replace(/[^0-9]/g, '')) || 0;
+    if (numInt >= 11 && numInt <= 20) {
+      return 'Zone A';
+    }
+    if (numInt >= 21 && numInt <= 40) {
+      return 'Zone B';
+    }
+    if (numInt >= 41 && numInt <= 60) {
+      return 'Zone C';
+    }
+    return 'Zone D';
+  } else if (category === 'veggies') {
+    const numInt = parseInt(stallId.replace(/[^0-9]/g, '')) || 0;
+    if (numInt >= 5 && numInt <= 24) {
+      return 'Zone C';
+    }
+    if (numInt >= 25 && numInt <= 48) {
+      return 'Zone D';
+    }
+    if (numInt >= 50) {
+      return 'Zone E';
+    }
+    return 'Zone C';
+  }
+  return 'Zone A';
+};
 
 // Helper to programmatically generate details for all 142 stalls in the folder
 const generateStalls = (category, numbers) => {
@@ -68,29 +117,41 @@ const generateStalls = (category, numbers) => {
     ]
   };
 
-  const namePool = category === 'meat' ? meatNames : (category === 'fish' ? fishNames : veggieNames);
   const productsPool = productsData[category];
 
   return numbers.map((num, index) => {
-    const name = namePool[index % namePool.length];
     const products = productsPool[index % productsPool.length];
     
+    const numInt = parseInt(String(num).match(/^\d+/)?.[0]) || (index + 1);
+    
     // Water Access distance
-    const isNearWater = num % 3 === 0;
+    const isNearWater = numInt % 3 === 0;
     const waterAccess = isNearWater ? 'Near CR (Easy Access)' : 'Far from CR (Fetching Required)';
     
     // Rental Price (depends on water access, around 12k - 18k, average 15k)
-    const priceVal = 12000 + (isNearWater ? 1000 : 0) + (num % 3) * 1000;
+    const priceVal = 12000 + (isNearWater ? 1000 : 0) + (numInt % 3) * 1000;
     const price = `₱${priceVal.toLocaleString()}`;
     
-    const status = num % 3 === 0 ? 'Occupied' : 'Available';
-    const electricitySetup = num % 2 === 0 ? 'Sub-metered' : 'Shared Meter';
+    const status = numInt % 3 === 0 ? 'Occupied' : 'Available';
+    const electricitySetup = numInt % 2 === 0 ? 'Sub-metered' : 'Shared Meter';
     const utilities = `Electricity (Paid by Renter - ${electricitySetup}) · Water (Free)`;
-    const zone = `Zone ${String.fromCharCode(65 + (num % 4))}`; // Zone A, B, C, D
+    const zone = getStallZone(num, category);
+
+    let displayName = `Stall #${num}`;
+    if (String(num).startsWith('nostallnum')) {
+      const indexStr = String(num).replace('nostallnum', '');
+      displayName = `Unnumbered Stall #${indexStr}`;
+    } else if (String(num).startsWith('empty')) {
+      const numStr = String(num).replace('empty', '') || '1';
+      displayName = `Empty Stall #${numStr}`;
+    } else if (String(num).includes('(u)') || String(num).includes('(2)') || String(num).includes('u2')) {
+      const baseNum = String(num).match(/^\d+/)?.[0] || String(num);
+      displayName = `${zone} - Stall #${baseNum}`;
+    }
 
     return {
       id: String(num),
-      name: `Stall #${num} - ${name}`,
+      name: displayName,
       price,
       status,
       utilities,
@@ -110,8 +171,10 @@ const SECTIONS = {
     bgTheme: 'from-red-500/20 to-transparent',
     accentColor: '#ef4444',
     stalls: generateStalls('meat', [
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-      51, 52, 53, 54, 55, 56
+      '1', '1(u)', '1(u2)', '2', '2(u)', '2(u2)', '3', '3(u)', '3(u2)', '4', '4(u)', '4(u2)',
+      '5', 'empty', 'empty2', 'empty3',
+      '5(u)', '6', '7', '8', '9', '10', '8(u)', '9(u)', '10(u)', '11', '12', '12(u)', '13', '13(u)', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24',
+      '51', '52', '53', '54', '55', '56'
     ])
   },
   fish: {
@@ -121,30 +184,115 @@ const SECTIONS = {
     bgTheme: 'from-blue-500/20 to-transparent',
     accentColor: '#3b82f6',
     stalls: generateStalls('fish', [
-      20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 34, 35, 36, 37, 38, 39,
-      41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
-      57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75
+      '11', '14', '15', '16', '17', '18', '19', '20',
+      '21', '22', '23', '24', '25', '26', '27', '28', '29', '30',
+      '31', '32', '33', '34', '35', '36', '37', '38', '39', '40',
+      '41', '42', '43', '44', '45', '46', '47', '48', '49', '50',
+      '57', '58', '59', '60', '61', '62', '63', '64', '65', '66', '67', '68', '69', '70', '71', '72', '73', '74', '75',
+      'nostallnum1', 'nostallnum2', 'nostallnum3', 'nostallnum4', 'nostallnum5'
     ])
   },
   veggies: {
     id: 'veggies',
-    name: 'Veggies Section',
+    name: 'Vegetables Section',
     icon: '🥬',
     bgTheme: 'from-green-500/20 to-transparent',
     accentColor: '#10b981',
     stalls: generateStalls('veggies', [
-      40,
-      76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87,
-      91, 92, 93, 94, 95, 96, 97, 98, 99, 100,
-      101, 102, 103, 104,
-      107, 108, 109, 110, 111, 112,
-      114, 115, 116, 117, 118, 119, 120,
-      121, 122, 123, 124, 125, 126, 127, 128, 129, 130,
-      131, 132, 133, 134, 135, 136, 137, 138, 139, 140,
-      141, 142, 143, 144, 145, 146, 147, 148, 149
+      '5', '6', '7', '11', '12', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '40',
+      '41', '42', '43', '44', '45', '46', '47', '48', '50', '51', '52', '53', '54', '55', '56', '57', '58', '59', '60',
+      '61', '62', '63', '64', '65', '66', '67', '68', '69', '70', '71', '72'
     ])
   }
 }
+
+const getStallImagePath = (id, category) => {
+  const stallId = String(id);
+  if (category === 'meat') {
+    if (stallId === '3') return '/export360/stall3  - meat.jpg';
+    if (stallId === '4') return '/export360/stall4 -  meat.jpg';
+    if (stallId === '10') return '/export360/stall10 -  meat.jpg';
+    if (stallId === '11') return '/export360/stall11-  meat.jpg';
+    if (stallId === '12') return '/export360/stall12(2) - meat.jpg';
+    if (stallId === '13') return '/export360/stall13(2)- meat.jpg';
+    if (stallId === '19') return '/export360/stall19 -meat.jpg';
+    if (stallId === '20') return '/export360/stall20 -  meat.jpg';
+    if (stallId === '22') return '/export360/stall22 -  meat.jpg';
+    if (stallId.startsWith('empty')) {
+      return `/export360/${stallId}.jpg`;
+    }
+    
+    // Doubled / unoccupied / alternative stalls in meat:
+    if (stallId === '1(u)') return '/export360/stall1(u) - meat.jpg';
+    if (stallId === '2(u)') return '/export360/stall2(u) - meat.jpg';
+    if (stallId === '5(u)') return '/export360/stall5(u) - meat.jpg';
+    if (stallId === '1(u2)') return '/export360/stall13 - meat.jpg';
+    if (stallId === '2(u2)') return '/export360/stall14 - meat.jpg';
+    if (stallId === '3(u2)') return '/export360/stall15 - meat.jpg';
+    if (stallId === '4(u2)') return '/export360/stall16 - meat.jpg';
+    if (stallId === '3(u)') return '/export360/stall3(u)-  meat.jpg';
+    if (stallId === '4(u)') return '/export360/stall3(u)-  meat.jpg';
+    if (stallId === '8(u)') return '/export360/stall20 -  meat.jpg';
+    if (stallId === '9(u)') return '/export360/stall21 - meat.jpg';
+    if (stallId === '10(u)') return '/export360/stall22 -  meat.jpg';
+    if (stallId === '12(u)') return '/export360/stall12 - meat.jpg';
+    if (stallId === '13(u)') return '/export360/stall13 - meat.jpg';
+    
+    return `/export360/stall${stallId} - meat.jpg`;
+  } else if (category === 'fish') {
+    if (stallId === '11') return '/export360/stall11 -  fishes.jpg';
+    const numInt = parseInt(stallId.replace(/[^0-9]/g, '')) || 0;
+    if (numInt === 21) {
+      return '/export360/stall11 -  fishes.jpg';
+    }
+    if (numInt === 22) {
+      return '/export360/stall12(2) - meat.jpg';
+    }
+    if (numInt === 23) {
+      return '/export360/stall13(2)- meat.jpg';
+    }
+    if (numInt >= 24 && numInt <= 30) {
+      const oppositeStall = numInt - 10;
+      return `/export360/stall${oppositeStall} - fishes.jpg`;
+    }
+    if (numInt >= 41 && numInt <= 50) {
+      const oppositeStall = numInt - 10;
+      return `/export360/stall${oppositeStall} - fishes.jpg`;
+    }
+    if (numInt >= 61 && numInt <= 66) {
+      const oppositeStall = numInt - 10;
+      return `/export360/stall${oppositeStall} - meat.jpg`;
+    }
+    if (numInt >= 67 && numInt <= 70) {
+      const oppositeStall = numInt - 10;
+      return `/export360/stall${oppositeStall} - fishes.jpg`;
+    }
+    if (String(stallId).startsWith('nostallnum')) {
+      return `/export360/${stallId}.jpg`;
+    }
+    return `/export360/stall${stallId} - fishes.jpg`;
+  } else if (category === 'veggies') {
+    const numInt = parseInt(stallId.replace(/[^0-9]/g, '')) || 0;
+    if (numInt === 5) return '/export360/stall17 - meat.jpg';
+    if (numInt === 6) return '/export360/stall18 - meat.jpg';
+    if (numInt === 7) return '/export360/stall19 -meat.jpg';
+    if (numInt === 11) return '/export360/stall23 - meat.jpg';
+    if (numInt === 12) return '/export360/stall24 - meat.jpg';
+    if (numInt >= 13 && numInt <= 23) {
+      const oppositeStall = numInt + 12;
+      return `/export360/stall${oppositeStall} - vegies.jpg`;
+    }
+    if (numInt >= 50 && numInt <= 60) {
+      const oppositeStall = numInt - 12;
+      return `/export360/stall${oppositeStall} - vegies.jpg`;
+    }
+    if (numInt === 36) {
+      return '/export360/stall24 - vegies.jpg';
+    }
+    return `/export360/stall${stallId} - vegies.jpg`;
+  }
+  return `/export360/stall${stallId}.jpg`;
+};
 
 export default function MarketTour360() {
   const navigate = useNavigate()
@@ -165,6 +313,10 @@ export default function MarketTour360() {
   const [autoRotate, setAutoRotate] = useState(false)
   const [transitioning, setTransitioning] = useState(false)
   const [uiVisible, setUiVisible] = useState(true)
+  const [detailsCollapsed, setDetailsCollapsed] = useState(false)
+  const [sectionDropdownOpen, setSectionDropdownOpen] = useState(false)
+  const [privacyMode, setPrivacyMode] = useState(true)
+  const [stallDropdownOpen, setStallDropdownOpen] = useState(false)
 
   // Floating Tooltip State
   const [hoveredHotspot, setHoveredHotspot] = useState(null)
@@ -200,23 +352,50 @@ export default function MarketTour360() {
     if (transitioning) return
     setActiveSectionKey(key)
     setStallIndex(0)
-    triggerSceneTransition(`/export360/stall${SECTIONS[key].stalls[0].id}.jpg`)
+    triggerSceneTransition(getStallImagePath(SECTIONS[key].stalls[0].id, key))
   }
 
   const handleNextStall = () => {
     if (transitioning) return
+    const sectionKeys = ['meat', 'fish', 'veggies']
+    const currentSectionIdx = sectionKeys.indexOf(stateRef.current.activeSectionKey)
     const stalls = SECTIONS[stateRef.current.activeSectionKey].stalls
-    const nextIdx = (stateRef.current.stallIndex + 1) % stalls.length
-    setStallIndex(nextIdx)
-    triggerSceneTransition(`/export360/stall${stalls[nextIdx].id}.jpg`)
+    
+    if (stateRef.current.stallIndex >= stalls.length - 1) {
+      // Go to next section
+      const nextSectionIdx = (currentSectionIdx + 1) % sectionKeys.length
+      const nextSectionKey = sectionKeys[nextSectionIdx]
+      setActiveSectionKey(nextSectionKey)
+      setStallIndex(0)
+      const nextStall = SECTIONS[nextSectionKey].stalls[0]
+      triggerSceneTransition(getStallImagePath(nextStall.id, nextSectionKey))
+    } else {
+      const nextIdx = stateRef.current.stallIndex + 1
+      setStallIndex(nextIdx)
+      triggerSceneTransition(getStallImagePath(stalls[nextIdx].id, stateRef.current.activeSectionKey))
+    }
   }
 
   const handlePrevStall = () => {
     if (transitioning) return
+    const sectionKeys = ['meat', 'fish', 'veggies']
+    const currentSectionIdx = sectionKeys.indexOf(stateRef.current.activeSectionKey)
     const stalls = SECTIONS[stateRef.current.activeSectionKey].stalls
-    const prevIdx = (stateRef.current.stallIndex - 1 + stalls.length) % stalls.length
-    setStallIndex(prevIdx)
-    triggerSceneTransition(`/export360/stall${stalls[prevIdx].id}.jpg`)
+    
+    if (stateRef.current.stallIndex <= 0) {
+      // Go to prev section
+      const prevSectionIdx = (currentSectionIdx - 1 + sectionKeys.length) % sectionKeys.length
+      const prevSectionKey = sectionKeys[prevSectionIdx]
+      const prevStalls = SECTIONS[prevSectionKey].stalls
+      const prevIdx = prevStalls.length - 1
+      setActiveSectionKey(prevSectionKey)
+      setStallIndex(prevIdx)
+      triggerSceneTransition(getStallImagePath(prevStalls[prevIdx].id, prevSectionKey))
+    } else {
+      const prevIdx = stateRef.current.stallIndex - 1
+      setStallIndex(prevIdx)
+      triggerSceneTransition(getStallImagePath(stalls[prevIdx].id, stateRef.current.activeSectionKey))
+    }
   }
 
   // Pre-load texture helper with percentage progress simulation
@@ -334,46 +513,6 @@ export default function MarketTour360() {
     // Clear old sprites
     hotspotMeshes.current.forEach((mesh) => scene.remove(mesh))
     hotspotMeshes.current = []
-
-    const spotsData = []
-
-    // 1. Navigation Hotspot: Next Stall
-    spotsData.push({
-      type: 'next',
-      label: 'Go to Next Stall',
-      phi: 1.7,
-      theta: 1.1,
-      tex: createHotspotTexture(THREE, 'nav', 'next')
-    })
-
-    // 2. Navigation Hotspot: Previous Stall
-    spotsData.push({
-      type: 'prev',
-      label: 'Go to Previous Stall',
-      phi: 1.7,
-      theta: -1.1,
-      tex: createHotspotTexture(THREE, 'nav', 'prev')
-    })
-
-    // No Info Hotspot needed for 360-only viewer
-
-    // Add them as Sprites in 3D Space
-    hotspotMeshes.current = spotsData.map((data) => {
-      const mat = new THREE.SpriteMaterial({ map: data.tex, depthTest: false })
-      const sprite = new THREE.Sprite(mat)
-      sprite.scale.set(30, 30, 1)
-      sprite.userData = { type: data.type, label: data.label }
-
-      // Spherical to Cartesian Coordinates conversion
-      const r = 350
-      const x = r * Math.sin(data.phi) * Math.cos(data.theta)
-      const y = r * Math.cos(data.phi)
-      const z = r * Math.sin(data.phi) * Math.sin(data.theta)
-      sprite.position.set(x, y, z)
-
-      scene.add(sprite)
-      return sprite
-    })
   }
 
   // Main Three.js Init
@@ -420,7 +559,7 @@ export default function MarketTour360() {
       // Initial Texture Loading
       setLoadingProgress(25)
       const texture = new THREE.TextureLoader().load(
-        `/export360/stall${stateRef.current.currentStall.id}.jpg`,
+        getStallImagePath(stateRef.current.currentStall.id, stateRef.current.activeSectionKey),
         () => {
           setLoadingProgress(100)
           setTimeout(() => {
@@ -443,7 +582,8 @@ export default function MarketTour360() {
 
       function onPointerDown(e) {
         const rect = renderer.domElement.getBoundingClientRect()
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX
+        const touch = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0])
+        const clientX = touch ? touch.clientX : e.clientX
         const clientY = e.touches ? e.touches[0].clientY : e.clientY
 
         mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1
@@ -468,7 +608,8 @@ export default function MarketTour360() {
       // Track hovering to show tooltips & change cursors
       function onPointerMove(e) {
         const rect = renderer.domElement.getBoundingClientRect()
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX
+        const touch = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0])
+        const clientX = touch ? touch.clientX : e.clientX
         const clientY = e.touches ? e.touches[0].clientY : e.clientY
 
         // Track screen mouse positions for tooltips
@@ -641,8 +782,12 @@ export default function MarketTour360() {
 
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden font-sans select-none">
-      {/* 360 ThreeJS Viewer Mount */}
-      <div ref={mountRef} className="absolute inset-0 w-full h-full" style={{ cursor }} />
+       {/* 360 ThreeJS Viewer Mount */}
+      <div 
+        ref={mountRef} 
+        className="absolute inset-0 w-full h-full transition-all duration-300" 
+        style={{ cursor, filter: privacyMode ? 'blur(6px) contrast(1.05)' : 'none' }} 
+      />
 
       {/* Floating SHOW CONTROLS Toggle Button (Visible ONLY when UI is hidden) */}
       {!uiVisible && (
@@ -666,24 +811,7 @@ export default function MarketTour360() {
         }`}
       />
 
-      {/* Preloading HUD Progress Bar Overlay */}
-      {!loaded && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-20">
-          <div className="relative flex items-center justify-center mb-5">
-            <div className="animate-spin rounded-full h-20 w-20 border-t-2 border-b-2 border-[#1a5c2a]" />
-            <span className="absolute text-xs font-bold text-[#1a5c2a]">{loadingProgress}%</span>
-          </div>
-          <p className="text-[#1a5c2a] text-sm font-semibold tracking-wider uppercase animate-pulse">
-            Preloading 360° Panorama
-          </p>
-          <div className="w-48 bg-gray-800 h-1 rounded-full overflow-hidden mt-3">
-            <div
-              className="bg-[#1a5c2a] h-full transition-all duration-150"
-              style={{ width: `${loadingProgress}%` }}
-            />
-          </div>
-        </div>
-      )}
+
 
       {/* Hover Tooltip for Hotspots */}
       {hoveredHotspot && loaded && uiVisible && (
@@ -696,7 +824,7 @@ export default function MarketTour360() {
       )}
 
       {/* TOP HEADER SECTION */}
-      <div className={`absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-4 bg-gradient-to-b from-white/90 via-white/50 to-transparent pointer-events-none transition-all duration-300 ${uiVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-12 pointer-events-none'}`}>
+      <div className={`absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-2 sm:p-4 pointer-events-none transition-all duration-300 ${uiVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-12 pointer-events-none'}`}>
         <div className="flex items-center gap-3 pointer-events-auto">
           <button
             onClick={() => { window.location.href = '/renter/dashboard' }}
@@ -732,33 +860,12 @@ export default function MarketTour360() {
         </div>
       </div>
 
-      {/* FLOATING SECTION TAB SELECTOR (Top Center) */}
-      <div className={`absolute top-20 left-1/2 -translate-x-1/2 z-20 pointer-events-auto transition-all duration-300 ${uiVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
-        <div className="bg-white/80 backdrop-blur-md p-1.5 rounded-full flex gap-1 shadow-2xl border border-black/10">
-          {Object.values(SECTIONS).map((sect) => {
-            const isActive = sect.id === activeSectionKey
-            return (
-              <button
-                key={sect.id}
-                onClick={() => selectSection(sect.id)}
-                className={`px-4 py-2.5 rounded-full text-xs font-black transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer ${
-                  isActive
-                    ? 'bg-[#1a5c2a] text-white shadow-md'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-black/5'
-                }`}
-              >
-                <span>{sect.icon}</span>
-                <span>{sect.name}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
+
 
       {/* FLOATING SIDE HUD CONTROLS (Right Side) */}
-      <div className="absolute right-4 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-3">
+      <div className="absolute right-4 top-28 md:top-1/2 md:-translate-y-1/2 z-20 flex flex-col items-center gap-4">
         {/* Compass Overlay Dial */}
-        <div className={`w-14 h-14 bg-white/90 backdrop-blur-md rounded-full flex items-center justify-center border border-black/10 shadow-2xl relative overflow-hidden transition-all duration-300 ${uiVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-75 pointer-events-none'}`}>
+        <div className={`w-12 h-12 sm:w-14 sm:h-14 mb-1 bg-white/90 backdrop-blur-md rounded-full flex items-center justify-center border border-black/10 shadow-2xl relative overflow-hidden transition-all duration-300 ${uiVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-75 pointer-events-none'}`}>
           <div
             className="w-10 h-10 flex items-center justify-center transition-transform duration-100"
             style={{ transform: `rotate(${compassAngle}deg)` }}
@@ -801,6 +908,15 @@ export default function MarketTour360() {
             <RotateCcw size={17} />
           </button>
           <button
+            onClick={() => setPrivacyMode(prev => !prev)}
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+              privacyMode ? 'bg-[#1a5c2a] text-white' : 'bg-black/5 text-slate-800 hover:bg-black/10'
+            }`}
+            title="Toggle Privacy Blur (Obscure Faces)"
+          >
+            {privacyMode ? <Shield size={18} /> : <ShieldOff size={18} />}
+          </button>
+          <button
             onClick={() => {
               if (!document.fullscreenElement) {
                 document.documentElement.requestFullscreen().catch((err) => console.error(err))
@@ -817,7 +933,44 @@ export default function MarketTour360() {
       </div>
 
       {/* BOTTOM CENTER STALL QUICK SWITCHER CONTROLS */}
-      <div className={`absolute bottom-[240px] left-1/2 -translate-x-1/2 z-20 transition-all duration-300 ${uiVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12 pointer-events-none'}`}>
+      <div className={`absolute left-1/2 -translate-x-1/2 z-20 transition-all duration-300 ${uiVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12 pointer-events-none'} ${detailsCollapsed ? 'bottom-20' : 'bottom-[330px] md:bottom-[240px]'} flex flex-col items-center gap-2.5`}>
+        {/* Stall Selector Button floating directly ABOVE the main switcher */}
+        <div className="relative">
+          <button
+            onClick={() => {
+              setStallDropdownOpen(prev => !prev)
+              setSectionDropdownOpen(false)
+            }}
+            className="bg-white/95 backdrop-blur-md border border-black/10 rounded-full px-5 py-2 text-xs font-black text-slate-800 shadow-xl hover:bg-white transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+          >
+            <span>{currentStall.name} ({stallIndex + 1}/{activeSection.stalls.length})</span>
+            <ChevronDown size={12} className="text-[#1a5c2a]" />
+          </button>
+          
+          {stallDropdownOpen && (
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 bg-white/95 backdrop-blur-md border border-black/10 rounded-2xl p-1.5 shadow-2xl z-50 flex flex-col gap-0.5 min-w-[200px] max-h-[220px] overflow-y-auto">
+              {activeSection.stalls.map((st, idx) => (
+                <button
+                  key={st.id}
+                  onClick={() => {
+                    setStallIndex(idx)
+                    triggerSceneTransition(getStallImagePath(st.id, activeSectionKey))
+                    setStallDropdownOpen(false)
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-left text-xs font-bold transition-all cursor-pointer ${
+                    idx === stallIndex
+                      ? 'bg-[#1a5c2a] text-white'
+                      : 'text-slate-700 hover:bg-black/5'
+                  }`}
+                >
+                  {st.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Main Section Switcher and Navigation Pill */}
         <div className="bg-white/90 backdrop-blur-md rounded-full px-5 py-3 flex items-center gap-4 shadow-2xl border border-black/10 text-slate-800">
           <button
             onClick={handlePrevStall}
@@ -826,14 +979,52 @@ export default function MarketTour360() {
           >
             <ChevronLeft size={18} />
           </button>
-          <div className="text-center min-w-[120px]">
-            <p className="text-[10px] text-[#e07b00] font-extrabold uppercase tracking-widest leading-none mb-0.5">
-              {activeSection.name}
+          
+          <div className="text-center min-w-[120px] relative">
+            <button
+              onClick={() => {
+                setSectionDropdownOpen(prev => !prev)
+                setStallDropdownOpen(false)
+              }}
+              className="text-[10px] text-[#e07b00] font-extrabold uppercase tracking-widest leading-none mb-0.5 flex items-center justify-center gap-1 mx-auto hover:text-[#b86500] cursor-pointer"
+            >
+              <span>{activeSection.name}</span>
+              <ChevronDown size={10} />
+            </button>
+            <p className="text-[10px] text-slate-500 font-bold leading-none">
+              Section Selector
             </p>
-            <p className="text-xs font-bold text-slate-800 leading-none">
-              Stall {stallIndex + 1} of {activeSection.stalls.length}
-            </p>
+            {detailsCollapsed && (
+              <button
+                onClick={() => setDetailsCollapsed(false)}
+                className="mt-1.5 text-[9px] font-black uppercase text-[#1a5c2a] hover:underline cursor-pointer block mx-auto leading-none"
+              >
+                View Details
+              </button>
+            )}
+
+            {sectionDropdownOpen && (
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 bg-white/95 backdrop-blur-md border border-black/10 rounded-2xl p-1.5 shadow-2xl z-50 flex flex-col gap-1 min-w-[140px]">
+                {Object.values(SECTIONS).map((sect) => (
+                  <button
+                    key={sect.id}
+                    onClick={() => {
+                      selectSection(sect.id)
+                      setSectionDropdownOpen(false)
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-left text-xs font-bold transition-all cursor-pointer ${
+                      sect.id === activeSectionKey
+                        ? 'bg-[#1a5c2a] text-white'
+                        : 'text-slate-700 hover:bg-black/5'
+                    }`}
+                  >
+                    {sect.icon} {sect.name}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+          
           <button
             onClick={handleNextStall}
             className="w-8 h-8 rounded-full bg-black/5 hover:bg-black/10 text-slate-800 flex items-center justify-center transition-all active:scale-90 cursor-pointer"
@@ -845,9 +1036,18 @@ export default function MarketTour360() {
       </div>
 
       {/* STALL DETAILS DRAWER (Bottom Panel) */}
-      {selectedStall && uiVisible && (
-        <div className="absolute bottom-0 left-0 right-0 z-20 px-4 pb-4 bg-gradient-to-t from-white/90 via-white/50 to-transparent pt-10">
-          <div className="max-w-2xl mx-auto bg-white/95 backdrop-blur-md rounded-3xl p-5 border border-black/10 shadow-2xl flex flex-col md:flex-row gap-5 relative overflow-hidden">
+      {selectedStall && uiVisible && !detailsCollapsed && (
+        <div className="absolute bottom-16 md:bottom-0 left-0 right-0 z-20 px-4 pb-4">
+          <div className="max-w-2xl mx-auto relative">
+            <div className="max-w-2xl mx-auto bg-white/95 backdrop-blur-md rounded-3xl p-5 border border-black/10 shadow-2xl flex flex-col md:flex-row gap-5 relative overflow-hidden">
+              {/* Collapse Toggle */}
+              <button
+                onClick={() => setDetailsCollapsed(true)}
+                className="absolute top-3 right-3 z-30 bg-white/80 hover:bg-white border border-black/10 rounded-full p-1.5 text-slate-600 hover:text-slate-900 transition-colors shadow-sm cursor-pointer"
+                title="Collapse details"
+              >
+                <ChevronDown size={16} />
+              </button>
             {/* Background Ambient Glow */}
             <div className={`absolute -right-32 -bottom-32 w-64 h-64 rounded-full bg-gradient-to-br ${activeSection.bgTheme} blur-3xl opacity-40 pointer-events-none`} />
 
@@ -886,9 +1086,9 @@ export default function MarketTour360() {
             </div>
 
             {/* Price Details Block */}
-            <div className="md:w-52 shrink-0 flex flex-col justify-center border-t md:border-t-0 md:border-l border-black/10 pt-4 md:pt-0 md:pl-5 z-10">
+            <div className="w-full md:w-52 shrink-0 flex flex-col justify-center border-t md:border-t-0 md:border-l border-black/10 pt-4 md:pt-0 md:pl-5 z-10">
               <div>
-                <p className="text-2xl font-black text-[#e07b00] leading-none">
+                <p className="text-xl sm:text-2xl font-black text-[#e07b00] leading-none whitespace-nowrap">
                   {selectedStall.price}
                 </p>
                 <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest mt-1">per month (negotiable)</p>
@@ -896,6 +1096,7 @@ export default function MarketTour360() {
             </div>
           </div>
         </div>
+      </div>
       )}
 
       {/* HELP GUIDE OVERLAY MODAL */}
