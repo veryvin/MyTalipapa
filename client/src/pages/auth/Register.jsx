@@ -35,6 +35,41 @@ export default function Register() {
     setForm({ ...form, [e.target.name]: val })
   }
 
+  function handlePhoneChange(e) {
+    let val = e.target.value.replace(/\D/g, '')
+    // Strip leading 63 or 09 automatically for a seamless user experience
+    if (val.startsWith('63')) {
+      val = val.substring(2)
+    } else if (val.startsWith('09')) {
+      val = val.substring(1)
+    }
+    if (val.length <= 10) {
+      setForm(prev => ({ ...prev, contact_number: val }))
+    }
+  }
+
+  const isMinLength = form.password.length >= 8
+  const hasUppercase = /[A-Z]/.test(form.password)
+  const hasDigit = /[0-9]/.test(form.password)
+  const hasSpecial = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~]/.test(form.password)
+  const isPasswordValid = isMinLength && hasUppercase && hasDigit && hasSpecial
+
+  const passwordsMatch = form.confirm_password.length > 0 && form.confirm_password === form.password
+
+  const isPhoneValid = form.contact_number.length === 10 && form.contact_number.startsWith('9')
+
+  const isEmailValid = form.email.trim().includes('@')
+
+  const isFormValid = 
+    form.full_name.trim().length > 0 &&
+    (form.role !== 'contractor' || form.business_name.trim().length > 0) &&
+    isEmailValid &&
+    isPasswordValid &&
+    passwordsMatch &&
+    isPhoneValid &&
+    form.agreed &&
+    form.role
+
   function selectRole(role) {
     setForm({ ...form, role })
     setError(null)
@@ -100,12 +135,20 @@ export default function Register() {
       setError('Please enter your business name.')
       return
     }
+    if (!isPasswordValid) {
+      setError('Password does not meet the requirements.')
+      return
+    }
     if (form.password !== form.confirm_password) {
       setError('Passwords do not match.')
       return
     }
-    if (form.password.length < 6) {
-      setError('Password must be at least 6 characters.')
+    if (!isPhoneValid) {
+      setError('Please enter a valid PH mobile number.')
+      return
+    }
+    if (!isEmailValid) {
+      setError('Please enter a valid email address.')
       return
     }
     if (!form.agreed) {
@@ -131,7 +174,7 @@ export default function Register() {
         },
         body: JSON.stringify({
           full_name: form.full_name,
-          contact_number: form.contact_number,
+          contact_number: `+63${form.contact_number}`,
           role: form.role,
           email: form.email,
           password: form.password,
@@ -189,7 +232,7 @@ export default function Register() {
           businessName: form.business_name,
           email: form.email,
           password: form.password,
-          contactNumber: form.contact_number,
+          contactNumber: `+63${form.contact_number}`,
           selectedStalls: selectedStalls,
         }),
       })
@@ -408,65 +451,150 @@ export default function Register() {
                     {/* Contact Number */}
                     <div>
                       <label className="block text-sm font-medium text-gray-600 mb-1.5">Contact Number</label>
-                      <div className="flex items-center gap-2 px-4 py-3 rounded-xl border border-gray-200 bg-gray-50">
+                      <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border transition-all ${
+                        form.contact_number.length === 0
+                          ? 'border-gray-200 bg-gray-50 focus-within:border-green-700'
+                          : isPhoneValid
+                          ? 'border-green-600 bg-green-50/20'
+                          : 'border-red-500 bg-red-50/20'
+                      }`}>
                         <Phone size={16} className="text-gray-400 shrink-0" />
+                        <span className="text-gray-500 text-sm font-semibold select-none shrink-0">+63</span>
                         <input
-                          type="tel" name="contact_number" value={form.contact_number} onChange={handleChange}
-                          placeholder="0912 345 6789" required
+                          type="tel" name="contact_number" value={form.contact_number} onChange={handlePhoneChange}
+                          placeholder="9171234567" required
                           className="flex-1 bg-transparent text-sm focus:outline-none"
                         />
+                        {isPhoneValid && (
+                          <Check size={16} className="text-green-600 shrink-0" strokeWidth={3} />
+                        )}
                         {form.contact_number && (
                           <button type="button" onClick={() => setForm({ ...form, contact_number: '' })} className="text-gray-400">✕</button>
                         )}
                       </div>
+                      {form.contact_number.length > 0 && !isPhoneValid && (
+                        <p className="text-red-500 text-[11px] font-semibold mt-1">Enter a valid PH mobile number</p>
+                      )}
                     </div>
 
                     {/* Email */}
                     <div>
                       <label className="block text-sm font-medium text-gray-600 mb-1.5">Email Address</label>
-                      <div className="flex items-center gap-2 px-4 py-3 rounded-xl border border-gray-200 bg-gray-50">
+                      <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border transition-all ${
+                        form.email.length === 0
+                          ? 'border-gray-200 bg-gray-50 focus-within:border-green-700'
+                          : isEmailValid
+                          ? 'border-green-600 bg-green-50/20'
+                          : 'border-red-500 bg-red-50/20'
+                      }`}>
                         <Mail size={16} className="text-gray-400 shrink-0" />
                         <input
                           type="email" name="email" value={form.email} onChange={handleChange}
                           placeholder="juan@mytalipapa.ph" required
                           className="flex-1 bg-transparent text-sm focus:outline-none"
                         />
+                        {isEmailValid && (
+                          <Check size={16} className="text-green-600 shrink-0" strokeWidth={3} />
+                        )}
                         {form.email && (
                           <button type="button" onClick={() => setForm({ ...form, email: '' })} className="text-gray-400">✕</button>
                         )}
                       </div>
+                      {form.email.length > 0 && !isEmailValid && (
+                        <p className="text-red-500 text-[11px] font-semibold mt-1">Enter a valid email address containing @</p>
+                      )}
                     </div>
 
                     {/* Password */}
                     <div>
                       <label className="block text-sm font-medium text-gray-600 mb-1.5">Password</label>
-                      <div className="flex items-center gap-2 px-4 py-3 rounded-xl border border-gray-200 bg-gray-50">
+                      <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border transition-all ${
+                        form.password.length === 0
+                          ? 'border-gray-200 bg-gray-50 focus-within:border-green-700'
+                          : isPasswordValid
+                          ? 'border-green-600 bg-green-50/20'
+                          : 'border-gray-200 bg-gray-50 focus-within:border-green-700'
+                      }`}>
                         <Lock size={16} className="text-gray-400 shrink-0" />
                         <input
                           type={showPassword ? 'text' : 'password'} name="password" value={form.password}
                           onChange={handleChange} placeholder="••••••••" required
                           className="flex-1 bg-transparent text-sm focus:outline-none"
                         />
+                        {isPasswordValid && (
+                          <Check size={16} className="text-green-600 shrink-0" strokeWidth={3} />
+                        )}
                         <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-gray-400">
                           {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>
+                      </div>
+                      {/* Password Strength Live Checklist */}
+                      <div className="mt-2 space-y-1 text-[11px] bg-gray-50 p-2.5 rounded-xl border border-gray-150">
+                        <p className="font-semibold text-gray-500 mb-1">Password Strength Checklist:</p>
+                        <div className="flex items-center gap-1.5">
+                          <span className={isMinLength ? "text-green-600 font-bold" : "text-red-500 font-bold"}>
+                            {isMinLength ? "✓" : "✗"}
+                          </span>
+                          <span className={isMinLength ? "text-green-700 font-medium" : "text-gray-500"}>
+                            Minimum 8 characters
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className={hasUppercase ? "text-green-600 font-bold" : "text-red-500 font-bold"}>
+                            {hasUppercase ? "✓" : "✗"}
+                          </span>
+                          <span className={hasUppercase ? "text-green-700 font-medium" : "text-gray-500"}>
+                            At least 1 uppercase letter
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className={hasDigit ? "text-green-600 font-bold" : "text-red-500 font-bold"}>
+                            {hasDigit ? "✓" : "✗"}
+                          </span>
+                          <span className={hasDigit ? "text-green-700 font-medium" : "text-gray-500"}>
+                            At least 1 number
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className={hasSpecial ? "text-green-600 font-bold" : "text-red-500 font-bold"}>
+                            {hasSpecial ? "✓" : "✗"}
+                          </span>
+                          <span className={hasSpecial ? "text-green-700 font-medium" : "text-gray-500"}>
+                            At least 1 special character (e.g. !@#$%^&*)
+                          </span>
+                        </div>
                       </div>
                     </div>
 
                     {/* Confirm Password */}
                     <div>
                       <label className="block text-sm font-medium text-gray-600 mb-1.5">Confirm Password</label>
-                      <div className="flex items-center gap-2 px-4 py-3 rounded-xl border border-gray-200 bg-gray-50">
+                      <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border transition-all ${
+                        form.confirm_password.length === 0
+                          ? 'border-gray-200 bg-gray-50 focus-within:border-green-700'
+                          : passwordsMatch
+                          ? 'border-green-600 bg-green-50/20'
+                          : 'border-red-500 bg-red-50/20'
+                      }`}>
                         <Lock size={16} className="text-gray-400 shrink-0" />
                         <input
                           type={showConfirm ? 'text' : 'password'} name="confirm_password" value={form.confirm_password}
                           onChange={handleChange} placeholder="••••••••" required
                           className="flex-1 bg-transparent text-sm focus:outline-none"
                         />
+                        {passwordsMatch && (
+                          <Check size={16} className="text-green-600 shrink-0" strokeWidth={3} />
+                        )}
                         <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="text-gray-400">
                           {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>
                       </div>
+                      {form.confirm_password.length > 0 && !passwordsMatch && (
+                        <p className="text-red-500 text-[11px] font-semibold mt-1">Passwords do not match</p>
+                      )}
+                      {form.confirm_password.length > 0 && passwordsMatch && (
+                        <p className="text-green-600 text-[11px] font-semibold mt-1">✓ Passwords match</p>
+                      )}
                     </div>
 
                     {/* Terms */}
@@ -484,8 +612,8 @@ export default function Register() {
 
                     <button
                       type="submit"
-                      disabled={loading}
-                      className="w-full py-3.5 rounded-xl text-white font-bold text-sm disabled:opacity-60 flex items-center justify-center gap-2"
+                      disabled={loading || !isFormValid}
+                      className="w-full py-3.5 rounded-xl text-white font-bold text-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
                       style={{ backgroundColor: '#1a5c2a' }}
                     >
                       {loading ? (
@@ -707,7 +835,7 @@ export default function Register() {
                           </div>
                         </div>
                         <div className="space-y-1 text-xs text-gray-600 border-t border-gray-100 pt-3">
-                          <div className="flex justify-between"><span>Phone:</span><span className="font-semibold">{form.contact_number}</span></div>
+                          <div className="flex justify-between"><span>Phone:</span><span className="font-semibold">+63 {form.contact_number}</span></div>
                           <div className="flex justify-between"><span>Email:</span><span className="font-semibold">{form.email}</span></div>
                         </div>
                       </div>
