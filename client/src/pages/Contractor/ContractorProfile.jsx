@@ -283,15 +283,8 @@ export default function ContractorProfile() {
             </div>
           </div>
 
-          {/* Logout */}
-          <div className="profile-logout-wrap">
-            <button className="profile-logout-btn" id="profile-logout" onClick={() => setShowLogout(true)}>
-              <LogoutIcon />
-              Logout
-            </button>
-          </div>
 
-          <p className="profile-version">Version 2.4.0 (2024)</p>
+          <p className="profile-version">Version 2.4.0 (2026)</p>
         </main>
       </div>
 
