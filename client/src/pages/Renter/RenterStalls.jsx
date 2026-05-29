@@ -62,10 +62,7 @@ const getStallImage = (section) => {
 const StallCard = ({ stall, onClick }) => {
   const displayId = stall.stallNumber || stall.id || stall._id?.toString() || "";
   const displayCategory = stall.section || stall.category || "";
-  const isVegetable = displayCategory.toLowerCase().includes("veg");
-  const displayZone = isVegetable
-    ? "Zone C"
-    : (stall.floorArea ? (stall.floorArea === 'upper' ? 'Upper Floor' : 'Lower Floor') : (stall.zone ? `Zone ${stall.zone}` : ""));
+  const displayZone = stall.zone ? `Zone ${stall.zone}` : (stall.floorArea ? (stall.floorArea === 'upper' ? 'Upper Floor' : 'Lower Floor') : "");
   const displaySize = stall.size || 12;
   const displayPrice = stall.monthlyRate || stall.price || 0;
   const displayImg = stall.img || getStallImage(stall.section || stall.category);
@@ -103,7 +100,7 @@ export default function RenterStalls({ onNavigate, onOpenStall }) {
   const userEmail = currentUser?.email?.toLowerCase();
 
   useEffect(() => {
-    fetch("/api/contractor/stalls?hasContractor=true")
+    fetch("/api/renter/stalls")
       .then((res) => res.json())
       .then((data) => setStalls(data))
       .catch(() => {
@@ -119,7 +116,7 @@ export default function RenterStalls({ onNavigate, onOpenStall }) {
       });
   }, []);
 
-  const filters = ["All", "Available", "Occupied", "Zone A", "Zone B", "Zone C"];
+  const filters = ["All", "Available", "Occupied", "Zone A", "Zone B", "Zone C", "Zone D", "Zone E", "Zone F", "Zone G", "Zone H"];
 
   const ownedStalls = stalls.filter((s) => 
     s.status === "occupied" &&
@@ -133,10 +130,7 @@ export default function RenterStalls({ onNavigate, onOpenStall }) {
 
   const filtered = displayedStalls.filter((s) => {
     const stallCategory = s.category || s.section || "";
-    const isVegetable = stallCategory.toLowerCase().includes("veg");
-    const stallZone = isVegetable
-      ? 'C'
-      : (s.zone || (s.floorArea === 'upper' ? 'A' : (s.floorArea === 'lower' ? 'B' : 'A')));
+    const stallZone = s.zone || (s.floorArea === 'upper' ? 'A' : (s.floorArea === 'lower' ? 'B' : 'A'));
 
     const matchSearch =
       (s.stallNumber || s.id || "").toString().toLowerCase().includes(search.toLowerCase()) ||

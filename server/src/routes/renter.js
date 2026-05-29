@@ -4,6 +4,40 @@ const Stall = require('../models/Stall');
 const Application = require('../models/Application');
 const Payment = require('../models/Payment');
 
+// ── GET /api/renter/stalls ──
+router.get('/stalls', async (req, res) => {
+  try {
+    const stalls = await Stall.find({
+      managedBy: { $exists: true, $nin: [null, ''] }
+    }).sort({ stallNumber: 1 });
+    
+    // Find all users who are contractors to map their emails to names
+    const User = require('../models/User');
+    const contractors = await User.find({ role: 'contractor' }, 'email full_name');
+    const contractorMap = {};
+    contractors.forEach(c => {
+      if (c.email) {
+        contractorMap[c.email.toLowerCase()] = c.full_name;
+      }
+    });
+
+    const stallsWithContractor = stalls.map(stall => {
+      const stallObj = stall.toObject();
+      if (stallObj.managedBy) {
+        stallObj.contractorName = contractorMap[stallObj.managedBy.toLowerCase()] || stallObj.managedBy;
+      } else {
+        stallObj.contractorName = 'None';
+      }
+      return stallObj;
+    });
+
+    res.json(stallsWithContractor);
+  } catch (err) {
+    console.error('Renter getStalls error:', err);
+    res.status(500).json({ error: 'Failed to fetch stalls' });
+  }
+});
+
 // ── GET /api/renter/applications ──
 router.get('/applications', async (req, res) => {
   try {

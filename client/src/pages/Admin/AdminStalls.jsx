@@ -385,7 +385,7 @@ export default function AdminStalls() {
                   {stallsByZone.map(([zone, zoneStalls]) => (
                     <div key={zone} className="stalls-column-group">
                       <div className="stalls-col-header">Zone {zone}</div>
-                      <div className="stalls-col-cells">
+                      <div className={`stalls-col-cells ${stallsByZone.length === 1 ? 'grid-3-cols' : ''}`}>
                         {zoneStalls.map(stall => {
                           const key = stall._id || stall.stallNumber;
                           // Display full stallNumber as stored in DB
@@ -568,6 +568,17 @@ export default function AdminStalls() {
         .stalls-column-group { display: flex; flex-direction: column; gap: 4px; width: 100%; }
         .stalls-col-header { text-align: center; font-size: 10px; font-weight: 800; color: var(--color-text-muted); background: #f3f4f6; border-radius: 6px; padding: 3px 0; letter-spacing: 0.5px; text-transform: uppercase; }
         .stalls-col-cells { display: flex; flex-direction: column; gap: 6px; }
+        .stalls-col-cells.grid-3-cols {
+          column-count: 3;
+          column-gap: 8px;
+          display: block;
+        }
+        .stalls-col-cells.grid-3-cols .stall-cell {
+          break-inside: avoid;
+          margin-bottom: 6px;
+          display: flex;
+          width: 100%;
+        }
 
         /* Stall Cell — full width of its column, compact fixed height */
         .stall-cell { width: 100%; height: 44px; border-radius: 8px; border: 2px solid transparent; font-size: 11px; font-weight: 800; font-family: 'Inter', sans-serif; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2; padding: 4px; word-break: break-all; }
