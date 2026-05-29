@@ -145,15 +145,29 @@ export default function RenterLayout() {
   /* useCallback keeps navigate stable — never undefined on re-renders */
   const navigate = useCallback((tab) => {
     setActiveTab(tab)
-    if (tab !== 'stalls') setSelectedStall(null)
 
     // Redirect to the corresponding route
-    if (tab === 'home') routerNavigate('/renter/dashboard')
-    else if (tab === 'navigate') routerNavigate('/renter/market-tour')
-    else if (tab === 'stalls') routerNavigate('/renter/stalls')
-    else if (tab === 'applications') routerNavigate('/renter/applications')
-    else if (tab === 'profile') routerNavigate('/renter/profile')
-  }, [routerNavigate])
+    if (tab === 'home') {
+      setSelectedStall(null)
+      routerNavigate('/renter/dashboard')
+    }
+    else if (tab === 'navigate') {
+      console.log('[RenterLayout] Navigating to /renter/market-tour with selectedStall:', selectedStall)
+      routerNavigate('/renter/market-tour', { state: { stall: selectedStall } })
+      setSelectedStall(null)
+    }
+    else if (tab === 'stalls') {
+      routerNavigate('/renter/stalls')
+    }
+    else if (tab === 'applications') {
+      setSelectedStall(null)
+      routerNavigate('/renter/applications')
+    }
+    else if (tab === 'profile') {
+      setSelectedStall(null)
+      routerNavigate('/renter/profile')
+    }
+  }, [routerNavigate, selectedStall])
 
   const openStallDetail = useCallback((stall) => {
     setSelectedStall(stall)

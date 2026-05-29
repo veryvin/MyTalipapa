@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   ArrowLeft,
   X,
@@ -289,13 +289,45 @@ const getStallImagePath = (id, category) => {
 
 export default function MarketTour360() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const stateStall = location.state?.stall
 
   // Tab State
-  const [activeSectionKey, setActiveSectionKey] = useState('meat')
-  const activeSection = SECTIONS[activeSectionKey]
+  const [activeSectionKey, setActiveSectionKey] = useState(() => {
+    if (stateStall) {
+      const sectionName = stateStall.section || stateStall.category;
+      if (sectionName) {
+        const lower = sectionName.toLowerCase();
+        if (lower.includes('meat')) return 'meat';
+        if (lower.includes('fish') || lower.includes('sea')) return 'fish';
+        if (lower.includes('veg') || lower.includes('produce') || lower.includes('fruit') || lower.includes('dry')) return 'veggies';
+      }
+    }
+    return 'meat';
+  })
+  const [sectionsData, setSectionsData] = useState(SECTIONS)
+  const activeSection = sectionsData[activeSectionKey]
 
   // Stall Selection State
-  const [stallIndex, setStallIndex] = useState(0)
+  const [stallIndex, setStallIndex] = useState(() => {
+    if (stateStall) {
+      const sectionName = stateStall.section || stateStall.category;
+      let sectionKey = 'meat';
+      if (sectionName) {
+        const lower = sectionName.toLowerCase();
+        if (lower.includes('meat')) sectionKey = 'meat';
+        else if (lower.includes('fish') || lower.includes('sea')) sectionKey = 'fish';
+        else if (lower.includes('veg') || lower.includes('produce') || lower.includes('fruit') || lower.includes('dry')) sectionKey = 'veggies';
+      }
+      const cleanId = (str) => String(str).replace(/Stall\s*#/gi, '').replace('#', '').trim().toLowerCase().replace(/^0+(?=\d)/, '');
+      const targetStallNum = cleanId(stateStall.stallNumber || stateStall.id || '');
+      console.log('[MarketTour360] stateStall provided:', stateStall, 'resolved sectionKey:', sectionKey, 'targetStallNum:', targetStallNum);
+      const idx = SECTIONS[sectionKey].stalls.findIndex(s => cleanId(s.id) === targetStallNum);
+      console.log('[MarketTour360] findIndex result for targetStallNum:', targetStallNum, 'is index:', idx);
+      if (idx !== -1) return idx;
+    }
+    return 0;
+  })
   const currentStall = activeSection.stalls[stallIndex] || activeSection.stalls[0]
 
   // Interactive UI State
@@ -340,19 +372,113 @@ export default function MarketTour360() {
     stateRef.current = { activeSectionKey, stallIndex, currentStall }
   }, [activeSectionKey, stallIndex, currentStall])
 
+  // Fetch real stalls from database on mount and merge details into sectionsData
+  useEffect(() => {
+    fetch('/api/renter/stalls')
+      .then((res) => res.json())
+      .then((dbStalls) => {
+        if (!Array.isArray(dbStalls)) return;
+        
+        console.log('[MarketTour360] Fetched database stalls:', dbStalls);
+        
+        setSectionsData((prevSections) => {
+          const updated = { ...prevSections };
+          
+          const dbStallMap = {};
+          const cleanId = (str) => String(str).replace(/Stall\s*#/gi, '').replace('#', '').trim().toLowerCase().replace(/^0+(?=\d)/, '');
+          
+          dbStalls.forEach((dbStall) => {
+            const key = cleanId(dbStall.stallNumber || dbStall.id || '');
+            if (key) {
+              dbStallMap[key] = dbStall;
+            }
+          });
+          
+          Object.keys(updated).forEach((secKey) => {
+            updated[secKey] = {
+              ...updated[secKey],
+              stalls: updated[secKey].stalls.map((s) => {
+                const cleanedId = cleanId(s.id);
+                const dbStall = dbStallMap[cleanedId];
+                
+                if (dbStall) {
+                  return {
+                    ...s,
+                    price: dbStall.monthlyRate ? `₱${dbStall.monthlyRate.toLocaleString()}` : s.price,
+                    status: dbStall.status ? (dbStall.status.charAt(0).toUpperCase() + dbStall.status.slice(1)) : s.status,
+                    utilities: dbStall.utilities || s.utilities,
+                    electricitySetup: dbStall.electricitySetup || s.electricitySetup,
+                    waterAccess: dbStall.waterAccess || s.waterAccess,
+                    zone: dbStall.zone ? `Zone ${dbStall.zone}` : s.zone,
+                    contractorName: dbStall.contractorName || 'None',
+                    size: dbStall.size || s.size || 12,
+                    description: dbStall.description || s.description || s.name
+                  };
+                }
+                return s;
+              })
+            };
+          });
+          
+          return updated;
+        });
+      })
+      .catch((err) => {
+        console.error('[MarketTour360] Failed to fetch stalls from database:', err);
+      });
+  }, []);
+
+  const isInitialMount = useRef(true);
+
+  // Sync state when location.state (stateStall) changes (e.g. user clicked View in 360 from Stall Details)
+  useEffect(() => {
+    if (stateStall) {
+      console.log('[MarketTour360] stateStall changed or component navigated with state:', stateStall);
+      
+      // Resolve Section Key
+      const sectionName = stateStall.section || stateStall.category;
+      let sectionKey = 'meat';
+      if (sectionName) {
+        const lower = sectionName.toLowerCase();
+        if (lower.includes('meat')) sectionKey = 'meat';
+        else if (lower.includes('fish') || lower.includes('sea')) sectionKey = 'fish';
+        else if (lower.includes('veg') || lower.includes('produce') || lower.includes('fruit') || lower.includes('dry')) sectionKey = 'veggies';
+      }
+      
+      const cleanId = (str) => String(str).replace(/Stall\s*#/gi, '').replace('#', '').trim().toLowerCase().replace(/^0+(?=\d)/, '');
+      const targetStallNum = cleanId(stateStall.stallNumber || stateStall.id || '');
+      
+      const idx = sectionsData[sectionKey].stalls.findIndex(s => cleanId(s.id) === targetStallNum);
+      
+      if (idx !== -1) {
+        const isDifferent = sectionKey !== activeSectionKey || idx !== stallIndex;
+        
+        if (isDifferent || !isInitialMount.current) {
+          console.log('[MarketTour360] Syncing state to navigated stall:', targetStallNum, 'in section:', sectionKey);
+          setActiveSectionKey(sectionKey);
+          setStallIndex(idx);
+          
+          const matchedStall = sectionsData[sectionKey].stalls[idx];
+          triggerSceneTransition(getStallImagePath(matchedStall.id, sectionKey));
+        }
+      }
+    }
+    isInitialMount.current = false;
+  }, [stateStall]);
+
   // Reset indices when switching sections
   const selectSection = (key) => {
     if (transitioning) return
     setActiveSectionKey(key)
     setStallIndex(0)
-    triggerSceneTransition(getStallImagePath(SECTIONS[key].stalls[0].id, key))
+    triggerSceneTransition(getStallImagePath(sectionsData[key].stalls[0].id, key))
   }
 
   const handleNextStall = () => {
     if (transitioning) return
     const sectionKeys = ['meat', 'fish', 'veggies']
     const currentSectionIdx = sectionKeys.indexOf(stateRef.current.activeSectionKey)
-    const stalls = SECTIONS[stateRef.current.activeSectionKey].stalls
+    const stalls = sectionsData[stateRef.current.activeSectionKey].stalls
     
     if (stateRef.current.stallIndex >= stalls.length - 1) {
       // Go to next section
@@ -360,7 +486,7 @@ export default function MarketTour360() {
       const nextSectionKey = sectionKeys[nextSectionIdx]
       setActiveSectionKey(nextSectionKey)
       setStallIndex(0)
-      const nextStall = SECTIONS[nextSectionKey].stalls[0]
+      const nextStall = sectionsData[nextSectionKey].stalls[0]
       triggerSceneTransition(getStallImagePath(nextStall.id, nextSectionKey))
     } else {
       const nextIdx = stateRef.current.stallIndex + 1
@@ -373,13 +499,13 @@ export default function MarketTour360() {
     if (transitioning) return
     const sectionKeys = ['meat', 'fish', 'veggies']
     const currentSectionIdx = sectionKeys.indexOf(stateRef.current.activeSectionKey)
-    const stalls = SECTIONS[stateRef.current.activeSectionKey].stalls
+    const stalls = sectionsData[stateRef.current.activeSectionKey].stalls
     
     if (stateRef.current.stallIndex <= 0) {
       // Go to prev section
       const prevSectionIdx = (currentSectionIdx - 1 + sectionKeys.length) % sectionKeys.length
       const prevSectionKey = sectionKeys[prevSectionIdx]
-      const prevStalls = SECTIONS[prevSectionKey].stalls
+      const prevStalls = sectionsData[prevSectionKey].stalls
       const prevIdx = prevStalls.length - 1
       setActiveSectionKey(prevSectionKey)
       setStallIndex(prevIdx)
@@ -998,7 +1124,7 @@ export default function MarketTour360() {
 
             {sectionDropdownOpen && (
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 bg-white/95 backdrop-blur-md border border-black/10 rounded-2xl p-1.5 shadow-2xl z-50 flex flex-col gap-1 min-w-[140px]">
-                {Object.values(SECTIONS).map((sect) => (
+                {Object.values(sectionsData).map((sect) => (
                   <button
                     key={sect.id}
                     onClick={() => {
