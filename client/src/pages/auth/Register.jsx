@@ -255,7 +255,8 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#f5f2ec' }}>
+    <div className="min-h-screen flex flex-col relative" style={{ backgroundColor: '#f5f2ec' }}>
+      <button onClick={() => navigate('/')} className="absolute top-4 left-4 flex items-center gap-1 text-sm font-semibold bg-[#1a5c2a] rounded-md shadow p-2 text-white hover:bg-[#163721] transition-colors">← Back</button>
 
       {/* Header */}
       <div
@@ -274,6 +275,7 @@ export default function Register() {
           <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-xl">🏪</div>
           <span className="text-white text-2xl font-bold">MyTalipapa</span>
         </div>
+                {/* Back button moved to top left */}
       </div>
 
       {/* Card */}

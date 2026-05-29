@@ -14,6 +14,7 @@ import AdminApplication from './pages/Admin/AdminApplication'
 import AdminStalls from './pages/Admin/AdminStalls'
 import AdminProfile from './pages/Admin/AdminProfile'
 import RenterLayout from './pages/Renter/Renterlayout'
+import MarketTour360 from './pages/MarketTour360'
 
 export default function App() {
   return (
@@ -29,7 +30,7 @@ export default function App() {
         <Route path="/contractor/applications" element={<ContractorApplications />} />
         <Route path="/contractor/stalls" element={<ContractorStalls />} />
         <Route path="/contractor/*" element={<ContractorDashboard />} />
-        
+
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/profile" element={<AdminProfile />} />
         <Route path="/admin/records" element={<AdminRecord />} />
@@ -38,6 +39,7 @@ export default function App() {
         <Route path="/admin/*" element={<AdminDashboard />} />
 
         <Route path="/renter/*" element={<RenterLayout />} />
+        <Route path="/tour" element={<MarketTour360 />} />
       </Routes>
     </BrowserRouter>
   )

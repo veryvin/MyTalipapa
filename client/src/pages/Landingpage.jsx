@@ -5,7 +5,7 @@ import arImage from '../images/2.png'
 
 export default function Landingpage() {
   // ✅ Points directly to the public folder asset to fix the Vite build error
-  const tour360 = "/images/360_1.insp"; 
+  const tour360 = "/images/360_1.insp";
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-white">
@@ -51,7 +51,7 @@ export default function Landingpage() {
                 </Link>
               </div>
             </div>
-            
+
             {/* Hero Image Area */}
             <div className="hidden lg:block relative h-96">
               <div className="bg-gradient-to-br from-gray-300 to-gray-400 rounded-3xl overflow-hidden shadow-2xl h-full w-full">
@@ -119,7 +119,7 @@ export default function Landingpage() {
           </div>
 
           {/* 360 Market Tour */}
-          <div className="rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition bg-white">
+          <Link to="/tour" className="block rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition bg-white">
             <div className="grid grid-cols-1 lg:grid-cols-2">
               <div className="h-48 sm:h-64 lg:h-72 bg-gradient-to-br from-green-700 to-green-900 relative order-2 lg:order-1 overflow-hidden">
                 {/* Note: Standard <img> handles .jpg/.png preview images cleanly. 
@@ -135,7 +135,7 @@ export default function Landingpage() {
                 <p className="text-gray-700">A virtual window into your market. Showcase stall spaces to potential tenants without a site visit.</p>
               </div>
             </div>
-          </div>
+          </Link>
         </div>
       </section>
 

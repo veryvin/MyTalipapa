@@ -328,8 +328,8 @@ export default function RenterDashboard({ onNavigate, onOpenStall }) {
                       <td className="py-3 px-1 font-bold text-gray-800">{app.fee}</td>
                       <td className="py-3 px-1">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${app.status === 'Approved' ? 'bg-green-50 text-green-700' :
-                            app.status === 'Rejected' ? 'bg-red-50 text-red-500' :
-                              'bg-orange-50 text-orange-700'
+                          app.status === 'Rejected' ? 'bg-red-50 text-red-500' :
+                            'bg-orange-50 text-orange-700'
                           }`}>
                           {app.status === 'Approved' ? <CheckCircle size={9} /> :
                             app.status === 'Rejected' ? <XCircle size={9} /> :

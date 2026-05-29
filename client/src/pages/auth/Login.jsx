@@ -1,10 +1,11 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, } from 'lucide-react'
 
 export default function Login() {
-  const [role, setRole] = useState('renter')
-  const [email, setEmail] = useState('')
+  const navigate = useNavigate();
+  const [role, setRole] = useState('renter');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -52,8 +53,9 @@ async function handleLogin(e) {
 }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-10" style={{ backgroundColor: '#f5f2ec' }}>
-      <div className="w-full max-w-sm">
+    <div className="min-h-screen flex items-center justify-center px-4 py-10 relative" style={{ backgroundColor: '#f5f2ec' }}>
+  <button onClick={() => navigate('/')} className="absolute top-4 left-4 flex items-center gap-1 text-sm font-semibold bg-[#1a5c2a] rounded-md shadow p-2 text-white hover:bg-[#163721] transition-colors">← Back</button>
+  <div className="w-full max-w-sm">
 
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
@@ -64,9 +66,10 @@ async function handleLogin(e) {
           <p className="text-xs tracking-widest text-gray-500 mt-1 uppercase">
             {role === 'renter' ? 'Vendor Portal' : role === 'admin' ? 'Admin Portal' : 'Contractor Portal'}
           </p>
+          {/* Back button moved to top left */}
         </div>
 
-        {/* Card */}
+    {/* Card */}
         <div className="bg-white rounded-3xl shadow-sm p-6">
 
           {/* Role Toggle */}
