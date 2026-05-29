@@ -68,20 +68,20 @@ const getStallZone = (num, category) => {
 // Helper to programmatically generate details for all 142 stalls in the folder
 const generateStalls = (category, numbers) => {
   const meatNames = [
-    "Aling Nena's Pork & Beef", "Juan's Choice Cuts", "Fresh Poultry Center", 
-    "Bulacan Specialty Longganisa", "Master Choice Pork", "Native Chicken Supply", 
-    "Mang Tomas Meat Shop", "Prime Cuts Retailer", "Batangas Beef Stand", 
+    "Aling Nena's Pork & Beef", "Juan's Choice Cuts", "Fresh Poultry Center",
+    "Bulacan Specialty Longganisa", "Master Choice Pork", "Native Chicken Supply",
+    "Mang Tomas Meat Shop", "Prime Cuts Retailer", "Batangas Beef Stand",
     "Hog & Cattle Fresh Meat", "Aling Belen's Pork Shop", "Choice Chicken Outlet"
   ];
   const fishNames = [
-    "Dagupan Fresh Bangus", "Seafood Express", "Aling Marta's Fresh Catch", 
-    "Deep Sea Fishery", "Shellfish & Squid Station", "Bataan Crab & Prawns", 
+    "Dagupan Fresh Bangus", "Seafood Express", "Aling Marta's Fresh Catch",
+    "Deep Sea Fishery", "Shellfish & Squid Station", "Bataan Crab & Prawns",
     "Dried Fish & Anchovies", "Shrimp & Lobsters Corner", "Squid & Octopus Hub",
     "Manila Bay Fresh Seafood", "Aling Cora's Tilapia Stand"
   ];
   const veggieNames = [
-    "Baguio Veggies Fresh", "Organic Greens & Salads", "Onion, Garlic & Spices Center", 
-    "Lola Elena's Pinakbet Veggies", "Highland Fresh Produce", "Garlic, Ginger & Chili Shop", 
+    "Baguio Veggies Fresh", "Organic Greens & Salads", "Onion, Garlic & Spices Center",
+    "Lola Elena's Pinakbet Veggies", "Highland Fresh Produce", "Garlic, Ginger & Chili Shop",
     "Sweet Potato & Root Crops", "Benguet Cabbage Corner", "Fresh Tomato & Cucumber",
     "Native Corn & Squash", "Hydroponics Greens & Herbs", "Aling Rosa's Pumpkin Stand"
   ];
@@ -114,17 +114,17 @@ const generateStalls = (category, numbers) => {
 
   return numbers.map((num, index) => {
     const products = productsPool[index % productsPool.length];
-    
+
     const numInt = parseInt(String(num).match(/^\d+/)?.[0]) || (index + 1);
-    
+
     // Water Access distance
     const isNearWater = numInt % 3 === 0;
     const waterAccess = isNearWater ? 'Near CR (Easy Access)' : 'Far from CR (Fetching Required)';
-    
+
     // Rental Price (depends on water access, around 12k - 18k, average 15k)
     const priceVal = 12000 + (isNearWater ? 1000 : 0) + (numInt % 3) * 1000;
     const price = `₱${priceVal.toLocaleString()}`;
-    
+
     const status = numInt % 3 === 0 ? 'Occupied' : 'Available';
     const electricitySetup = numInt % 2 === 0 ? 'Sub-metered' : 'Shared Meter';
     const utilities = `Electricity (Paid by Renter - ${electricitySetup}) · Water (Free)`;
@@ -214,7 +214,7 @@ const getStallImagePath = (id, category) => {
     if (stallId.startsWith('empty')) {
       return `/export360/${stallId}.jpg`;
     }
-    
+
     // Doubled / unoccupied / alternative stalls in meat:
     if (stallId === '1(u)') return '/export360/stall1(u) - meat.jpg';
     if (stallId === '2(u)') return '/export360/stall2(u) - meat.jpg';
@@ -230,7 +230,7 @@ const getStallImagePath = (id, category) => {
     if (stallId === '10(u)') return '/export360/stall22 -  meat.jpg';
     if (stallId === '12(u)') return '/export360/stall12 - meat.jpg';
     if (stallId === '13(u)') return '/export360/stall13 - meat.jpg';
-    
+
     return `/export360/stall${stallId} - meat.jpg`;
   } else if (category === 'fish') {
     if (stallId === '11') return '/export360/stall11 -  fishes.jpg';
@@ -378,29 +378,29 @@ export default function MarketTour360() {
       .then((res) => res.json())
       .then((dbStalls) => {
         if (!Array.isArray(dbStalls)) return;
-        
+
         console.log('[MarketTour360] Fetched database stalls:', dbStalls);
-        
+
         setSectionsData((prevSections) => {
           const updated = { ...prevSections };
-          
+
           const dbStallMap = {};
           const cleanId = (str) => String(str).replace(/Stall\s*#/gi, '').replace('#', '').trim().toLowerCase().replace(/^0+(?=\d)/, '');
-          
+
           dbStalls.forEach((dbStall) => {
             const key = cleanId(dbStall.stallNumber || dbStall.id || '');
             if (key) {
               dbStallMap[key] = dbStall;
             }
           });
-          
+
           Object.keys(updated).forEach((secKey) => {
             updated[secKey] = {
               ...updated[secKey],
               stalls: updated[secKey].stalls.map((s) => {
                 const cleanedId = cleanId(s.id);
                 const dbStall = dbStallMap[cleanedId];
-                
+
                 if (dbStall) {
                   return {
                     ...s,
@@ -419,7 +419,7 @@ export default function MarketTour360() {
               })
             };
           });
-          
+
           return updated;
         });
       })
@@ -434,7 +434,7 @@ export default function MarketTour360() {
   useEffect(() => {
     if (stateStall) {
       console.log('[MarketTour360] stateStall changed or component navigated with state:', stateStall);
-      
+
       // Resolve Section Key
       const sectionName = stateStall.section || stateStall.category;
       let sectionKey = 'meat';
@@ -444,20 +444,20 @@ export default function MarketTour360() {
         else if (lower.includes('fish') || lower.includes('sea')) sectionKey = 'fish';
         else if (lower.includes('veg') || lower.includes('produce') || lower.includes('fruit') || lower.includes('dry')) sectionKey = 'veggies';
       }
-      
+
       const cleanId = (str) => String(str).replace(/Stall\s*#/gi, '').replace('#', '').trim().toLowerCase().replace(/^0+(?=\d)/, '');
       const targetStallNum = cleanId(stateStall.stallNumber || stateStall.id || '');
-      
+
       const idx = sectionsData[sectionKey].stalls.findIndex(s => cleanId(s.id) === targetStallNum);
-      
+
       if (idx !== -1) {
         const isDifferent = sectionKey !== activeSectionKey || idx !== stallIndex;
-        
+
         if (isDifferent || !isInitialMount.current) {
           console.log('[MarketTour360] Syncing state to navigated stall:', targetStallNum, 'in section:', sectionKey);
           setActiveSectionKey(sectionKey);
           setStallIndex(idx);
-          
+
           const matchedStall = sectionsData[sectionKey].stalls[idx];
           triggerSceneTransition(getStallImagePath(matchedStall.id, sectionKey));
         }
@@ -479,7 +479,7 @@ export default function MarketTour360() {
     const sectionKeys = ['meat', 'fish', 'veggies']
     const currentSectionIdx = sectionKeys.indexOf(stateRef.current.activeSectionKey)
     const stalls = sectionsData[stateRef.current.activeSectionKey].stalls
-    
+
     if (stateRef.current.stallIndex >= stalls.length - 1) {
       // Go to next section
       const nextSectionIdx = (currentSectionIdx + 1) % sectionKeys.length
@@ -500,7 +500,7 @@ export default function MarketTour360() {
     const sectionKeys = ['meat', 'fish', 'veggies']
     const currentSectionIdx = sectionKeys.indexOf(stateRef.current.activeSectionKey)
     const stalls = sectionsData[stateRef.current.activeSectionKey].stalls
-    
+
     if (stateRef.current.stallIndex <= 0) {
       // Go to prev section
       const prevSectionIdx = (currentSectionIdx - 1 + sectionKeys.length) % sectionKeys.length
@@ -901,11 +901,11 @@ export default function MarketTour360() {
 
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden font-sans select-none">
-       {/* 360 ThreeJS Viewer Mount */}
-      <div 
-        ref={mountRef} 
-        className="absolute inset-0 w-full h-full transition-all duration-300" 
-        style={{ cursor, filter: privacyMode ? 'blur(6px) contrast(1.05)' : 'none' }} 
+      {/* 360 ThreeJS Viewer Mount */}
+      <div
+        ref={mountRef}
+        className="absolute inset-0 w-full h-full transition-all duration-300"
+        style={{ cursor, filter: privacyMode ? 'blur(6px) contrast(1.05)' : 'none' }}
       />
 
       {/* Floating SHOW CONTROLS Toggle Button (Visible ONLY when UI is hidden) */}
@@ -925,9 +925,8 @@ export default function MarketTour360() {
 
       {/* Screen Fade Transition Overlay (prevents jarring cuts) */}
       <div
-        className={`absolute inset-0 bg-black z-10 transition-opacity duration-300 pointer-events-none ${
-          transitioning ? 'opacity-100' : 'opacity-0'
-        }`}
+        className={`absolute inset-0 bg-black z-10 transition-opacity duration-300 pointer-events-none ${transitioning ? 'opacity-100' : 'opacity-0'
+          }`}
       />
 
 
@@ -998,9 +997,8 @@ export default function MarketTour360() {
         <div className={`bg-white/90 backdrop-blur-md p-2 rounded-3xl flex flex-col gap-2.5 border border-black/10 shadow-2xl transition-all duration-300 ${uiVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-75 pointer-events-none'}`}>
           <button
             onClick={() => setAutoRotate((prev) => !prev)}
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-              autoRotate ? 'bg-[#1a5c2a] text-white animate-pulse' : 'bg-black/5 text-slate-800 hover:bg-black/10'
-            }`}
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${autoRotate ? 'bg-[#1a5c2a] text-white animate-pulse' : 'bg-black/5 text-slate-800 hover:bg-black/10'
+              }`}
             title="Toggle Auto-Rotate"
           >
             {autoRotate ? <Pause size={18} /> : <Play size={18} />}
@@ -1028,9 +1026,8 @@ export default function MarketTour360() {
           </button>
           <button
             onClick={() => setPrivacyMode(prev => !prev)}
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-              privacyMode ? 'bg-[#1a5c2a] text-white' : 'bg-black/5 text-slate-800 hover:bg-black/10'
-            }`}
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${privacyMode ? 'bg-[#1a5c2a] text-white' : 'bg-black/5 text-slate-800 hover:bg-black/10'
+              }`}
             title="Toggle Privacy Blur (Obscure Faces)"
           >
             {privacyMode ? <Shield size={18} /> : <ShieldOff size={18} />}
@@ -1065,7 +1062,7 @@ export default function MarketTour360() {
             <span>{currentStall.name} ({stallIndex + 1}/{activeSection.stalls.length})</span>
             <ChevronDown size={12} className="text-[#1a5c2a]" />
           </button>
-          
+
           {stallDropdownOpen && (
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 bg-white/95 backdrop-blur-md border border-black/10 rounded-2xl p-1.5 shadow-2xl z-50 flex flex-col gap-0.5 min-w-[200px] max-h-[220px] overflow-y-auto">
               {activeSection.stalls.map((st, idx) => (
@@ -1076,11 +1073,10 @@ export default function MarketTour360() {
                     triggerSceneTransition(getStallImagePath(st.id, activeSectionKey))
                     setStallDropdownOpen(false)
                   }}
-                  className={`px-3 py-1.5 rounded-xl text-left text-xs font-bold transition-all cursor-pointer ${
-                    idx === stallIndex
+                  className={`px-3 py-1.5 rounded-xl text-left text-xs font-bold transition-all cursor-pointer ${idx === stallIndex
                       ? 'bg-[#1a5c2a] text-white'
                       : 'text-slate-700 hover:bg-black/5'
-                  }`}
+                    }`}
                 >
                   {st.name}
                 </button>
@@ -1098,7 +1094,7 @@ export default function MarketTour360() {
           >
             <ChevronLeft size={18} />
           </button>
-          
+
           <div className="text-center min-w-[120px] relative">
             <button
               onClick={() => {
@@ -1131,11 +1127,10 @@ export default function MarketTour360() {
                       selectSection(sect.id)
                       setSectionDropdownOpen(false)
                     }}
-                    className={`px-3 py-1.5 rounded-xl text-left text-xs font-bold transition-all cursor-pointer ${
-                      sect.id === activeSectionKey
+                    className={`px-3 py-1.5 rounded-xl text-left text-xs font-bold transition-all cursor-pointer ${sect.id === activeSectionKey
                         ? 'bg-[#1a5c2a] text-white'
                         : 'text-slate-700 hover:bg-black/5'
-                    }`}
+                      }`}
                   >
                     {sect.icon} {sect.name}
                   </button>
@@ -1143,7 +1138,7 @@ export default function MarketTour360() {
               </div>
             )}
           </div>
-          
+
           <button
             onClick={handleNextStall}
             className="w-8 h-8 rounded-full bg-black/5 hover:bg-black/10 text-slate-800 flex items-center justify-center transition-all active:scale-90 cursor-pointer"
@@ -1167,55 +1162,55 @@ export default function MarketTour360() {
               >
                 <ChevronDown size={16} />
               </button>
-            {/* Background Ambient Glow */}
-            <div className={`absolute -right-32 -bottom-32 w-64 h-64 rounded-full bg-gradient-to-br ${activeSection.bgTheme} blur-3xl opacity-40 pointer-events-none`} />
+              {/* Background Ambient Glow */}
+              <div className={`absolute -right-32 -bottom-32 w-64 h-64 rounded-full bg-gradient-to-br ${activeSection.bgTheme} blur-3xl opacity-40 pointer-events-none`} />
 
-            {/* Main Info */}
-            <div className="flex-1 min-w-0 z-10">
-              <div className="flex items-center gap-2 mb-2 flex-wrap">
-                <span className="px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-black/10 text-slate-800">
-                  {selectedStall.zone}
-                </span>
-              </div>
-              <h3 className="text-lg font-black text-slate-900 truncate leading-tight">
-                {selectedStall.name}
-              </h3>
-              <p className="text-xs text-slate-600 mt-1 flex flex-col gap-0.5">
-                <span>Category: {activeSection.name}</span>
-                <span className="text-[10px] text-slate-500 font-medium">Utilities: {selectedStall.utilities}</span>
-              </p>
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-2 gap-3 mt-4">
-                <div className="flex items-center gap-2 bg-black/5 rounded-2xl p-3 border border-black/5 hover:bg-black/10 transition-all">
-                  <Zap size={15} className="text-[#1a5c2a] shrink-0" />
-                  <div>
-                    <p className="text-[9px] text-slate-500 font-black uppercase tracking-wider">Electricity</p>
-                    <p className="text-xs font-bold text-slate-800">{selectedStall.electricitySetup}</p>
-                  </div>
+              {/* Main Info */}
+              <div className="flex-1 min-w-0 z-10">
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <span className="px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-black/10 text-slate-800">
+                    {selectedStall.zone}
+                  </span>
                 </div>
-                <div className="flex items-center gap-2 bg-black/5 rounded-2xl p-3 border border-black/5 hover:bg-black/10 transition-all">
-                  <MapPin size={15} className="text-[#1a5c2a] shrink-0" />
-                  <div>
-                    <p className="text-[9px] text-slate-500 font-black uppercase tracking-wider">Water Access</p>
-                    <p className="text-xs font-bold text-slate-800">{selectedStall.waterAccess}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Price Details Block */}
-            <div className="w-full md:w-52 shrink-0 flex flex-col justify-center border-t md:border-t-0 md:border-l border-black/10 pt-4 md:pt-0 md:pl-5 z-10">
-              <div>
-                <p className="text-xl sm:text-2xl font-black text-[#e07b00] leading-none whitespace-nowrap">
-                  {selectedStall.price}
+                <h3 className="text-lg font-black text-slate-900 truncate leading-tight">
+                  {selectedStall.name}
+                </h3>
+                <p className="text-xs text-slate-600 mt-1 flex flex-col gap-0.5">
+                  <span>Category: {activeSection.name}</span>
+                  <span className="text-[10px] text-slate-500 font-medium">Utilities: {selectedStall.utilities}</span>
                 </p>
-                <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest mt-1">per month (negotiable)</p>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 gap-3 mt-4">
+                  <div className="flex items-center gap-2 bg-black/5 rounded-2xl p-3 border border-black/5 hover:bg-black/10 transition-all">
+                    <Zap size={15} className="text-[#1a5c2a] shrink-0" />
+                    <div>
+                      <p className="text-[9px] text-slate-500 font-black uppercase tracking-wider">Electricity</p>
+                      <p className="text-xs font-bold text-slate-800">{selectedStall.electricitySetup}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 bg-black/5 rounded-2xl p-3 border border-black/5 hover:bg-black/10 transition-all">
+                    <MapPin size={15} className="text-[#1a5c2a] shrink-0" />
+                    <div>
+                      <p className="text-[9px] text-slate-500 font-black uppercase tracking-wider">Water Access</p>
+                      <p className="text-xs font-bold text-slate-800">{selectedStall.waterAccess}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Price Details Block */}
+              <div className="w-full md:w-52 shrink-0 flex flex-col justify-center border-t md:border-t-0 md:border-l border-black/10 pt-4 md:pt-0 md:pl-5 z-10">
+                <div>
+                  <p className="text-xl sm:text-2xl font-black text-[#e07b00] leading-none whitespace-nowrap">
+                    {selectedStall.price}
+                  </p>
+                  <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest mt-1">per month (negotiable)</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
       )}
 
       {/* HELP GUIDE OVERLAY MODAL */}

@@ -37,12 +37,12 @@ export default function RenterDashboard({ onNavigate, onOpenStall }) {
   const [loading, setLoading] = useState(true)
 
   const alerts = [
-    { id: 'alert-1', type: 'info',    message: 'Market cleanup is scheduled for next Monday. Stall operations will start at 9:00 AM.', date: 'May 22, 2026' },
+    { id: 'alert-1', type: 'info', message: 'Market cleanup is scheduled for next Monday. Stall operations will start at 9:00 AM.', date: 'May 22, 2026' },
     { id: 'alert-2', type: 'warning', message: 'Please ensure compliance with standard waste disposal regulations in Produce Section B.', date: 'May 20, 2026' },
   ]
 
   const appStats = {
-    pending:  applications.filter(a => a.status === 'Pending').length,
+    pending: applications.filter(a => a.status === 'Pending').length,
     approved: applications.filter(a => a.status === 'Approved').length,
     rejected: applications.filter(a => a.status === 'Rejected').length,
   }
@@ -55,7 +55,7 @@ export default function RenterDashboard({ onNavigate, onOpenStall }) {
 
     const emailParam = `?email=${encodeURIComponent(currentUser.email)}`
     const token = localStorage.getItem('authToken')
-    
+
     setLoading(true)
 
     const fetchApps = fetch(`/api/renter/applications${emailParam}`).then(res => {
@@ -70,13 +70,13 @@ export default function RenterDashboard({ onNavigate, onOpenStall }) {
 
     const fetchProfile = token
       ? fetch('/api/profile', {
-          headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(res => res.ok ? res.json() : null)
+        .catch(err => {
+          console.error('Failed to fetch user profile:', err)
+          return null
         })
-          .then(res => res.ok ? res.json() : null)
-          .catch(err => {
-            console.error('Failed to fetch user profile:', err)
-            return null
-          })
       : Promise.resolve(null)
 
     Promise.all([fetchApps, fetchLease, fetchProfile])
@@ -141,12 +141,7 @@ export default function RenterDashboard({ onNavigate, onOpenStall }) {
             <span className="text-[10px] text-gray-400">Stall Owner</span>
           </div>
           <NotificationBell />
-          <button
-            onClick={handleLogout}
-            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-red-500 hover:bg-red-50 transition-all"
-          >
-            <LogOut size={13} /> Logout
-          </button>
+
         </div>
       </header>
 
@@ -189,9 +184,9 @@ export default function RenterDashboard({ onNavigate, onOpenStall }) {
           <h2 className="text-sm font-bold text-gray-800 mb-3">Applications Overview</h2>
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: 'Pending',  value: appStats.pending,  color: 'text-gray-800' },
+              { label: 'Pending', value: appStats.pending, color: 'text-gray-800' },
               { label: 'Approved', value: appStats.approved, color: 'text-gray-800' },
-              { label: 'Rejected', value: appStats.rejected, color: 'text-red-500'  },
+              { label: 'Rejected', value: appStats.rejected, color: 'text-red-500' },
             ].map(s => (
               <div key={s.label} className="bg-white rounded-2xl py-4 px-3 flex flex-col items-center shadow-sm border border-gray-100">
                 <span className={`text-2xl font-extrabold ${s.color}`}>{s.value}</span>
@@ -262,10 +257,10 @@ export default function RenterDashboard({ onNavigate, onOpenStall }) {
             <>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                  { label: 'Stall No.',    value: activeStall.stallNumber, cls: 'text-base font-extrabold text-gray-800' },
-                  { label: 'Section',      value: activeStall.section,     cls: 'text-xs font-extrabold text-gray-800 truncate' },
+                  { label: 'Stall No.', value: activeStall.stallNumber, cls: 'text-base font-extrabold text-gray-800' },
+                  { label: 'Section', value: activeStall.section, cls: 'text-xs font-extrabold text-gray-800 truncate' },
                   { label: 'Monthly Rent', value: activeStall.monthlyRate, cls: 'text-base font-extrabold text-green-800' },
-                  { label: 'Expiry',       value: activeStall.leaseEnd,    cls: 'text-xs font-extrabold text-red-500' },
+                  { label: 'Expiry', value: activeStall.leaseEnd, cls: 'text-xs font-extrabold text-red-500' },
                 ].map(cell => (
                   <div key={cell.label} className="bg-gray-50 rounded-xl p-3">
                     <p className="text-[9px] text-gray-400 font-semibold uppercase tracking-wider mb-1">{cell.label}</p>
@@ -332,14 +327,13 @@ export default function RenterDashboard({ onNavigate, onOpenStall }) {
                       <td className="py-3 px-1 text-gray-500">{app.date || app.submittedOn}</td>
                       <td className="py-3 px-1 font-bold text-gray-800">{app.fee}</td>
                       <td className="py-3 px-1">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                          app.status === 'Approved' ? 'bg-green-50 text-green-700' :
-                          app.status === 'Rejected' ? 'bg-red-50 text-red-500' :
-                          'bg-orange-50 text-orange-700'
-                        }`}>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${app.status === 'Approved' ? 'bg-green-50 text-green-700' :
+                            app.status === 'Rejected' ? 'bg-red-50 text-red-500' :
+                              'bg-orange-50 text-orange-700'
+                          }`}>
                           {app.status === 'Approved' ? <CheckCircle size={9} /> :
-                           app.status === 'Rejected' ? <XCircle size={9} /> :
-                           <Clock size={9} />}
+                            app.status === 'Rejected' ? <XCircle size={9} /> :
+                              <Clock size={9} />}
                           {app.status}
                         </span>
                       </td>
@@ -384,9 +378,9 @@ export default function RenterDashboard({ onNavigate, onOpenStall }) {
           <h3 className="text-sm font-bold text-gray-800 mb-4 border-b border-gray-100 pb-3">Stallholder Profile Details</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
-              { icon: User,  label: 'Full Name', value: currentUser?.full_name },
-              { icon: Mail,  label: 'Email',     value: currentUser?.email },
-              { icon: Phone, label: 'Contact',   value: currentUser?.contact_number || 'N/A' },
+              { icon: User, label: 'Full Name', value: currentUser?.full_name },
+              { icon: Mail, label: 'Email', value: currentUser?.email },
+              { icon: Phone, label: 'Contact', value: currentUser?.contact_number || 'N/A' },
             ].map(row => (
               <div key={row.label} className="flex items-center gap-3">
                 <div className="p-2 bg-gray-100 text-gray-500 rounded-xl shrink-0">

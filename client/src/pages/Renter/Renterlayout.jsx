@@ -60,8 +60,8 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, onLogout }) {
             onClick={() => setActive(id)}
             title={collapsed ? label : ''}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group ${active === id
-                ? 'bg-[#edf5ed] text-[#1a5c2a]'
-                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+              ? 'bg-[#edf5ed] text-[#1a5c2a]'
+              : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
               } ${collapsed ? 'justify-center' : ''}`}
           >
             <Icon size={18} className={active === id ? 'text-[#1a5c2a]' : 'text-gray-400 group-hover:text-gray-600'} />

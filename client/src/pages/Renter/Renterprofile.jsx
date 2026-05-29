@@ -183,6 +183,62 @@ export default function RenterProfile({ onLogout }) {
     }, 600)
   }
 
+
+  // Handler for Security button
+  const handleSecuritySettings = () => {
+    // Open the Change Password modal
+    setShowPasswordModal(true);
+  };
+
+  // State for Change Password modal
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+
+  const handlePasswordInputChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const submitPasswordChange = async (e) => {
+    e.preventDefault();
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      alert('New passwords do not match');
+      return;
+    }
+    try {
+      const token = getToken();
+      const res = await fetch('/api/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword
+        })
+      });
+      if (!res.ok) throw new Error('Password change failed');
+      alert('Password changed successfully');
+      setShowPasswordModal(false);
+    } catch (err) {
+      console.error(err);
+      alert('Error: ' + err.message);
+    }
+  };
+
+  // Explanation function for pop-up alerts (kept for other uses)
+  const whyOnlyPopup = (feature) => {
+    // This placeholder explains that the feature currently only shows a pop-up because full implementation is pending.
+    alert(`${feature} is currently a simple pop-up notification because the full page or modal is not yet implemented.`);
+  };
+
+
+
   // Generate fallback name initials for avatar
   const getInitials = (name) => {
     if (!name) return 'R';
@@ -210,12 +266,12 @@ export default function RenterProfile({ onLogout }) {
         <div className="flex flex-col items-center pt-8 pb-5 px-4">
           {/* Avatar with edit badge */}
           <div className="relative mb-3 cursor-pointer group animate-all" onClick={handleAvatarClick} title="Click to upload profile picture">
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleFileChange} 
-              style={{ display: 'none' }} 
-              accept="image/*" 
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              style={{ display: 'none' }}
+              accept="image/*"
             />
             <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-md bg-gray-200 flex items-center justify-center text-gray-500 font-extrabold text-xl group-hover:opacity-90 transition-opacity">
               {currentUser.profilePicture ? (
@@ -258,7 +314,7 @@ export default function RenterProfile({ onLogout }) {
           </div>
 
           {/* Edit Profile button */}
-          <button 
+          <button
             onClick={openEditModal}
             className="mt-4 bg-[#1a5c2a] hover:bg-[#154d23] active:scale-[0.98] text-white text-sm font-bold px-8 py-2.5 rounded-xl transition-all duration-200 shadow-sm"
           >
@@ -270,20 +326,20 @@ export default function RenterProfile({ onLogout }) {
         <SectionLabel>Account Settings</SectionLabel>
 
         <div className="bg-white border-y border-gray-100">
-          <MenuRow icon={User}    label="Personal Information" onClick={openEditModal} />
+          <MenuRow icon={User} label="Personal Information" onClick={openEditModal} />
           <RowDivider />
-          <MenuRow icon={BellIcon} label="Notification Settings" />
+
           <RowDivider />
-          <MenuRow icon={Shield}  label="Security"              />
+          <MenuRow icon={Shield} label="Security" onClick={handleSecuritySettings} />
         </div>
 
         {/* ── Help & Support ── */}
         <SectionLabel>Help &amp; Support</SectionLabel>
 
         <div className="bg-white border-y border-gray-100">
-          <MenuRow icon={ShoppingBag} label="Market Help Center" external />
+
           <RowDivider />
-          <MenuRow icon={User}        label="Contact Admin"      />
+          <MenuRow icon={User} label="Contact Admin" />
         </div>
 
         {/* ── Active Rental Info card ── */}
@@ -336,7 +392,7 @@ export default function RenterProfile({ onLogout }) {
             {/* Modal Header */}
             <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
               <h3 className="text-base font-extrabold text-gray-900">Personal Information</h3>
-              <button 
+              <button
                 onClick={() => setShowEditModal(false)}
                 className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"
               >
@@ -347,8 +403,8 @@ export default function RenterProfile({ onLogout }) {
             <form onSubmit={handleSaveProfile} className="p-6 space-y-4">
               <div>
                 <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Full Name</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={editForm.fullName}
                   onChange={(e) => setEditForm(f => ({ ...f, fullName: e.target.value }))}
                   required
@@ -358,8 +414,8 @@ export default function RenterProfile({ onLogout }) {
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Contact Number</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={editForm.contactNumber}
                   onChange={(e) => setEditForm(f => ({ ...f, contactNumber: e.target.value }))}
                   required
@@ -369,14 +425,14 @@ export default function RenterProfile({ onLogout }) {
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Email Address (Read-only)</label>
-                <input 
-                  type="email" 
+                <input
+                  type="email"
                   value={currentUser.email}
                   disabled
                   className="w-full bg-gray-50 border border-gray-200/50 rounded-xl px-4 py-3 text-sm text-gray-400 cursor-not-allowed"
                 />
               </div>
-              
+
               <div className="pt-2 flex gap-3">
                 <button
                   type="button"
@@ -397,6 +453,33 @@ export default function RenterProfile({ onLogout }) {
           </div>
         </div>
       )}
+
+      {/* Change Password Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-gray-100 flex flex-col animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-base font-extrabold text-gray-900">Change Password</h3>
+              <button onClick={() => setShowPasswordModal(false)} className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors">
+                ✕
+              </button>
+            </div>
+            <form onSubmit={submitPasswordChange} className="p-6 space-y-4">
+              <label className="block text-sm font-medium text-gray-700">Current Password</label>
+              <input type="password" name="currentPassword" value={passwordForm.currentPassword} onChange={handlePasswordInputChange} required className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1a5c2a]" />
+              <label className="block text-sm font-medium text-gray-700">New Password</label>
+              <input type="password" name="newPassword" value={passwordForm.newPassword} onChange={handlePasswordInputChange} required className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1a5c2a]" />
+              <label className="block text-sm font-medium text-gray-700">Confirm New Password</label>
+              <input type="password" name="confirmPassword" value={passwordForm.confirmPassword} onChange={handlePasswordInputChange} required className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1a5c2a]" />
+              <div className="flex justify-end pt-4">
+                <button type="submit" className="px-4 py-2 bg-[#1a5c2a] text-white rounded-lg hover:bg-[#154d23] transition-colors">Save</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+
     </div>
   )
 }
