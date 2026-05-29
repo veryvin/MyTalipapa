@@ -30,20 +30,16 @@ import {
 const getStallZone = (num, category) => {
   const stallId = String(num);
   if (category === 'meat') {
-    // Zone A: leftmost block (Column 1 & 2)
     if (['1', '2', '3', '4', '5', '12', '13'].includes(stallId) || stallId.startsWith('empty')) {
       return 'Zone A';
     }
-    // Zone C: middle-left block (Column 5)
-    if (['1(u)', '2(u)', '3(u)', '4(u)', '8(u)', '9(u)', '10(u)'].includes(stallId)) {
+    if (['51', '52', '53', '54', '55', '56'].includes(stallId)) {
       return 'Zone C';
     }
-    // Zone D: far-right block (Column 9)
-    if (['51', '52', '53', '54', '55', '56'].includes(stallId)) {
-      return 'Zone D';
+    if (['1(u2)', '2(u2)', '3(u2)', '4(u2)', '8(u2)', '9(u2)', '10(u2)'].includes(stallId)) {
+      return 'Zone F';
     }
-    // Zone B: bottom-left block (Column 3 & 4)
-    return 'Zone B';
+    return 'Zone E';
   } else if (category === 'fish') {
     const numInt = parseInt(stallId.replace(/[^0-9]/g, '')) || 0;
     if (numInt >= 11 && numInt <= 20) {
@@ -52,22 +48,19 @@ const getStallZone = (num, category) => {
     if (numInt >= 21 && numInt <= 40) {
       return 'Zone B';
     }
-    if (numInt >= 41 && numInt <= 60) {
+    if ((numInt >= 41 && numInt <= 50) || (numInt >= 57 && numInt <= 60)) {
       return 'Zone C';
     }
     return 'Zone D';
   } else if (category === 'veggies') {
     const numInt = parseInt(stallId.replace(/[^0-9]/g, '')) || 0;
     if (numInt >= 5 && numInt <= 24) {
-      return 'Zone C';
+      return 'Zone F';
     }
     if (numInt >= 25 && numInt <= 48) {
-      return 'Zone D';
+      return 'Zone G';
     }
-    if (numInt >= 50) {
-      return 'Zone E';
-    }
-    return 'Zone C';
+    return 'Zone H';
   }
   return 'Zone A';
 };

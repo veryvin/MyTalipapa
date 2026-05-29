@@ -248,7 +248,7 @@ export default function RenterLayout() {
         onLogout={() => setShowLogout(true)}
       />
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden pb-16 md:pb-0">
         {renderPage()}
       </div>
 
