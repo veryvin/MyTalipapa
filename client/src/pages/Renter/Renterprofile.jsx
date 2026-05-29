@@ -327,18 +327,6 @@ export default function RenterProfile({ onLogout }) {
           </div>
         )}
 
-        {/* ── Logout button ── */}
-        <div className="mx-4 md:mx-6 mt-4 mb-2">
-          <button
-            onClick={handleLogout}
-            disabled={loggingOut}
-            className="w-full flex items-center justify-center gap-2 border border-[#e8621a] text-[#e8621a] hover:bg-orange-50 active:scale-[0.98] disabled:opacity-60 font-bold text-sm rounded-2xl py-3.5 transition-all duration-200"
-          >
-            <LogOut size={15} />
-            {loggingOut ? 'Logging out…' : 'Logout'}
-          </button>
-        </div>
-
       </div>
 
       {/* ── Edit Profile Modal ── */}
