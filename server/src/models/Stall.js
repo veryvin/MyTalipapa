@@ -14,6 +14,19 @@ const stallSchema = new mongoose.Schema({
   monthlyRate:    { type: Number },
   currency:       { type: String, default: 'PHP' },
   amenities:      [{ type: String }],
+  
+  // Location Coordinates & Metadata
+  coordinates: {
+    x:       { type: Number },
+    y:       { type: Number },
+    hallway: { type: String }
+  },
+  vendorName:     { type: String },
+  location:       { type: String },
+  productType:    { type: String },
+  phoneNumber:    { type: String },
+  operatingHours: { type: String },
+
   listing: {
     isActive:  { type: Boolean, default: true },
     autoRenew: { type: Boolean, default: false },

@@ -1,11 +1,43 @@
-import { Link } from 'react-router-dom'
-import { ArrowRight } from 'lucide-react'
-import heroImage from '../images/1.png'
-import arImage from '../images/2.png'
+import { Link } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import heroImage from '../images/1.png';
+import arImage from '../images/2.png';
 
 export default function Landingpage() {
   // ✅ Points directly to the public folder asset to fix the Vite build error
   const tour360 = "/images/360_1.insp";
+
+  const [stats, setStats] = useState({
+    totalStalls: 120,
+    availableStalls: 15,
+    occupiedStalls: 105
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStallStats = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || '';
+        const response = await fetch(`${apiUrl}/api/public/stalls/stats`);
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        setStats({
+          totalStalls: data.totalStalls,
+          availableStalls: data.availableStalls,
+          occupiedStalls: data.occupiedStalls
+        });
+      } catch (error) {
+        console.error('Failed to fetch stall stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStallStats();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-white">
@@ -17,14 +49,10 @@ export default function Landingpage() {
             <span className="text-xl font-bold text-green-700">MyTalipapa</span>
           </div>
           <div className="hidden sm:flex gap-4 items-center">
-            <Link to="/login" className="text-gray-700 hover:text-green-700 font-medium transition">Login</Link>
             <button className="bg-green-700 text-white px-6 py-2 rounded-full font-semibold hover:bg-green-800 transition">
-              Get Started
+              <Link to="/login">login</Link>
             </button>
           </div>
-          <button className="sm:hidden bg-green-700 text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-green-800">
-            Get Started
-          </button>
         </div>
       </nav>
 
@@ -33,21 +61,15 @@ export default function Landingpage() {
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             <div>
-              <div className="inline-block bg-green-100 text-green-700 text-xs font-semibold px-4 py-2 rounded-full mb-6">
-                ✓ THE MARKET MODERNIZED
-              </div>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-4 leading-tight">
-                Your modern market management partner
+                Your modern stall management partner
               </h1>
               <p className="text-base sm:text-lg text-gray-700 mb-8 leading-relaxed">
                 Streamline stall rentals, guide customers with AR, and manage your public market with the industrial reliability of a modern digital tool.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                <button className="bg-green-700 text-white px-8 py-3 rounded-full font-semibold hover:bg-green-800 transition flex items-center justify-center gap-2">
+                <Link to="/login" className="bg-green-700 text-white px-8 py-3 rounded-full font-semibold hover:bg-green-800 transition flex items-center justify-center gap-2">
                   Get Started <ArrowRight size={20} />
-                </button>
-                <Link to="/login" className="border-2 border-gray-400 text-gray-800 px-8 py-3 rounded-full font-semibold hover:border-gray-600 transition text-center">
-                  Login to Dashboard
                 </Link>
               </div>
             </div>
@@ -66,15 +88,21 @@ export default function Landingpage() {
       <section className="px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-6">
           <div className="bg-white rounded-xl p-6 sm:p-8 border border-gray-100 text-center">
-            <div className="text-4xl sm:text-5xl font-bold text-orange-500 mb-2">120</div>
+            <div className="text-4xl sm:text-5xl font-bold text-orange-500 mb-2">
+              {loading ? '...' : stats.totalStalls}
+            </div>
             <p className="text-gray-600 font-semibold text-sm sm:text-base">TOTAL STALLS</p>
           </div>
           <div className="bg-white rounded-xl p-6 sm:p-8 border border-gray-100 text-center">
-            <div className="text-4xl sm:text-5xl font-bold text-green-700 mb-2">• 15</div>
+            <div className="text-4xl sm:text-5xl font-bold text-green-700 mb-2">
+              {loading ? '...' : `• ${stats.availableStalls}`}
+            </div>
             <p className="text-gray-600 font-semibold text-sm sm:text-base">AVAILABLE STALLS</p>
           </div>
           <div className="bg-white rounded-xl p-6 sm:p-8 border border-gray-100 text-center">
-            <div className="text-4xl sm:text-5xl font-bold text-gray-900 mb-2">105</div>
+            <div className="text-4xl sm:text-5xl font-bold text-gray-900 mb-2">
+              {loading ? '...' : stats.occupiedStalls}
+            </div>
             <p className="text-gray-600 font-semibold text-sm sm:text-base">OCCUPIED STALLS</p>
           </div>
         </div>
@@ -99,9 +127,6 @@ export default function Landingpage() {
               <div className="p-6 sm:p-8">
                 <h3 className="text-2xl font-bold text-gray-900 mb-3">AR Stall Navigation</h3>
                 <p className="text-gray-600 mb-4">Never get lost in the market again. Real-time digital paths guiding your customers directly to their favorite vendors.</p>
-                <a href="#" className="text-orange-500 font-semibold flex items-center gap-2 hover:gap-3 transition">
-                  Explore Portal <ArrowRight size={18} />
-                </a>
               </div>
             </div>
 
@@ -111,9 +136,6 @@ export default function Landingpage() {
                 <div className="text-4xl mb-4">📦</div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-3">Easy Rental</h3>
                 <p className="text-gray-700 mb-4">Digital contracts, automated billing, and transparent stall availability at your fingertips.</p>
-                <a href="#" className="text-orange-600 font-semibold flex items-center gap-2 hover:gap-3 transition w-fit">
-                  Explore Portal <ArrowRight size={18} />
-                </a>
               </div>
             </div>
           </div>
@@ -121,12 +143,12 @@ export default function Landingpage() {
           {/* 360 Market Tour */}
           <Link to="/tour" className="block rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition bg-white">
             <div className="grid grid-cols-1 lg:grid-cols-2">
-              <div className="h-48 sm:h-64 lg:h-72 bg-gradient-to-br from-green-700 to-green-900 relative order-2 lg:order-1 overflow-hidden">
-                {/* Note: Standard <img> handles .jpg/.png preview images cleanly. 
-                    If using a 360 viewer component later, swap this out for your viewer tag */}
-                <img src={tour360} alt="Market 360 Tour Preview" className="w-full h-full object-cover" />
+              <div className="h-48 sm:h-64 lg:h-72 bg-gradient-to-br from-green-700 to-green-900 relative order-2 lg:order-1 overflow-hidden flex items-center justify-center">
                 <div className="absolute top-4 left-4 bg-green-600 text-white text-xs font-bold px-3 py-1 rounded">
                   VIRTUAL TOUR
+                </div>
+                <div className="text-white text-6xl opacity-75 transform hover:scale-110 transition duration-300">
+                  🌐
                 </div>
               </div>
               <div className="p-6 sm:p-8 flex flex-col justify-center order-1 lg:order-2">

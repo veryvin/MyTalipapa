@@ -1,0 +1,161 @@
+/* InteractiveStallMap.css */
+
+.interactive-map-container {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.map-wrapper {
+  position: relative;
+  width: 100%;
+  background: #f1f5f9;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.map-overlay-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  user-select: none;
+}
+
+/* Base Interactive Stall Group */
+.interactive-stall-group {
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+/* Stall Box Hotspot (Rectangle) styling */
+.stall-rect-hotspot {
+  stroke-width: 1.5;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Pathway Circle Hotspot styling */
+.stall-circle-hotspot {
+  stroke-width: 2.5;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Pathway Circle Label styling */
+.stall-circle-label {
+  font-size: 13px;
+  font-weight: 900;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  pointer-events: none;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  transition: fill 0.2s ease;
+}
+
+/* ── COLOR SCHEMES & TRANSITIONS BY STATUS ── */
+
+/* 1. AVAILABLE (Green Theme) */
+.status-available .stall-rect-hotspot {
+  fill: rgba(34, 197, 94, 0.08);
+  stroke: rgba(34, 197, 94, 0.4);
+}
+.status-available .stall-circle-hotspot {
+  fill: rgba(34, 197, 94, 0.9);
+  stroke: #ffffff;
+}
+.status-available .stall-circle-label {
+  fill: #ffffff;
+}
+
+.status-available:hover .stall-rect-hotspot {
+  fill: rgba(34, 197, 94, 0.2);
+  stroke: rgba(34, 197, 94, 0.8);
+  filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.4));
+}
+.status-available:hover .stall-circle-hotspot {
+  fill: #15803d;
+  filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.7));
+}
+
+/* 2. OCCUPIED (Red Theme) */
+.status-occupied .stall-rect-hotspot {
+  fill: rgba(239, 68, 68, 0.08);
+  stroke: rgba(239, 68, 68, 0.4);
+}
+.status-occupied .stall-circle-hotspot {
+  fill: rgba(239, 68, 68, 0.9);
+  stroke: #ffffff;
+}
+.status-occupied .stall-circle-label {
+  fill: #ffffff;
+}
+
+.status-occupied:hover .stall-rect-hotspot {
+  fill: rgba(239, 68, 68, 0.2);
+  stroke: rgba(239, 68, 68, 0.8);
+  filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.4));
+}
+.status-occupied:hover .stall-circle-hotspot {
+  fill: #b91c1c;
+  filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.7));
+}
+
+/* 3. PENDING (Amber Theme) */
+.status-pending .stall-rect-hotspot {
+  fill: rgba(245, 158, 11, 0.08);
+  stroke: rgba(245, 158, 11, 0.4);
+}
+.status-pending .stall-circle-hotspot {
+  fill: rgba(245, 158, 11, 0.9);
+  stroke: #ffffff;
+}
+.status-pending .stall-circle-label {
+  fill: #ffffff;
+}
+
+.status-pending:hover .stall-rect-hotspot {
+  fill: rgba(245, 158, 11, 0.2);
+  stroke: rgba(245, 158, 11, 0.8);
+  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.4));
+}
+.status-pending:hover .stall-circle-hotspot {
+  fill: #d97706;
+  filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.7));
+}
+
+/* 4. ACTIVE / SELECTED (Vibrant Orange Highlight Theme) */
+.status-active .stall-rect-hotspot {
+  fill: rgba(232, 98, 26, 0.25);
+  stroke: #e8621a;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 8px rgba(232, 98, 26, 0.5));
+}
+.status-active .stall-circle-hotspot {
+  fill: #e8621a;
+  stroke: #ffffff;
+  stroke-width: 3.5;
+  filter: drop-shadow(0 0 10px rgba(232, 98, 26, 0.8));
+}
+.status-active .stall-circle-label {
+  fill: #ffffff;
+}
+
+.status-active:hover .stall-rect-hotspot {
+  fill: rgba(232, 98, 26, 0.35);
+}
+.status-active:hover .stall-circle-hotspot {
+  fill: #c24e11;
+}
+
+/* Responsive Scaling details */
+@media (max-width: 768px) {
+  .map-wrapper {
+    border-radius: 8px;
+  }
+  .stall-circle-label {
+    font-size: 11px;
+  }
+  .stall-circle-hotspot {
+    stroke-width: 1.5;
+  }
+}

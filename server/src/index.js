@@ -7,6 +7,8 @@ const mongoose = require('mongoose');
 const authRoutes = require('./routes/auth');
 const contractorRoutes = require('./routes/contractor');
 const renterRoutes = require('./routes/renter');
+const publicRoutes = require('./routes/public');
+const stallsRoutes = require('./routes/stalls');
 
 const app = express();
 app.use(cors());
@@ -30,6 +32,8 @@ app.use('/api', authRoutes);
 app.use('/api/contractor', contractorRoutes);
 app.use('/api/admin', contractorRoutes);
 app.use('/api/renter', renterRoutes);
+app.use('/api/public', publicRoutes);
+app.use('/api/stalls', stallsRoutes);
 
 app.post('/api/log-error', (req, res) => {
   console.error('\n----------------------------------------\n🚨 FRONTEND ERROR:', req.body.message);

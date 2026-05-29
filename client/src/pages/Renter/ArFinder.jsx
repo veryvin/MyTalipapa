@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Compass, Info, HelpCircle, Navigation, RotateCw, Check, QrCode, X, Camera, CameraOff, Map, ChevronDown, ChevronUp } from "lucide-react";
 import mapImage from "../../images/map.png";
+import { SVG_STALL_COORDS } from "../../utils/coords_dict";
 
 const getStallZone = (num, category) => {
   const stallId = String(num);
   if (category === 'meat') {
-    if (['1', '2', '3', '4', '5', '12', '13'].includes(stallId) || stallId.startsWith('empty')) return 'Zone A';
+    if (['1', '2', '3', '4', '5', '12', '13', 'empty', 'empty2', 'empty3'].includes(stallId)) return 'Zone A';
     if (['51', '52', '53', '54', '55', '56'].includes(stallId)) return 'Zone C';
     if (['1(u2)', '2(u2)', '3(u2)', '4(u2)', '8(u2)', '9(u2)', '10(u2)'].includes(stallId)) return 'Zone F';
     return 'Zone E';
@@ -24,11 +25,33 @@ const getStallZone = (num, category) => {
   return 'Zone A';
 };
 
+const getStallCoords = (rawId, category, zone) => {
+  const key = `${category}-${rawId}`;
+  if (SVG_STALL_COORDS[key]) return SVG_STALL_COORDS[key];
+  
+  // Fallback parsed numeric matching
+  const num = parseInt(String(rawId).replace(/[^0-9]/g, '')) || 1;
+  const genericKey = `${category}-${num}`;
+  if (SVG_STALL_COORDS[genericKey]) return SVG_STALL_COORDS[genericKey];
+
+  return { x: 1020, y: 635 }; // center default fallback
+};
+
+const getCleanDbStallNumber = (rawId) => {
+  return String(rawId)
+    .replace(/\(u\d*\)/gi, '') // strip (u), (u2), etc.
+    .replace(/Stall\s*#/gi, '')
+    .replace('#', '')
+    .trim()
+    .toLowerCase()
+    .replace(/^0+(?=\d)/, '');
+};
+
 const buildAllStalls = () => {
   const meatIds = [
     '1', '1(u)', '1(u2)', '2', '2(u)', '2(u2)', '3', '3(u)', '3(u2)', '4', '4(u)', '4(u2)',
     '5', 'empty', 'empty2', 'empty3',
-    '5(u)', '6', '7', '8', '9', '10', '8(u)', '9(u)', '10(u)', '11', '12', '12(u)', '13', '13(u)', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24',
+    '5(u)', '6', '7', '8', '9', '10', '8(u2)', '9(u2)', '10(u2)', '11', '12', '12(u)', '13', '13(u)', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24',
     '51', '52', '53', '54', '55', '56'
   ];
   const fishIds = [
@@ -47,33 +70,11 @@ const buildAllStalls = () => {
   ];
 
   const list = [];
-  const columnMap = {
-    'meat-Zone A': [50, 110], 'meat-Zone C': [410],
-    'fish-Zone A': [110], 'fish-Zone B': [170, 230],
-    'fish-Zone C': [290, 410], 'fish-Zone D': [530, 590, 700, 760],
-    'meat-Zone E': [50, 110], 'meat-Zone F': [170],
-    'veggies-Zone F': [170, 230], 'veggies-Zone G': [290, 410],
-    'veggies-Zone H': [530, 590]
-  };
-  const zoneYBounds = {
-    'meat-Zone A': [60, 210], 'meat-Zone C': [60, 210],
-    'fish-Zone A': [60, 210], 'fish-Zone B': [60, 210],
-    'fish-Zone C': [60, 210], 'fish-Zone D': [60, 210],
-    'meat-Zone E': [240, 400], 'meat-Zone F': [240, 400],
-    'veggies-Zone F': [240, 400], 'veggies-Zone G': [240, 400],
-    'veggies-Zone H': [240, 400]
-  };
 
   const processCategory = (category, ids) => {
-    const colCounters = {};
     ids.forEach((id) => {
       const zone = getStallZone(id, category);
-      const key = `${category}-${zone}`;
-      const columns = columnMap[key] || [100];
-      if (colCounters[key] === undefined) colCounters[key] = 0;
-      const colIdx = colCounters[key] % columns.length;
-      const x = columns[colIdx];
-      colCounters[key]++;
+      const { x, y } = getStallCoords(id, category, zone);
       let displayName = `Stall #${id}`;
       if (id.startsWith('nostallnum')) displayName = `Unnumbered Stall #${id.replace('nostallnum', '')}`;
       else if (id.startsWith('empty')) displayName = `Empty Stall #${id.replace('empty', '') || '1'}`;
@@ -81,7 +82,7 @@ const buildAllStalls = () => {
         id: `${category}-${id}`,
         label: `${displayName} (${category.charAt(0).toUpperCase() + category.slice(1)})`,
         section: category === 'meat' ? 'Meat Section' : category === 'fish' ? 'Fish Section' : 'Vegetables Section',
-        zone, x, y: 0, rawId: id, category
+        zone, x, y, rawId: id, category
       });
     });
   };
@@ -90,41 +91,151 @@ const buildAllStalls = () => {
   processCategory('fish', fishIds);
   processCategory('veggies', veggieIds);
 
-  const columnsList = [...new Set(list.map(s => s.x))];
-  columnsList.forEach((colX) => {
-    const zonesInCol = [...new Set(list.filter(s => s.x === colX).map(s => s.zone))];
-    zonesInCol.forEach((zone) => {
-      const stallsInColZone = list.filter(s => s.x === colX && s.zone === zone);
-      const count = stallsInColZone.length;
-      if (count > 0) {
-        const category = stallsInColZone[0].category;
-        const bounds = zoneYBounds[`${category}-${zone}`] || [60, 400];
-        stallsInColZone.forEach((stall, idx) => {
-          stall.y = count > 1 ? Math.round(bounds[0] + (idx * (bounds[1] - bounds[0])) / (count - 1)) : bounds[0];
-        });
-      }
-    });
-  });
   return list;
 };
 
 const STALLS_AR = buildAllStalls();
 
 const QR_ANCHORS = [
-  { id: "entrance", label: "Main Entrance Poster", x: 400, y: 410, zone: "Entrance" },
-  { id: "central_aisle", label: "Central Aisle Poster", x: 400, y: 225, zone: "Central Pathway" },
-  { id: "meat_pillar", label: "Meat Section Pillar A", x: 140, y: 140, zone: "Meat Section" },
-  { id: "seafood_column", label: "Seafood Column B", x: 290, y: 180, zone: "Seafood Section" },
-  { id: "veggies_pillar", label: "Veggies Pillar C", x: 520, y: 320, zone: "Veggies Section" }
+  { id: "entrance", label: "Main Entrance Poster", x: 1020, y: 1450, zone: "Entrance" },
+  { id: "central_aisle", label: "Central Aisle Poster", x: 1020, y: 635, zone: "Central Pathway" },
+  { id: "meat_pillar", label: "Meat Section Pillar A", x: 230, y: 370, zone: "Meat Section" },
+  { id: "seafood_column", label: "Seafood Column B", x: 970, y: 280, zone: "Seafood Section" },
+  { id: "veggies_pillar", label: "Veggies Pillar C", x: 1470, y: 1010, zone: "Veggies Section" }
 ];
 
 export default function ArFinder({ onBack }) {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedStallId, setSelectedStallId] = useState("meat-1");
-  const currentStall = STALLS_AR.find(s => s.id === selectedStallId) || STALLS_AR[0];
+  const [stallsList, setStallsList] = useState(STALLS_AR);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchDirections, setSearchDirections] = useState("");
 
-  const [userX, setUserX] = useState(400);
-  const [userY, setUserY] = useState(410);
+  const handleSearchSubmit = async () => {
+    if (!searchQuery.trim()) return;
+    try {
+      const response = await fetch(`/api/stalls/search?query=${encodeURIComponent(searchQuery)}`);
+      const data = await response.json();
+      if (data.success && data.stall) {
+        const foundStall = data.stall;
+        
+        const targetClean = getCleanDbStallNumber(foundStall.stallNumber);
+        
+        const matched = stallsList.find(s => {
+          const sec = String(foundStall.section || '').toLowerCase();
+          let category = 'meat';
+          if (sec.includes('fish') || sec.includes('sea')) category = 'fish';
+          else if (sec.includes('veg') || sec.includes('produce')) category = 'veggies';
+          
+          const sNum = getCleanDbStallNumber(s.rawId);
+          const sZone = String(s.zone || '').replace('Zone ', '').toUpperCase();
+          const fZone = String(foundStall.zone || '').replace('Zone ', '').toUpperCase();
+          
+          return sNum === targetClean && s.category === category && sZone === fZone;
+        });
+
+        if (matched) {
+          setSelectedStallId(matched.id);
+          setSearchDirections(foundStall.directions || "");
+          setToastMsg(`Found Stall #${foundStall.stallNumber} in Zone ${foundStall.zone}`);
+        } else {
+          setToastMsg(`Stall found in DB but not active/contracted.`);
+        }
+      } else {
+        setToastMsg("Stall not found.");
+      }
+    } catch (error) {
+      console.error("Search failed:", error);
+      setToastMsg("Search failed.");
+    }
+  };
+
+  // Auto-fetch directions when selectedStallId changes
+  useEffect(() => {
+    const currentStall = stallsList.find(s => s.id === selectedStallId);
+    if (!currentStall) return;
+    
+    const fetchDirections = async () => {
+      try {
+        const cleanStallNum = getCleanDbStallNumber(currentStall.rawId);
+        const response = await fetch(`/api/stalls/search?zone=${currentStall.zone.replace('Zone ', '')}&stallNumber=${cleanStallNum}`);
+        const data = await response.json();
+        if (data.success && data.stall) {
+          setSearchDirections(data.stall.directions || "");
+        } else {
+          setSearchDirections("");
+        }
+      } catch (err) {
+        console.error("Failed to fetch directions:", err);
+      }
+    };
+    fetchDirections();
+  }, [selectedStallId, stallsList]);
+
+  useEffect(() => {
+    fetch('/api/renter/stalls')
+      .then(res => res.json())
+      .then(dbStalls => {
+        if (!Array.isArray(dbStalls)) return;
+
+        // Map database stalls by category, zone, and cleaned stallNumber
+        const dbStallMap = {};
+        dbStalls.forEach(dbStall => {
+          const key = getCleanDbStallNumber(dbStall.stallNumber || dbStall.id || '');
+          const sec = String(dbStall.section || '').toLowerCase();
+          let category = 'meat';
+          if (sec.includes('fish') || sec.includes('sea')) category = 'fish';
+          else if (sec.includes('veg') || sec.includes('produce')) category = 'veggies';
+
+          const zoneLetter = String(dbStall.zone || '').replace('Zone ', '').toUpperCase();
+
+          if (key && zoneLetter) {
+            dbStallMap[`${category}-${zoneLetter}-${key}`] = dbStall;
+          }
+        });
+
+        // Update STALLS_AR elements with DB data, do NOT filter them out
+        const updatedList = STALLS_AR.map(s => {
+          const cleanedId = getCleanDbStallNumber(s.rawId);
+          const zoneLetter = String(s.zone || '').replace('Zone ', '').toUpperCase();
+          const dbStall = dbStallMap[`${s.category}-${zoneLetter}-${cleanedId}`];
+          if (dbStall) {
+            return {
+              ...s,
+              x: dbStall.coordinates?.x || s.x,
+              y: dbStall.coordinates?.y || s.y,
+              status: dbStall.status || s.status,
+              price: dbStall.monthlyRate || s.price,
+              contractorName: dbStall.contractorName || 'None',
+              dbId: dbStall._id || dbStall.id
+            };
+          }
+          return s; // Keep the fallback instead of filtering out!
+        });
+
+        setStallsList(updatedList);
+        
+        // Auto-select the first available stall in the updated list if the current selection is not in it
+        if (updatedList.length > 0) {
+          const exists = updatedList.some(s => s.id === selectedStallId);
+          if (!exists) {
+            setSelectedStallId(updatedList[0].id);
+          }
+        }
+      })
+      .catch(err => {
+        console.error('Failed to fetch stalls in ArFinder:', err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  const currentStall = stallsList.find(s => s.id === selectedStallId) || stallsList[0] || STALLS_AR[0];
+
+  const [userX, setUserX] = useState(1020);
+  const [userY, setUserY] = useState(1450);
   const [heading, setHeading] = useState(0);
 
   const [cameraActive, setCameraActive] = useState(false);
@@ -197,7 +308,7 @@ export default function ArFinder({ onBack }) {
   const handleMapClick = (e) => {
     const svg = e.currentTarget;
     const rect = svg.getBoundingClientRect();
-    const vw = 800, vh = 450;
+    const vw = 2305, vh = 1824;
     const rr = rect.width / rect.height;
     const vr = vw / vh;
     let scale, ox = 0, oy = 0;
@@ -208,7 +319,7 @@ export default function ArFinder({ onBack }) {
     if (cx >= 0 && cx <= vw && cy >= 0 && cy <= vh) { setUserX(Math.round(cx)); setUserY(Math.round(cy)); }
   };
 
-  const X_CORRIDORS = [80, 200, 380, 560, 730];
+  const X_CORRIDORS = [50, 520, 1020, 1515, 1980];
 
   const getPathPoints = () => {
     const pts = [{ x: userX, y: userY }];
@@ -224,9 +335,9 @@ export default function ArFinder({ onBack }) {
       if (userY !== sy) pts.push({ x: bestCX, y: sy });
     } else {
       if (userX !== bestCX) pts.push({ x: bestCX, y: userY });
-      if (userY !== 225) pts.push({ x: bestCX, y: 225 });
-      if (bestCX !== stallCX) pts.push({ x: stallCX, y: 225 });
-      if (sy !== 225) pts.push({ x: stallCX, y: sy });
+      if (userY !== 635) pts.push({ x: bestCX, y: 635 });
+      if (bestCX !== stallCX) pts.push({ x: stallCX, y: 635 });
+      if (sy !== 635) pts.push({ x: stallCX, y: sy });
     }
     const last = pts[pts.length - 1];
     if (last.x !== sx || last.y !== sy) pts.push({ x: sx, y: sy });
@@ -235,12 +346,12 @@ export default function ArFinder({ onBack }) {
 
   const pathPoints = getPathPoints();
 
-  const calcDist = (x1, y1, x2, y2) => Math.round(Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) * 0.06);
+  const calcDist = (x1, y1, x2, y2) => Math.round(Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) * 0.02);
   const getPathDist = (pts) => {
     let d = 0;
     for (let i = 0; i < pts.length - 1; i++)
       d += Math.sqrt((pts[i + 1].x - pts[i].x) ** 2 + (pts[i + 1].y - pts[i].y) ** 2);
-    return Math.round(d * 0.06);
+    return Math.round(d * 0.02);
   };
   const totalDistance = getPathDist(pathPoints);
 
@@ -273,7 +384,7 @@ export default function ArFinder({ onBack }) {
     for (let i = 0; i < pathPoints.length - 1; i++) {
       const p1 = pathPoints[i], p2 = pathPoints[i + 1];
       const d = Math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2);
-      const steps = Math.max(3, Math.round(d / 25));
+      const steps = Math.max(3, Math.round(d / 75));
       for (let j = 0; j <= steps; j++) {
         const t = j / steps;
         dots.push({ x: p1.x + (p2.x - p1.x) * t, y: p1.y + (p2.y - p1.y) * t });
@@ -285,12 +396,12 @@ export default function ArFinder({ onBack }) {
 
   const handleStepForward = () => {
     const rad = (heading * Math.PI) / 180;
-    setUserX(x => Math.max(30, Math.min(770, x + Math.round(Math.sin(rad) * 15))));
-    setUserY(y => Math.max(30, Math.min(420, y - Math.round(Math.cos(rad) * 15))));
+    setUserX(x => Math.max(30, Math.min(2270, x + Math.round(Math.sin(rad) * 45))));
+    setUserY(y => Math.max(30, Math.min(1790, y - Math.round(Math.cos(rad) * 45))));
   };
   const handleRotateLeft = () => setHeading(h => (h - 15 + 360) % 360);
   const handleRotateRight = () => setHeading(h => (h + 15) % 360);
-  const handleResetPosition = () => { setUserX(400); setUserY(410); setHeading(0); setToastMsg("Location reset to Main Entrance."); };
+  const handleResetPosition = () => { setUserX(1020); setUserY(1450); setHeading(0); setToastMsg("Location reset to Main Entrance."); };
   const handleSimulateScan = (anchor) => {
     setUserX(anchor.x); setUserY(anchor.y);
     setToastMsg(`Calibrated to: ${anchor.label}`);
@@ -633,7 +744,7 @@ export default function ArFinder({ onBack }) {
               <select value={selectedCategory} onChange={e => {
                 const cat = e.target.value;
                 setSelectedCategory(cat);
-                const filtered = cat === "all" ? STALLS_AR : STALLS_AR.filter(s => s.category === cat);
+                const filtered = cat === "all" ? stallsList : stallsList.filter(s => s.category === cat);
                 if (filtered.length > 0) setSelectedStallId(filtered[0].id);
               }}>
                 <option value="all">All Sections</option>
@@ -646,7 +757,7 @@ export default function ArFinder({ onBack }) {
               <label>STALL:</label>
               <select value={selectedStallId} onChange={e => setSelectedStallId(e.target.value)}
                 style={{ maxWidth: 180 }}>
-                {(selectedCategory === "all" ? STALLS_AR : STALLS_AR.filter(s => s.category === selectedCategory)).map(s => (
+                {(selectedCategory === "all" ? stallsList : stallsList.filter(s => s.category === selectedCategory)).map(s => (
                   <option key={s.id} value={s.id}>{s.label} - {s.zone}</option>
                 ))}
               </select>
@@ -666,6 +777,83 @@ export default function ArFinder({ onBack }) {
         </div>
       </header>
 
+      {/* ── SEARCH BAR HUD INPUT PANEL ── */}
+      <div style={{
+        padding: "8px 10px",
+        background: "rgba(10,15,10,0.95)",
+        borderBottom: "1px solid rgba(255,255,255,0.08)",
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        zIndex: 35,
+        position: "relative",
+      }}>
+        <div style={{
+          position: "relative",
+          flex: 1,
+          display: "flex",
+          alignItems: "center",
+        }}>
+          <input
+            type="text"
+            placeholder="Search stall (e.g. 'Stall 11', 'Zone E', 'veggies')..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') handleSearchSubmit();
+            }}
+            style={{
+              width: "100%",
+              padding: "6px 12px",
+              paddingRight: "30px",
+              background: "rgba(255,255,255,0.07)",
+              border: "1px solid rgba(255,255,255,0.15)",
+              borderRadius: "8px",
+              color: "#fff",
+              fontSize: "12px",
+              outline: "none",
+              transition: "border-color 0.2s, background-color 0.2s",
+            }}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              style={{
+                position: "absolute",
+                right: 8,
+                background: "none",
+                border: "none",
+                color: "rgba(255,255,255,0.5)",
+                cursor: "pointer",
+                padding: 4,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <X size={12} />
+            </button>
+          )}
+        </div>
+        <button
+          onClick={handleSearchSubmit}
+          style={{
+            padding: "6px 14px",
+            background: "#e8621a",
+            color: "#fff",
+            border: "none",
+            borderRadius: "8px",
+            fontSize: "12px",
+            fontWeight: "700",
+            cursor: "pointer",
+            transition: "background 0.2s",
+            whiteSpace: "nowrap",
+          }}
+        >
+          Find
+        </button>
+      </div>
+
       {/* Mobile-only: selects in a scrollable sub-bar */}
       {isMobile && (
         <div className="header-selects-bar">
@@ -674,7 +862,7 @@ export default function ArFinder({ onBack }) {
             <select value={selectedCategory} onChange={e => {
               const cat = e.target.value;
               setSelectedCategory(cat);
-              const filtered = cat === "all" ? STALLS_AR : STALLS_AR.filter(s => s.category === cat);
+              const filtered = cat === "all" ? stallsList : stallsList.filter(s => s.category === cat);
               if (filtered.length > 0) setSelectedStallId(filtered[0].id);
             }}>
               <option value="all">All</option>
@@ -687,7 +875,7 @@ export default function ArFinder({ onBack }) {
             <label>STALL:</label>
             <select value={selectedStallId} onChange={e => setSelectedStallId(e.target.value)}
               style={{ maxWidth: "100%", minWidth: 0 }}>
-              {(selectedCategory === "all" ? STALLS_AR : STALLS_AR.filter(s => s.category === selectedCategory)).map(s => (
+              {(selectedCategory === "all" ? stallsList : stallsList.filter(s => s.category === selectedCategory)).map(s => (
                 <option key={s.id} value={s.id}>{s.label} - {s.zone}</option>
               ))}
             </select>
@@ -821,28 +1009,47 @@ export default function ArFinder({ onBack }) {
 
           {/* ── BOTTOM INFO CARD ── */}
           {showCard && (
-            <div className="ar-info-card">
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(232,98,26,0.1)", border: "1px solid rgba(232,98,26,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <Navigation size={15} color="#e8621a" />
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 1 }}>
-                    <span style={{ fontSize: 8, fontWeight: 800, color: "#1a5c2a", textTransform: "uppercase", letterSpacing: "0.06em" }}>Target</span>
-                    <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#e8621a", display: "inline-block" }} />
+            <div className="ar-info-card" style={{ flexDirection: "column", alignItems: "stretch", gap: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(232,98,26,0.1)", border: "1px solid rgba(232,98,26,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <Navigation size={15} color="#e8621a" />
                   </div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{currentStall.label}</div>
-                  <div style={{ fontSize: 9, color: "#64748b" }}>{currentStall.zone} · <span style={{ color: "#e8621a", fontWeight: 700 }}>{totalDistance}m</span></div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 1 }}>
+                      <span style={{ fontSize: 8, fontWeight: 800, color: "#1a5c2a", textTransform: "uppercase", letterSpacing: "0.06em" }}>Target</span>
+                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#e8621a", display: "inline-block" }} />
+                    </div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{currentStall.label}</div>
+                    <div style={{ fontSize: 9, color: "#64748b" }}>{currentStall.zone} · <span style={{ color: "#e8621a", fontWeight: 700 }}>{totalDistance}m</span></div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 5, flexShrink: 0, alignItems: "center" }}>
+                  <button onClick={() => setShowScanner(true)} style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 10px", background: "#1a5c2a", color: "#fff", fontSize: 10, fontWeight: 700, border: "none", borderRadius: 9, cursor: "pointer", whiteSpace: "nowrap" }}>
+                    <QrCode size={12} /><span>Scan QR</span>
+                  </button>
+                  <button onClick={() => setShowCard(false)} style={{ width: 28, height: 28, borderRadius: 7, background: "#f1f5f9", border: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#64748b", flexShrink: 0 }}>
+                    <X size={12} />
+                  </button>
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 5, flexShrink: 0, alignItems: "center" }}>
-                <button onClick={() => setShowScanner(true)} style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 10px", background: "#1a5c2a", color: "#fff", fontSize: 10, fontWeight: 700, border: "none", borderRadius: 9, cursor: "pointer", whiteSpace: "nowrap" }}>
-                  <QrCode size={12} /><span>Scan QR</span>
-                </button>
-                <button onClick={() => setShowCard(false)} style={{ width: 28, height: 28, borderRadius: 7, background: "#f1f5f9", border: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#64748b", flexShrink: 0 }}>
-                  <X size={12} />
-                </button>
-              </div>
+              {searchDirections && (
+                <div style={{
+                  fontSize: 10,
+                  color: "#1e293b",
+                  lineHeight: "1.4",
+                  background: "rgba(232,98,26,0.06)",
+                  borderLeft: "2px solid #e8621a",
+                  padding: "6px 10px",
+                  borderRadius: "0 6px 6px 0",
+                  maxHeight: "80px",
+                  overflowY: "auto",
+                  width: "100%",
+                }}>
+                  <span style={{ fontWeight: "800", color: "#e8621a" }}>Directions: </span>
+                  {searchDirections}
+                </div>
+              )}
             </div>
           )}
 
@@ -879,40 +1086,67 @@ export default function ArFinder({ onBack }) {
           {(!mapCollapsed || (!isMobile && !mapCollapsed)) && (
             <div className="ar-map-body">
               <svg
-                viewBox="0 0 800 450"
+                viewBox="0 0 2305 1824"
                 preserveAspectRatio="xMidYMid meet"
                 onClick={handleMapClick}
                 style={{ width: "100%", height: "100%", cursor: "crosshair", userSelect: "none" }}
               >
-                <image xlinkHref={mapImage} href={mapImage} x="0" y="0" width="800" height="450" />
+                <image xlinkHref={mapImage} href={mapImage} x="-20" y="-15" width="2305" height="1824" preserveAspectRatio="none" />
 
                 {QR_ANCHORS.map(a => (
                   <g key={a.id} transform={`translate(${a.x},${a.y})`}>
-                    <circle r="8" fill="rgba(232,98,26,0.9)" stroke="#fff" strokeWidth="1.5" />
-                    <rect x="-3" y="-3" width="6" height="6" fill="#fff" />
-                    <rect x="-2" y="-2" width="4" height="4" fill="#0f172a" />
-                    <rect x="-1" y="-1" width="2" height="2" fill="#fff" />
+                    <circle r="16" fill="rgba(232,98,26,0.9)" stroke="#fff" strokeWidth="3" />
+                    <rect x="-6" y="-6" width="12" height="12" fill="#fff" />
+                    <rect x="-4" y="-4" width="8" height="8" fill="#0f172a" />
+                    <rect x="-2" y="-2" width="4" height="4" fill="#fff" />
                   </g>
                 ))}
 
-                {STALLS_AR.filter(s => selectedCategory === "all" || s.category === selectedCategory).map(s => (
-                  <g key={s.id} transform={`translate(${s.x},${s.y})`}>
-                    <circle r="9" fill={s.id === selectedStallId ? "#e8621a" : "rgba(226,232,240,0.9)"} stroke={s.id === selectedStallId ? "#fff" : "#475569"} strokeWidth="1.5" />
-                    <text y="2.5" textAnchor="middle" fontSize="6" fontWeight="900" fill={s.id === selectedStallId ? "#fff" : "#1e293b"}>{s.id.split('-')[1] || s.id}</text>
-                  </g>
-                ))}
+                {stallsList.filter(s => selectedCategory === "all" || s.category === selectedCategory).map(s => {
+                  const isSelected = s.id === selectedStallId;
+                  
+                  // Color according to dynamic database status
+                  let circleColor = "rgba(226,232,240,0.9)";
+                  let textColor = "#1e293b";
+                  let strokeColor = "#475569";
+                  
+                  if (isSelected) {
+                    circleColor = "#e8621a";
+                    textColor = "#ffffff";
+                    strokeColor = "#ffffff";
+                  } else if (s.status === "available") {
+                    circleColor = "rgba(45, 106, 45, 0.9)"; // Beautiful theme green
+                    textColor = "#ffffff";
+                    strokeColor = "#1a5c2a";
+                  } else if (s.status === "occupied") {
+                    circleColor = "rgba(220, 38, 38, 0.9)"; // Red
+                    textColor = "#ffffff";
+                    strokeColor = "#991b1b";
+                  } else if (s.status === "pending") {
+                    circleColor = "rgba(217, 119, 6, 0.9)"; // Orange/amber
+                    textColor = "#ffffff";
+                    strokeColor = "#92400e";
+                  }
+
+                  return (
+                    <g key={s.id} transform={`translate(${s.x},${s.y})`}>
+                      <circle r="18" fill={circleColor} stroke={strokeColor} strokeWidth="2.5" />
+                      <text y="5.5" textAnchor="middle" fontSize="13" fontWeight="900" fill={textColor}>{s.id.split('-')[1] || s.id}</text>
+                    </g>
+                  );
+                })}
 
                 <polyline
                   points={pathPoints.map(p => `${p.x},${p.y}`).join(" ")}
-                  fill="none" stroke="#e8621a" strokeWidth="3.5"
-                  strokeDasharray="5 5" strokeLinecap="round" strokeLinejoin="round"
+                  fill="none" stroke="#e8621a" strokeWidth="10"
+                  strokeDasharray="15 15" strokeLinecap="round" strokeLinejoin="round"
                 />
 
                 <g transform={`translate(${userX},${userY})`}>
-                  <path d="M0 0 L-35 -60 A70 70 0 0 1 35 -60 Z" fill="rgba(26,92,42,0.22)" transform={`rotate(${heading})`} style={{ transformOrigin: "0px 0px" }} />
+                  <path d="M0 0 L-70 -120 A140 140 0 0 1 70 -120 Z" fill="rgba(26,92,42,0.22)" transform={`rotate(${heading})`} style={{ transformOrigin: "0px 0px" }} />
                   <g transform={`rotate(${heading})`}>
-                    <circle r="12" fill="#1a5c2a" stroke="#fff" strokeWidth="2" />
-                    <path d="M0 -7 L6 5 L0 2 L-6 5 Z" fill="#fff" />
+                    <circle r="25" fill="#1a5c2a" stroke="#fff" strokeWidth="4" />
+                    <path d="M0 -15 L12 10 L0 4 L-12 10 Z" fill="#fff" />
                   </g>
                 </g>
               </svg>
