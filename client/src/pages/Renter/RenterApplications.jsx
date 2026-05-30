@@ -483,11 +483,8 @@ function TopBar({ showBack, onBack }) {
         MyTalipapa
       </div>
       <div className="flex items-center gap-2 w-20 justify-end">
-        <NotificationBell />
-        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-          <User size={15} className="text-gray-400" />
-        </div>
-      </div>
+  <NotificationBell />
+</div>
     </header>
   )
 }
@@ -532,15 +529,18 @@ export default function RenterApplications({ prefill }) {
       })
   }
 
-  const fetchStallsList = () => {
-    fetch('/api/stalls')
-      .then(res => { if (!res.ok) throw new Error(); return res.json() })
-      .then(data => {
-        const sorted = data.sort((a, b) => (parseInt(a.stallNumber) || 0) - (parseInt(b.stallNumber) || 0))
-        setStallsList(sorted)
-      })
-      .catch(err => console.error('Failed to fetch stalls list:', err))
-  }
+ const fetchStallsList = () => {
+  fetch('/api/stalls')
+    .then(res => { if (!res.ok) throw new Error(); return res.json() })
+    .then(data => {
+      const withContractor = data.filter(s =>
+        s.managedBy && s.managedBy.trim() !== ''
+      )
+      const sorted = withContractor.sort((a, b) => (parseInt(a.stallNumber) || 0) - (parseInt(b.stallNumber) || 0))
+      setStallsList(sorted)
+    })
+    .catch(err => console.error('Failed to fetch stalls list:', err))
+}
 
   useEffect(() => { fetchApplications(); fetchStallsList() }, [])
 
