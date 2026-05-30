@@ -284,9 +284,7 @@ export default function AdminApplication() {
           <div className="app-info">
             <div className="apps-name-row">
               <span className="app-name">{app.name}</span>
-              <span className="apps-stall-badge" style={{ background: app.stallColor }}>
-                {app.stall}
-              </span>
+              <span className="apps-stall-badge" style={{ background: app.stallColor }}>{app.stallLocation || app.stall}</span>
             </div>
             <span className="app-meta">{app.phone}</span>
             <div className="apps-meta-row">
@@ -573,9 +571,15 @@ export default function AdminApplication() {
               <div className="app-detail-item">
                 <span className="app-detail-label">Stall Requested</span>
                 <span className="app-detail-value" style={{ color: selectedApp.stallColor, fontWeight: 800 }}>
-                  {selectedApp.stall}
+                  {selectedApp.stallLocation || selectedApp.stall}
                 </span>
               </div>
+              {selectedApp.additionalMessage && (
+                <div className="app-detail-item">
+                  <span className="app-detail-label">Message</span>
+                  <span className="app-detail-value">{selectedApp.additionalMessage}</span>
+                </div>
+              )}
               <div className="app-detail-item">
                 <span className="app-detail-label">Application Type</span>
                 <span className="app-detail-value" style={{ color: selectedApp.typeColor }}>{selectedApp.type}</span>

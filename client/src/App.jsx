@@ -3,6 +3,7 @@ import LandingPage from './pages/Landingpage'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import ForgotPassword from './pages/auth/ForgotPassword'
+import AdminProfile from './pages/Admin/AdminProfile'
 import ContractorDashboard from './pages/Contractor/ContractorDashboard'
 import ContractorRecords from './pages/Contractor/ContractorRecords'
 import ContractorApplications from './pages/Contractor/ContractorApplications'
@@ -12,7 +13,8 @@ import AdminDashboard from './pages/Admin/AdminDashboard'
 import AdminRecord from './pages/Admin/AdminRecord'
 import AdminApplication from './pages/Admin/AdminApplication'
 import AdminStalls from './pages/Admin/AdminStalls'
-import AdminProfile from './pages/Admin/AdminProfile'
+import AdminSecurity from './pages/Admin/AdminSecurity'
+import ContractorSecurity from './pages/Contractor/ContractorSecurity'
 import RenterLayout from './pages/Renter/Renterlayout'
 import MarketTour360 from './pages/MarketTour360'
 
@@ -33,6 +35,9 @@ export default function App() {
 
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/profile" element={<AdminProfile />} />
+        <Route path="/admin/profile/security" element={<AdminSecurity />} />
+        <Route path="/contractor/profile/security" element={<ContractorSecurity />} />
+        <Route path="/contractor/profile/security" element={<ContractorSecurity />} />
         <Route path="/admin/records" element={<AdminRecord />} />
         <Route path="/admin/applications" element={<AdminApplication />} />
         <Route path="/admin/stalls" element={<AdminStalls />} />

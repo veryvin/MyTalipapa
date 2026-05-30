@@ -268,6 +268,33 @@ router.post('/login', async (req, res) => {
 // ---------------------------------------------------
 // GET /api/profile
 // ---------------------------------------------------
+router.post('/change-password', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized. No token provided.' });
+  }
+  const token = authHeader.split(' ')[1];
+  const { oldPassword, newPassword } = req.body;
+  if (!oldPassword || !newPassword) {
+    return res.status(400).json({ error: 'Old and new passwords are required.' });
+  }
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'mytalipapa-secret-key-12345');
+    const user = await User.findById(decoded.id);
+    if (!user) return res.status(404).json({ error: 'User not found.' });
+    const isMatch = await bcrypt.compare(oldPassword, user.passwordHash);
+    if (!isMatch) return res.status(400).json({ error: 'Current password is incorrect.' });
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+    user.passwordHash = passwordHash;
+    await user.save();
+    return res.status(200).json({ message: 'Password changed successfully' });
+  } catch (err) {
+    console.error('Change password error:', err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
 router.get('/profile', async (req, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {

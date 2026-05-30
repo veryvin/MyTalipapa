@@ -133,6 +133,7 @@ exports.getApplications = async (req, res) => {
         email: app.email,
         stall: stallDisplay,
         stallId: stall ? stall._id.toString() : null,
+        stallLocation: stall ? stall.location : null,
         stallColor: app.avatarColor || '#f97316',
         applied: app.appliedAt
           ? new Date(app.appliedAt).toLocaleDateString('en-US', {
