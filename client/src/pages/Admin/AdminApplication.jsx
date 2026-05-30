@@ -287,6 +287,12 @@ export default function AdminApplication() {
               <span className="apps-stall-badge" style={{ background: app.stallColor }}>{app.stallLocation || app.stall}</span>
             </div>
             <span className="app-meta">{app.phone}</span>
+            {app.additionalMessage && (
+              <div className="mt-2 text-xs bg-gray-50 border border-gray-100 p-2.5 rounded-lg text-gray-600 font-medium text-left">
+                <span className="block text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Message</span>
+                <p className="whitespace-pre-wrap leading-relaxed m-0 text-gray-750">{app.additionalMessage}</p>
+              </div>
+            )}
             <div className="apps-meta-row">
               <span className="apps-date">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline", marginRight: 3 }}>
@@ -575,9 +581,9 @@ export default function AdminApplication() {
                 </span>
               </div>
               {selectedApp.additionalMessage && (
-                <div className="app-detail-item">
+                <div className="app-detail-item" style={{ gridColumn: 'span 2' }}>
                   <span className="app-detail-label">Message</span>
-                  <span className="app-detail-value">{selectedApp.additionalMessage}</span>
+                  <p className="app-detail-value" style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{selectedApp.additionalMessage}</p>
                 </div>
               )}
               <div className="app-detail-item">

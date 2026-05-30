@@ -46,11 +46,13 @@ router.get('/', async (req, res) => {
     const stalls = await Stall.find({}).sort({ stallNumber: 1 });
     
     const User = require('../models/User');
-    const contractors = await User.find({ role: 'contractor' }, 'email full_name');
+    const contractors = await User.find({ role: 'contractor' }, 'email full_name contact_number');
     const contractorMap = {};
+    const contractorContactMap = {};
     contractors.forEach(c => {
       if (c.email) {
         contractorMap[c.email.toLowerCase()] = c.full_name;
+        contractorContactMap[c.email.toLowerCase()] = c.contact_number || 'N/A';
       }
     });
 
@@ -58,8 +60,10 @@ router.get('/', async (req, res) => {
       const stallObj = stall.toObject();
       if (stallObj.managedBy) {
         stallObj.contractorName = contractorMap[stallObj.managedBy.toLowerCase()] || stallObj.managedBy;
+        stallObj.contractorContact = contractorContactMap[stallObj.managedBy.toLowerCase()] || 'N/A';
       } else {
         stallObj.contractorName = 'None';
+        stallObj.contractorContact = 'N/A';
       }
       return stallObj;
     });

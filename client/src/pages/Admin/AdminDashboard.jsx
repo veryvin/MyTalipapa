@@ -293,6 +293,11 @@ export default function AdminDashboard() {
                     <div className="app-info">
                       <span className="app-name">{app.name}</span>
                       <span className="app-meta">{app.stall} · {app.applied}</span>
+                      {app.additionalMessage && (
+                        <p className="text-xs text-gray-500 italic mt-0.5 text-left" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                          "{app.additionalMessage}"
+                        </p>
+                      )}
                       <span className="app-type" style={{ color: app.typeColor }}>{app.type}</span>
                     </div>
                     <div className="app-actions">

@@ -467,6 +467,12 @@ export default function AdminStalls() {
                 <span>Contractor Manager</span>
                 <strong>{selectedStall.contractorName || selectedStall.managedBy || 'None'}</strong>
               </div>
+              {selectedStall.managedBy && (
+                <div className="stall-modal-row">
+                  <span>Contractor Contact</span>
+                  <strong>{selectedStall.contractorContact || 'N/A'}</strong>
+                </div>
+              )}
             </div>
 
             {selectedStall.status === "occupied" && selectedStall.tenant && (

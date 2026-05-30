@@ -224,7 +224,8 @@ export default function RenterLayout() {
               onInquiry={(stall) => {
                 setPrefillStall({
                   preferredStall: `Stall #${stall.stallNumber || stall.id}`,
-                  intendedBusinessUse: getBusinessUseFromSection(stall.section || stall.category)
+                  intendedBusinessUse: getBusinessUseFromSection(stall.section || stall.category),
+                  stallId: stall._id || stall.id
                 })
                 setActiveTab('applications')
               }}

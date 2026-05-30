@@ -264,6 +264,7 @@ export default function ArFinder({ onBack }) {
               status: dbStall.status || s.status,
               price: dbStall.monthlyRate || s.price,
               contractorName: dbStall.contractorName || 'None',
+              contractorContact: dbStall.contractorContact || 'N/A',
               dbId: dbStall._id || dbStall.id
             };
           }

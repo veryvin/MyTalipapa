@@ -27,7 +27,9 @@ import {
   Eye,
   EyeOff,
   Shield,
-  ShieldOff
+  ShieldOff,
+  Phone,
+  User
 } from 'lucide-react'
 
 const getStallZone = (num, category) => {
@@ -425,6 +427,7 @@ export default function MarketTour360() {
                     waterAccess: dbStall.waterAccess || s.waterAccess,
                     zone: dbStall.zone ? `Zone ${dbStall.zone}` : s.zone,
                     contractorName: dbStall.contractorName || 'None',
+                    contractorContact: dbStall.contractorContact || 'N/A',
                     size: dbStall.size || s.size || 12,
                     description: dbStall.description || s.description || s.name
                   };
@@ -1216,6 +1219,22 @@ export default function MarketTour360() {
                       <p className="text-xs font-bold text-slate-800">{selectedStall.waterAccess}</p>
                     </div>
                   </div>
+                  <div className="flex items-center gap-2 bg-black/5 rounded-2xl p-3 border border-black/5 hover:bg-black/10 transition-all">
+                    <User size={15} className="text-[#1a5c2a] shrink-0" />
+                    <div>
+                      <p className="text-[9px] text-slate-500 font-black uppercase tracking-wider">Contractor</p>
+                      <p className="text-xs font-bold text-slate-800">{selectedStall.contractorName || 'None'}</p>
+                    </div>
+                  </div>
+                  {selectedStall.contractorName && selectedStall.contractorName !== 'None' && (
+                    <div className="flex items-center gap-2 bg-black/5 rounded-2xl p-3 border border-black/5 hover:bg-black/10 transition-all">
+                      <Phone size={15} className="text-[#1a5c2a] shrink-0" />
+                      <div>
+                        <p className="text-[9px] text-slate-500 font-black uppercase tracking-wider">Contact</p>
+                        <p className="text-xs font-bold text-slate-800">{selectedStall.contractorContact || 'N/A'}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

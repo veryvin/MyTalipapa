@@ -3,11 +3,32 @@ const Stall = require('../models/Stall');
 const Application = require('../models/Application');
 
 // ── Helper: resolve stallNumber from application ──────────
-async function findStallByAppStallNumber(raw) {
+async function findStallByAppStallNumber(raw, intendedBusinessUse = '') {
   if (!raw) return null;
 
+  const clean = raw.replace(/Stall\s*#/gi, '').replace('#', '').trim();
+
+  const mongoose = require('mongoose');
+  if (mongoose.Types.ObjectId.isValid(clean)) {
+    const stall = await Stall.findById(clean);
+    if (stall) return stall;
+  }
+  
+  const use = (intendedBusinessUse || '').toLowerCase();
+  let productType = '';
+  if (use.includes('fish') || use.includes('sea')) productType = 'fish';
+  else if (use.includes('meat')) productType = 'meat';
+  else if (use.includes('veg') || use.includes('produce')) productType = 'veggies';
+
+  let query = { stallNumber: clean };
+  if (productType) {
+    query.productType = productType;
+  }
+  let stall = await Stall.findOne(query);
+  if (stall) return stall;
+
   // 1. Exact match
-  let stall = await Stall.findOne({ stallNumber: raw });
+  stall = await Stall.findOne({ stallNumber: raw });
   if (stall) return stall;
 
   // 2. Strip leading zeros (e.g. "045" → "45")
@@ -47,11 +68,13 @@ exports.getStalls = async (req, res) => {
 
     // Find all users who are contractors to map their emails to names
     const User = require('../models/User');
-    const contractors = await User.find({ role: 'contractor' }, 'email full_name');
+    const contractors = await User.find({ role: 'contractor' }, 'email full_name contact_number');
     const contractorMap = {};
+    const contractorContactMap = {};
     contractors.forEach(c => {
       if (c.email) {
         contractorMap[c.email.toLowerCase()] = c.full_name;
+        contractorContactMap[c.email.toLowerCase()] = c.contact_number || 'N/A';
       }
     });
 
@@ -59,8 +82,10 @@ exports.getStalls = async (req, res) => {
       const stallObj = stall.toObject();
       if (stallObj.managedBy) {
         stallObj.contractorName = contractorMap[stallObj.managedBy.toLowerCase()] || stallObj.managedBy;
+        stallObj.contractorContact = contractorContactMap[stallObj.managedBy.toLowerCase()] || 'N/A';
       } else {
         stallObj.contractorName = 'None';
+        stallObj.contractorContact = 'N/A';
       }
       return stallObj;
     });
@@ -110,7 +135,7 @@ exports.getApplications = async (req, res) => {
     const apps = await Application.find({}).sort({ appliedAt: -1 });
 
     const mapped = await Promise.all(apps.map(async (app) => {
-      const stall = await findStallByAppStallNumber(app.preferredStall);
+      const stall = await findStallByAppStallNumber(app.preferredStall, app.intendedBusinessUse);
 
       // Filter by contractor email if query param is provided
       if (email && (!stall || stall.managedBy !== email.toLowerCase())) {
@@ -173,7 +198,7 @@ exports.updateApplicationStatus = async (req, res) => {
     if (!app) return res.status(404).json({ error: 'Application not found' });
 
     // 2. Find the linked stall
-    const stall = await findStallByAppStallNumber(app.preferredStall);
+    const stall = await findStallByAppStallNumber(app.preferredStall, app.intendedBusinessUse);
     if (!stall) {
       console.warn(`[updateApplicationStatus] No stall found for preferredStall="${app.preferredStall}"`);
     }
@@ -266,7 +291,7 @@ exports.getRecords = async (req, res) => {
     const approved = await Application.find({ status: 'approved', archived: { $ne: true } }).sort({ reviewedAt: -1 });
     const Payment = require('../models/Payment'); // import here to avoid circular deps
     const records = await Promise.all(approved.map(async (app) => {
-      const stall = await findStallByAppStallNumber(app.preferredStall);
+      const stall = await findStallByAppStallNumber(app.preferredStall, app.intendedBusinessUse);
 
       // Filter by contractor email if query param is provided
       if (email && (!stall || stall.managedBy !== email.toLowerCase())) {
@@ -510,7 +535,7 @@ exports.archiveRenter = async (req, res) => {
     await app.save();
 
     // Find linked stall and free it up
-    const stall = await findStallByAppStallNumber(app.preferredStall);
+    const stall = await findStallByAppStallNumber(app.preferredStall, app.intendedBusinessUse);
     if (stall) {
       await Stall.findByIdAndUpdate(stall._id, {
         $set: {
@@ -620,7 +645,7 @@ exports.getArchivedRecords = async (req, res) => {
     const archivedApps = await Application.find({ archived: true }).sort({ archivedAt: -1 });
 
     const records = await Promise.all(archivedApps.map(async (app) => {
-      const stall = await findStallByAppStallNumber(app.preferredStall);
+      const stall = await findStallByAppStallNumber(app.preferredStall, app.intendedBusinessUse);
 
       // Filter by contractor email (since contractor can only see stalls they manage)
       if (!stall || stall.managedBy !== user.email.toLowerCase()) {
@@ -727,7 +752,7 @@ exports.getAdminArchivedRecords = async (req, res) => {
     const archivedApps = await Application.find({ archived: true }).sort({ archivedAt: -1 });
 
     const records = await Promise.all(archivedApps.map(async (app) => {
-      const stall = await findStallByAppStallNumber(app.preferredStall);
+      const stall = await findStallByAppStallNumber(app.preferredStall, app.intendedBusinessUse);
       const payments = await Payment.find({ renter: app._id }).sort({ date: -1 });
       const history = payments.map(p => ({
         date: new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),

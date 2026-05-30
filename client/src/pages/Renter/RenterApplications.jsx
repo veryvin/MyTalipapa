@@ -225,13 +225,14 @@ export default function RenterApplications({ prefill }) {
   const [loading, setLoading] = useState(false)
   const [applications, setApplications] = useState([])
   const [selectedApp, setSelectedApp] = useState(null)
+  const [stallsList, setStallsList] = useState([])
 
   const [form, setForm] = useState({
     fullName: getUser()?.full_name || getUser()?.name || '',
     contactNumber: getUser()?.contact_number || '',
     emailAddress: getUser()?.email || '',
-    preferredStall: prefill?.preferredStall ?? '',
-    intendedBusinessUse: prefill?.intendedBusinessUse ?? '',
+    preferredStall: '',
+    intendedBusinessUse: '',
     additionalMessage: '',
   })
 
@@ -251,18 +252,56 @@ export default function RenterApplications({ prefill }) {
       })
   }
 
-  useEffect(() => { fetchApplications() }, [])
+  const fetchStallsList = () => {
+    fetch('/api/stalls')
+      .then(res => { if (!res.ok) throw new Error('Failed to fetch stalls'); return res.json() })
+      .then(data => {
+        const sorted = data.sort((a, b) => {
+          const numA = parseInt(a.stallNumber) || 0;
+          const numB = parseInt(b.stallNumber) || 0;
+          return numA - numB;
+        });
+        setStallsList(sorted);
+      })
+      .catch(err => console.error('Failed to fetch stalls list:', err));
+  }
+
+  useEffect(() => {
+    fetchApplications();
+    fetchStallsList();
+  }, [])
 
   useEffect(() => {
     if (prefill?.preferredStall) {
+      const cleanStall = prefill.preferredStall.replace(/Stall\s*#/gi, '').replace('#', '').trim();
+      let businessUse = prefill.intendedBusinessUse || '';
+      let targetStallId = prefill.stallId || '';
+
+      if (stallsList.length > 0) {
+        if (!targetStallId) {
+          const found = stallsList.find(s => s.stallNumber === cleanStall && (!businessUse || s.section.toLowerCase().includes(businessUse.toLowerCase().replace('fishes', 'fish'))));
+          if (found) {
+            targetStallId = found._id;
+          }
+        } else {
+          const found = stallsList.find(s => s._id === targetStallId);
+          if (found) {
+            const sec = (found.section || '').toLowerCase();
+            if (sec.includes('fish') || sec.includes('sea')) businessUse = 'Fishes';
+            else if (sec.includes('meat')) businessUse = 'Meat';
+            else if (sec.includes('veg') || sec.includes('produce')) businessUse = 'Vegetables';
+          }
+        }
+      }
+
       setForm(f => ({
         ...f,
-        preferredStall: prefill.preferredStall,
-        intendedBusinessUse: prefill.intendedBusinessUse ?? f.intendedBusinessUse,
+        preferredStall: targetStallId || cleanStall,
+        intendedBusinessUse: businessUse || f.intendedBusinessUse,
       }))
       setView('form')
     }
-  }, [prefill])
+  }, [prefill, stallsList])
 
   const totalActive = applications.filter(a => a.status !== 'Rejected').length
   const totalPending = applications.filter(a => a.status === 'Pending').length
@@ -442,14 +481,46 @@ export default function RenterApplications({ prefill }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className={fieldLabel}>Preferred Stall</label>
-                    <input className={inputCls} placeholder="e.g. #042 – Zone A"
-                      value={form.preferredStall} onChange={setField('preferredStall')} />
+                    <div className="relative">
+                      <select
+                        className={selectCls}
+                        value={form.preferredStall}
+                        onChange={(e) => {
+                          const selectedStallId = e.target.value;
+                          const foundStall = stallsList.find(s => s._id === selectedStallId);
+                          let businessUse = '';
+                          if (foundStall) {
+                            const sec = (foundStall.section || '').toLowerCase();
+                            if (sec.includes('fish') || sec.includes('sea')) businessUse = 'Fishes';
+                            else if (sec.includes('meat')) businessUse = 'Meat';
+                            else if (sec.includes('veg') || sec.includes('produce')) businessUse = 'Vegetables';
+                          }
+                          setForm(f => ({
+                            ...f,
+                            preferredStall: selectedStallId,
+                            intendedBusinessUse: businessUse
+                          }));
+                        }}
+                      >
+                        <option value="" disabled>Select preferred stall…</option>
+                        {stallsList.map(s => (
+                          <option key={s._id} value={s._id}>
+                            {s.location || `Stall #${s.stallNumber}`} {s.status !== 'available' ? `(${s.status})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    </div>
                   </div>
                   <div>
                     <label className={fieldLabel}>Intended Business Use</label>
                     <div className="relative">
-                      <select className={selectCls}
-                        value={form.intendedBusinessUse} onChange={setField('intendedBusinessUse')}>
+                      <select
+                        className={`${selectCls} disabled:opacity-75 disabled:cursor-not-allowed`}
+                        disabled
+                        value={form.intendedBusinessUse}
+                        onChange={setField('intendedBusinessUse')}
+                      >
                         <option value="" disabled>Select business type…</option>
                         {BUSINESS_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                       </select>
@@ -589,10 +660,11 @@ export default function RenterApplications({ prefill }) {
                     {[
                       { label: 'Stall Number', value: selectedApp.stall },
                       { label: 'Zone / Floor', value: selectedApp.zone || selectedApp.section || 'N/A' },
-                      { label: 'Section', value: selectedApp.stallSection || selectedApp.category || 'N/A' },
+                      { label: 'Section', value: selectedApp.section || selectedApp.category || 'N/A' },
                       { label: 'Size', value: selectedApp.size ? `${selectedApp.size} sqm` : 'N/A' },
                       { label: 'Monthly Rate', value: selectedApp.monthlyRate ? `₱${Number(selectedApp.monthlyRate).toLocaleString()}` : 'N/A' },
                       { label: 'Contractor Manager', value: selectedApp.contractorName || 'N/A' },
+                      { label: 'Contractor Contact', value: selectedApp.contractorContact || 'N/A' },
                     ].map(({ label, value }, i) => (
                       <div
                         key={label}

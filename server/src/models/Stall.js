@@ -8,6 +8,7 @@ const stallSchema = new mongoose.Schema({
   zone:           { type: String, enum: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'] },
   hasStallNumber: { type: Boolean, default: true },
   managedBy:      { type: String, default: null }, // Contractor email
+  contractorContact: { type: String, default: null }, // Contractor phone number
   status:         { type: String, enum: ['available', 'occupied', 'pending'], default: 'available' },
   size:           { type: Number, default: 12 },
   sizeUnit:       { type: String, default: 'sqm' },

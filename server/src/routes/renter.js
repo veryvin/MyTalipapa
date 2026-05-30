@@ -3,6 +3,8 @@ const router = express.Router();
 const Stall = require('../models/Stall');
 const Application = require('../models/Application');
 const Payment = require('../models/Payment');
+const User = require('../models/User');
+// Duplicate User import removed
 
 // ── GET /api/renter/stalls ──
 router.get('/stalls', async (req, res) => {
@@ -13,11 +15,13 @@ router.get('/stalls', async (req, res) => {
     
     // Find all users who are contractors to map their emails to names
     const User = require('../models/User');
-    const contractors = await User.find({ role: 'contractor' }, 'email full_name');
+    const contractors = await User.find({ role: 'contractor' }, 'email full_name contact_number');
     const contractorMap = {};
+    const contractorContactMap = {};
     contractors.forEach(c => {
       if (c.email) {
         contractorMap[c.email.toLowerCase()] = c.full_name;
+        contractorContactMap[c.email.toLowerCase()] = c.contact_number || 'N/A';
       }
     });
 
@@ -25,8 +29,10 @@ router.get('/stalls', async (req, res) => {
       const stallObj = stall.toObject();
       if (stallObj.managedBy) {
         stallObj.contractorName = contractorMap[stallObj.managedBy.toLowerCase()] || stallObj.managedBy;
+        stallObj.contractorContact = contractorContactMap[stallObj.managedBy.toLowerCase()] || 'N/A';
       } else {
         stallObj.contractorName = 'None';
+        stallObj.contractorContact = 'N/A';
       }
       return stallObj;
     });
@@ -49,9 +55,39 @@ router.get('/applications', async (req, res) => {
     const apps = await Application.find(query).sort({ appliedAt: -1 });
     
     // Format to match client-side expectations
+    const User = require('../models/User');
+    const contractors = await User.find({ role: 'contractor' }, 'email full_name contact_number');
+    const contractorMap = {};
+    const contractorContactMap = {};
+    contractors.forEach(c => {
+      if (c.email) {
+        contractorMap[c.email.toLowerCase()] = c.full_name;
+        contractorContactMap[c.email.toLowerCase()] = c.contact_number || 'N/A';
+      }
+    });
     const mapped = await Promise.all(apps.map(async (app) => {
-      // Find corresponding stall to get monthly rate
-      const stall = await Stall.findOne({ stallNumber: app.preferredStall });
+      // Determine productType from intendedBusinessUse to handle duplicate numbers across different sections
+      const use = (app.intendedBusinessUse || '').toLowerCase();
+      let productType = '';
+      if (use.includes('fish') || use.includes('sea')) productType = 'fish';
+      else if (use.includes('meat')) productType = 'meat';
+      else if (use.includes('veg') || use.includes('produce')) productType = 'veggies';
+
+      let stall;
+      const mongoose = require('mongoose');
+      if (mongoose.Types.ObjectId.isValid(app.preferredStall)) {
+        stall = await Stall.findById(app.preferredStall);
+      }
+      if (!stall) {
+        let query = { stallNumber: app.preferredStall };
+        if (productType) {
+          query.productType = productType;
+        }
+        stall = await Stall.findOne(query);
+      }
+      if (!stall) {
+        stall = await Stall.findOne({ stallNumber: app.preferredStall });
+      }
       const rate = stall && stall.monthlyRate ? `₱${stall.monthlyRate.toLocaleString()}/mo` : '—';
       
       let initials = app.initials;
@@ -71,19 +107,26 @@ router.get('/applications', async (req, res) => {
 
       return {
         id: app._id.toString(),
-        stall: app.preferredStall.startsWith('#') ? app.preferredStall : `#${app.preferredStall}`,
-        zone: app.stallLabel || 'Market Stall',
-        section: app.stallLabel || 'Market Stall',
+        stall: stall ? `#${stall.stallNumber}` : (app.preferredStall.startsWith('#') ? app.preferredStall : `#${app.preferredStall}`),
+        stallId: stall ? stall._id : null,
+        stallLocation: stall ? stall.coordinates?.location || '' : '',
+        zone: stall ? stall.zone : (app.stallLabel || 'Market Stall'),
+        section: stall ? stall.section : (app.stallLabel || 'Market Stall'),
         status: status,
         submittedOn: formattedDate,
         date: formattedDate,
         fee: rate,
+        monthlyRate: stall ? stall.monthlyRate : null,
+        size: stall ? stall.size : null,
         fullName: app.fullName,
         contactNumber: app.contactNumber,
         email: app.email,
         intendedBusinessUse: app.intendedBusinessUse,
         additionalMessage: app.additionalMessage,
         rejectionReason: app.rejectionReason,
+        contractorName: stall && stall.managedBy ? (contractorMap[stall.managedBy.toLowerCase()] || stall.managedBy) : 'None',
+        contractorContact: stall && stall.managedBy ? (contractorContactMap[stall.managedBy.toLowerCase()] || 'N/A') : 'N/A',
+        // contractorName already defined at line 111; duplicate removed
       };
     }));
 
@@ -187,8 +230,29 @@ router.post('/applications', async (req, res) => {
     // Clean preferredStall (e.g. extract "11" from "Stall #11" or "#11")
     const cleanedStall = preferredStall.replace(/Stall\s*#/gi, '').replace('#', '').trim();
 
+    // Determine productType from intendedBusinessUse to handle duplicate numbers across different sections
+    const use = (intendedBusinessUse || '').toLowerCase();
+    let productType = '';
+    if (use.includes('fish') || use.includes('sea')) productType = 'fish';
+    else if (use.includes('meat')) productType = 'meat';
+    else if (use.includes('veg') || use.includes('produce')) productType = 'veggies';
+
     // Check if the stall exists
-    const stall = await Stall.findOne({ stallNumber: cleanedStall });
+    let stall;
+    const mongoose = require('mongoose');
+    if (mongoose.Types.ObjectId.isValid(cleanedStall)) {
+      stall = await Stall.findById(cleanedStall);
+    }
+    if (!stall) {
+      let query = { stallNumber: cleanedStall };
+      if (productType) {
+        query.productType = productType;
+      }
+      stall = await Stall.findOne(query);
+    }
+    if (!stall) {
+      stall = await Stall.findOne({ stallNumber: cleanedStall });
+    }
     if (!stall) {
       console.warn(`Stall number ${cleanedStall} not found in database.`);
     }
@@ -204,7 +268,7 @@ router.post('/applications', async (req, res) => {
       fullName,
       contactNumber,
       email: email.toLowerCase(),
-      preferredStall: cleanedStall,
+      preferredStall: stall ? stall.stallNumber : cleanedStall,
       stallLabel: stall ? `${stall.section} (${stall.floorArea === 'upper' ? 'Upper' : 'Lower'} Floor)` : 'Market Stall',
       intendedBusinessUse,
       additionalMessage: additionalMessage || '',
