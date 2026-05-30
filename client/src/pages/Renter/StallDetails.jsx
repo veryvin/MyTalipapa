@@ -225,11 +225,11 @@ const mapAmenity = (amenity) => {
 
 // --- Common Problems (dropdown) ---
 const COMMON_PROBLEMS = [
-  { id: "electric", label: "Electrical Issue",  icon: "" },
-  { id: "pest",     label: "Pest / Rodents",    icon: "" },
-  { id: "drain",    label: "Clogged Drain",     icon: "" },
-  { id: "floor",    label: "Flooring / Tiles",  icon: "" },
-  { id: "waste",    label: "Waste Disposal",    icon: "" },
+  { id: "electric", label: "Electrical Issue",  icon: "⚡" },
+  { id: "pest",     label: "Pest / Rodents",    icon: "🐀" },
+  { id: "drain",    label: "Clogged Drain",     icon: "🚿" },
+  { id: "floor",    label: "Flooring / Tiles",  icon: "🪨" },
+  { id: "waste",    label: "Waste Disposal",    icon: "🗑️" },
 ];
 
 const REPORT_TYPES = [
@@ -499,8 +499,8 @@ export default function StallDetail({ stall = stallData, onBack, onNavigate, onI
               </div>
             </div>
 
-            {/* Maintenance Report */}
-            <div className="sd-section bg-white rounded-2xl px-4 py-4 border border-gray-100 shadow-sm" style={{ animationDelay: "0.44s" }}>
+            {/* Maintenance Report — only for occupied stalls */}
+            {status === "occupied" && <div className="sd-section bg-white rounded-2xl px-4 py-4 border border-gray-100 shadow-sm" style={{ animationDelay: "0.44s" }}>
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-7 h-7 bg-red-50 rounded-lg flex items-center justify-center text-red-500 shrink-0">
                   <WrenchIcon />
@@ -587,6 +587,8 @@ export default function StallDetail({ stall = stallData, onBack, onNavigate, onI
                 </div>
               )}
             </div>
+
+            }
 
             {/* CTA Buttons */}
             <div className="sd-section space-y-2.5 pt-1" style={{ animationDelay: "0.52s" }}>
