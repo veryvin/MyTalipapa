@@ -44,27 +44,32 @@ async function sendEmailOtp(email, otp) {
       },
     });
 
+const verificationUrl = `${process.env.REACT_APP_FRONTEND_URL ||
+    process.env.CLIENT_URL ||
+    process.env.REACT_APP_CLIENT_URL ||
+    'http://localhost:5000'}/verify-email?token=${otp}`;
+
     const mailOptions = {
       from: process.env.EMAIL_FROM || '"MyTalipapa Recovery" <no-reply@mytalipapa.com>',
       to: email,
-      subject: 'MyTalipapa - Password Reset Verification Code',
+      subject: 'MyTalipapa - Email Verification',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #fcfbf9;">
           <div style="text-align: center; margin-bottom: 20px;">
             <span style="font-size: 40px;">🏪</span>
             <h2 style="color: #1a5c2a; margin-top: 10px;">MyTalipapa</h2>
           </div>
-          <h3 style="color: #374151;">Password Reset Verification</h3>
+          <h3 style="color: #374151;">Email Verification</h3>
           <p style="color: #4b5563; line-height: 1.6;">
-            We received a request to reset the password for your MyTalipapa account. Use the verification code below to complete the reset process. This code is valid for 10 minutes.
+            Please click the button below to verify your email address. This link will expire in 24 hours.
           </p>
           <div style="text-align: center; margin: 30px 0;">
-            <span style="display: inline-block; padding: 12px 24px; font-size: 24px; font-weight: bold; letter-spacing: 4px; color: #1a5c2a; background-color: #f0fdf4; border: 2px dashed #1a5c2a; border-radius: 8px;">
-              ${otp}
-            </span>
+            <a href="${verificationUrl}" style="display: inline-block; padding: 12px 24px; font-size: 18px; color: #fff; background-color: #1a5c2a; border-radius: 8px; text-decoration: none;">
+              Verify Email
+            </a>
           </div>
           <p style="color: #9ca3af; font-size: 12px; line-height: 1.4; border-top: 1px solid #e5e7eb; padding-top: 15px;">
-            If you did not request a password reset, please ignore this email or contact support. This is an automated email, please do not reply.
+            If you did not request this, please ignore this email.
           </p>
         </div>
       `,

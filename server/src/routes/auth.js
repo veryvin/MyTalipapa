@@ -4,11 +4,39 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { sendEmailOtp, sendSmsOtp } = require('../utils/sendOtp');
+const crypto = require('crypto');
 
 const router = express.Router();
 
+router.get('/verify', async (req, res) => {
+  const { token } = req.query;
+  if (!token) {
+    return res.status(400).json({ error: 'Verification token is required.' });
+  }
+  try {
+    const user = await User.findOne({ verificationToken: token });
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid verification token.' });
+    }
+    if (user.verificationTokenExpires && user.verificationTokenExpires < new Date()) {
+      return res.status(400).json({ error: 'Verification token has expired.' });
+    }
+    user.isVerified = true;
+    user.verificationToken = undefined;
+    user.verificationTokenExpires = undefined;
+    await user.save();
+    return res.json({ message: 'Email verified successfully. You can now log in.' });
+  } catch (err) {
+    console.error('Email verification error:', err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // ---------------------------------------------------
 // POST /api/register
+// ---------------------------------------------------
+// ---------------------------------------------------
+// POST /api/register (with email verification)
 // ---------------------------------------------------
 router.post('/register', async (req, res) => {
   const {
@@ -20,32 +48,27 @@ router.post('/register', async (req, res) => {
     agreed,
   } = req.body;
 
-  // ---------- Basic validation ----------
-  if (
-    !full_name ||
-    !email ||
-    !password ||
-    !contact_number ||
-    !role ||
-    agreed === undefined
-  ) {
+  // Basic validation
+  if (!full_name || !email || !password || !contact_number || !role || agreed === undefined) {
     return res.status(400).json({ error: 'All fields are required.' });
   }
 
   try {
-    // ---------- Duplicate‑email check ----------
+    // Duplicate email check
     const existing = await User.findOne({ email: email.toLowerCase() });
     if (existing) {
-      return res
-        .status(409)
-        .json({ error: 'An account with this email already exists.' });
+      return res.status(409).json({ error: 'An account with this email already exists.' });
     }
 
-    // ---------- Password hashing ----------
+    // Password hashing
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    // ---------- Create user ----------
+    // Verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+
+    // Create unverified user
     const user = await User.create({
       full_name,
       email: email.toLowerCase(),
@@ -53,28 +76,15 @@ router.post('/register', async (req, res) => {
       role,
       passwordHash,
       agreed,
+      isVerified: false,
+      verificationToken,
+      verificationTokenExpires,
     });
 
-    // ---------- JWT generation ----------
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    // Send verification email
+    await sendEmailOtp(email, verificationToken);
 
-    // ---------- Respond ----------
-    return res.status(201).json({
-      user: {
-        id: user._id,
-        email: user.email,
-        full_name: user.full_name,
-        role: user.role,
-        profilePicture: user.profilePicture || null,
-        contact_number: user.contact_number || '',
-      },
-      token,               // client will store this in localStorage
-      message: 'Account created',
-    });
+    return res.status(201).json({ message: 'Registration successful. Please check your email for verification instructions.' });
   } catch (err) {
     console.error('Registration error:', err);
     return res.status(500).json({ error: 'Server error' });
@@ -240,6 +250,9 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
+    if (!user.isVerified) {
+      return res.status(403).json({ error: 'Please verify your email before logging in.' });
+    }
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,

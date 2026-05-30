@@ -380,37 +380,25 @@ export default function Register() {
           <div className={`w-full ${step === 2 || step === 3 ? 'max-w-md' : 'max-w-sm'}`}>
             <div className="reg-card bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-6 relative">
 
-              {error && step === 1 && (
+              {error && (
                 <div className="mb-4 p-3 rounded-xl bg-red-50 text-red-600 text-sm">{error}</div>
               )}
 
-              {debugInfo && (
-                <div className="mb-4 p-3 rounded-xl bg-yellow-50 border border-yellow-200 text-xs text-yellow-900 space-y-1">
-                  <p className="font-bold">🛠 Debug Info</p>
-                  <p>Error: <span className="font-mono">{debugInfo.error ?? 'none'}</span></p>
-                  <p>User ID: <span className="font-mono">{debugInfo.user_id ?? 'null'}</span></p>
-                  <p>Session: <span className="font-mono">{debugInfo.session}</span></p>
-                  <p>Identities: <span className="font-mono">{debugInfo.identities_count}</span></p>
-                  <details className="mt-1">
-                    <summary className="cursor-pointer font-semibold">Full response JSON</summary>
-                    <pre className="mt-1 overflow-auto max-h-40 text-[10px]">{debugInfo.raw}</pre>
-                  </details>
-                </div>
-              )}
+              
 
               {success === 'immediate' && (
                 <div className="text-center py-6">
                   <div className="text-5xl mb-4 success-emoji">🎉</div>
                   <div className="success-text">
-                    <h3 className="font-bold text-gray-800 text-lg mb-2">Account created!</h3>
+                    <h3 className="font-bold text-gray-800 text-lg mb-2">Account created! Please check your email for verification link.</h3>
                     <p className="text-sm text-gray-500 mb-6">Welcome, <strong>{form.full_name}</strong>!</p>
-                    <button
-                      onClick={() => navigate(form.role === 'contractor' ? '/contractor/dashboard' : '/renter/dashboard')}
-                      className="success-btn inline-block px-6 py-3 rounded-xl text-white text-sm font-semibold w-full"
-                      style={{ backgroundColor: '#1a5c2a' }}
-                    >
-                      Go to Dashboard
-                    </button>
+                     <button
+                       onClick={() => navigate('/login')}
+                       className="success-btn inline-block px-6 py-3 rounded-xl text-white text-sm font-semibold w-full"
+                       style={{ backgroundColor: '#1a5c2a' }}
+                     >
+                       Go to Login
+                     </button>
                   </div>
                 </div>
               )}
