@@ -536,19 +536,6 @@ export default function RenterDashboard({ onNavigate, onOpenStall }) {
               ))}
             </div>
           </div>
-
-          {/* Desktop footer */}
-          <footer className="hidden md:block border-t border-gray-200 pt-5 mt-2" style={{ animation: 'fadeIn 0.5s ease 0.7s both' }}>
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-gray-400">
-              <p>© 2026 MyTalipapa Market Management. All rights reserved.</p>
-              <div className="flex gap-5">
-                <a href="#" className="hover:text-gray-600 transition-all">Support Desk</a>
-                <a href="#" className="hover:text-gray-600 transition-all">Market Terms</a>
-                <a href="#" className="hover:text-gray-600 transition-all">Privacy Policy</a>
-              </div>
-            </div>
-          </footer>
-
         </main>
 
         {/* ── Announcements Modal ── */}
