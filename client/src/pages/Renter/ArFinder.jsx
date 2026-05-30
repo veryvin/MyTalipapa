@@ -226,7 +226,7 @@ export default function ArFinder({ onBack }) {
   }, [selectedStallId, stallsList]);
 
   useEffect(() => {
-    fetch('/api/renter/stalls')
+    fetch('/api/stalls')
       .then(res => res.json())
       .then(dbStalls => {
         if (!Array.isArray(dbStalls)) return;
@@ -252,20 +252,21 @@ export default function ArFinder({ onBack }) {
           const cleanedId = getCleanDbStallNumber(s.rawId);
           const zoneLetter = String(s.zone || '').replace('Zone ', '').toUpperCase();
           const dbStall = dbStallMap[`${s.category}-${zoneLetter}-${cleanedId}`];
-            if (dbStall) {
-              const isDbZone = ['E', 'F', 'G'].includes(zoneLetter);
-              const dbY = dbStall.coordinates?.y;
-              const yOffset = isDbZone ? 250 : 0;
-              return {
-                ...s,
-                x: isDbZone ? (dbStall.coordinates?.x || s.x) : s.x,
-                y: isDbZone ? (dbY !== undefined ? dbY + yOffset : s.y) : s.y,
-                status: dbStall.status || s.status,
-                price: dbStall.monthlyRate || s.price,
-                contractorName: dbStall.contractorName || 'None',
-                dbId: dbStall._id || dbStall.id
-              };
-            }
+          if (dbStall) {
+            const isBottomZone = ['E', 'F', 'G', 'H'].includes(zoneLetter);
+            const dbX = dbStall.coordinates?.x;
+            const dbY = dbStall.coordinates?.y;
+            const yOffset = isBottomZone ? 250 : 0;
+            return {
+              ...s,
+              x: dbX !== undefined ? dbX : s.x,
+              y: dbY !== undefined ? dbY + yOffset : s.y,
+              status: dbStall.status || s.status,
+              price: dbStall.monthlyRate || s.price,
+              contractorName: dbStall.contractorName || 'None',
+              dbId: dbStall._id || dbStall.id
+            };
+          }
           return s; // Keep the fallback instead of filtering out!
         });
 

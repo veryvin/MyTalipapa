@@ -40,6 +40,36 @@ function generateDirections(stall) {
   ];
   return directions.join(' → ');
 }
+// GET /api/stalls - Retrieve all stalls
+router.get('/', async (req, res) => {
+  try {
+    const stalls = await Stall.find({}).sort({ stallNumber: 1 });
+    
+    const User = require('../models/User');
+    const contractors = await User.find({ role: 'contractor' }, 'email full_name');
+    const contractorMap = {};
+    contractors.forEach(c => {
+      if (c.email) {
+        contractorMap[c.email.toLowerCase()] = c.full_name;
+      }
+    });
+
+    const stallsWithContractor = stalls.map(stall => {
+      const stallObj = stall.toObject();
+      if (stallObj.managedBy) {
+        stallObj.contractorName = contractorMap[stallObj.managedBy.toLowerCase()] || stallObj.managedBy;
+      } else {
+        stallObj.contractorName = 'None';
+      }
+      return stallObj;
+    });
+
+    res.json(stallsWithContractor);
+  } catch (err) {
+    console.error('Failed to get all stalls:', err);
+    res.status(500).json({ error: 'Failed to fetch stalls' });
+  }
+});
 
 // GET /api/stalls/search
 router.get('/search', async (req, res) => {
