@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Compass, Info, HelpCircle, Navigation, RotateCw, Check, QrCode, X, Camera, CameraOff, Map, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Compass, Info, HelpCircle, Navigation, RotateCw, Check, X, Camera, CameraOff, Map, ChevronDown, ChevronUp, Locate, ChevronLeft, ChevronRight } from "lucide-react";
 import mapImage from "../../images/map.png";
 import { SVG_STALL_COORDS } from "../../utils/coords_dict";
-import { STALL_POSITIONS } from "../../utils/stall_positions";
+// Removed unused STALL_POSITIONS import
 
 const getStallZone = (num, category) => {
   const stallId = String(num);
@@ -32,33 +32,19 @@ const getStallCoords = (rawId, category, zone) => {
   const isBottomZone = ['E', 'F', 'G', 'H'].includes(zoneLetter);
   const yOffset = isBottomZone ? 250 : 0;
 
-  // Skip STALL_POSITIONS for variants/specials to avoid collisions
-  const isVariant = /\(u\d*\)/i.test(rawId);
-  const isSpecial = String(rawId).startsWith('empty') || String(rawId).startsWith('nostallnum');
-
-  if (!isVariant && !isSpecial) {
-    const match = STALL_POSITIONS.find(s => {
-      return s.category === category &&
-             String(s.zone).toUpperCase() === zoneLetter &&
-             String(s.number).trim().replace(/^0+(?=\d)/, '') === cleanNum;
-    });
-    if (match) {
-      return { x: match.circleX, y: match.circleY + yOffset };
-    }
+  // Try exact rawId (including variants like (u))
+  const rawKey = `${category}-${rawId}`;
+  if (SVG_STALL_COORDS[rawKey]) {
+    return { x: SVG_STALL_COORDS[rawKey].x, y: SVG_STALL_COORDS[rawKey].y + yOffset };
   }
 
-  // Fallback to SVG_STALL_COORDS with exact rawId
-  const key = `${category}-${rawId}`;
-  if (SVG_STALL_COORDS[key]) {
-    return { x: SVG_STALL_COORDS[key].x, y: SVG_STALL_COORDS[key].y + yOffset };
+  // Fallback to cleaned number key
+  const cleanKey = `${category}-${cleanNum}`;
+  if (SVG_STALL_COORDS[cleanKey]) {
+    return { x: SVG_STALL_COORDS[cleanKey].x, y: SVG_STALL_COORDS[cleanKey].y + yOffset };
   }
 
-  const num = parseInt(String(rawId).replace(/[^0-9]/g, '')) || 1;
-  const genericKey = `${category}-${num}`;
-  if (SVG_STALL_COORDS[genericKey]) {
-    return { x: SVG_STALL_COORDS[genericKey].x, y: SVG_STALL_COORDS[genericKey].y + yOffset };
-  }
-
+  // Default fallback position
   return { x: 1020, y: 635 + yOffset };
 };
 
@@ -92,7 +78,7 @@ const buildAllStalls = () => {
     '21', '22', '23', '24', '25', '26', '27', '28', '29', '30',
     '31', '32', '33', '34', '35', '36', '37', '38', '39', '40',
     '41', '42', '43', '44', '45', '46', '47', '48', '49', '50',
-    '57', '58', '59', '60', '61', '62', '63', '64', '65', '66', '67', '68', '69', '70', '71', '72',
+    '57', '58', '59', '60', '61', '62', '63', '64', '65', '66', '67', '68', '69', '70', '71', '72','73','74','75',
     'nostallnum1', 'nostallnum2', 'nostallnum3', 'nostallnum4', 'nostallnum5'
   ];
   const veggieIds = [
@@ -129,13 +115,46 @@ const buildAllStalls = () => {
 
 const STALLS_AR = buildAllStalls();
 
-const QR_ANCHORS = [
-  { id: "entrance", label: "Main Entrance Poster", x: 1020, y: 1800, zone: "Entrance" },
-  { id: "central_aisle", label: "Central Aisle Poster", x: 1020, y: 635, zone: "Central Pathway" },
-  { id: "meat_pillar", label: "Meat Section Pillar A", x: 250, y: 370, zone: "Meat Section" },
-  { id: "seafood_column", label: "Seafood Column B", x: 970, y: 280, zone: "Seafood Section" },
-  { id: "veggies_pillar", label: "Veggies Pillar C", x: 1550, y: 1010, zone: "Veggies Section" }
-];
+const HALLWAY_GROUPS = {
+  "Main Entrance": [
+    { id: "entrance", label: "Main Entrance", x: 1050, y: 1720 }
+  ],
+  "Top Pathways": [
+    { id: "hallway1", label: "Hallway 1 (Top Left)", x: 30, y: 100 },
+    { id: "hallway2", label: "Hallway 2 (Top, A-B)", x: 530, y: 100 },
+    { id: "hallway3_4", label: "Hallway 3 & 4 (Top, Zone B)", x: 790, y: 100 },
+    { id: "hallway5", label: "Hallway 5 (Top, B-C)", x: 1050, y: 100 },
+    { id: "hallway6", label: "Hallway 6 (Top, Zone C)", x: 1300, y: 100 },
+    { id: "hallway7", label: "Hallway 7 (Top, C-D)", x: 1570, y: 100 },
+    { id: "hallway8_9", label: "Hallway 8 & 9 (Top, Zone D)", x: 1845, y: 100 },
+    { id: "hallway10", label: "Hallway 10 (Top Right)", x: 2120, y: 100 }
+  ],
+  "Middle Pathways": [
+    { id: "hallway31H", label: "Hallway 31H (Middle Left)", x: 30, y: 910 },
+    { id: "hallway31", label: "Hallway 31 (Middle, E-A)", x: 265, y: 910 },
+    { id: "hallway28", label: "Hallway 28 (Middle, E-F)", x: 530, y: 910 },
+    { id: "hallway32", label: "Hallway 32 (Middle, B-F)", x: 790, y: 910 },
+    { id: "hallway30", label: "Hallway 30 (Middle, C-G)", x: 1050, y: 910 },
+    { id: "hallway33", label: "Hallway 33 (Middle, C-G)", x: 1300, y: 910 },
+    { id: "hallway29", label: "Hallway 29 (Middle, G-H)", x: 1570, y: 910 },
+    { id: "hallway34", label: "Hallway 34 (Middle, D-H)", x: 1845, y: 910 },
+    { id: "hallway11", label: "Hallway 11 (Right Mid)", x: 2120, y: 910 }
+  ],
+  "Bottom Pathways": [
+    { id: "hallway27", label: "Hallway 27 (Bottom Left)", x: 30, y: 1720 },
+    { id: "hallway25_26", label: "Hallway 25 & 26 (Bottom, Zone E)", x: 265, y: 1720 },
+    { id: "hallway24", label: "Hallway 24 (Bottom, E-F)", x: 530, y: 1720 },
+    { id: "hallway21_22_23", label: "Hallway 21, 22, 23 (Bottom, Zone F)", x: 790, y: 1720 },
+    { id: "hallway20", label: "Hallway 20 (Bottom, F-G)", x: 1050, y: 1720 },
+    { id: "hallway17_18_19", label: "Hallway 17, 18, 19 (Bottom, Zone G)", x: 1300, y: 1720 },
+    { id: "hallway16", label: "Hallway 16 (Bottom, G-H)", x: 1570, y: 1720 },
+    { id: "hallway13_14_15", label: "Hallway 13, 14, 15 (Bottom Right)", x: 1845, y: 1720 },
+    { id: "hallway12", label: "Hallway 12 (Bottom Right)", x: 2120, y: 1720 }
+  ]
+};
+
+const HALLWAYS = Object.values(HALLWAY_GROUPS).flat();
+
 
 export default function ArFinder({ onBack }) {
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -233,21 +252,20 @@ export default function ArFinder({ onBack }) {
           const cleanedId = getCleanDbStallNumber(s.rawId);
           const zoneLetter = String(s.zone || '').replace('Zone ', '').toUpperCase();
           const dbStall = dbStallMap[`${s.category}-${zoneLetter}-${cleanedId}`];
-          if (dbStall) {
-            const isBottomZone = ['E', 'F', 'G', 'H'].includes(zoneLetter);
-            const isTopZone = ['A', 'B', 'C', 'D'].includes(zoneLetter);
-            const dbY = dbStall.coordinates?.y;
-            const yOffset = isBottomZone ? 250 : isTopZone ? 30 : 0;
-            return {
-              ...s,
-              x: dbStall.coordinates?.x || s.x,
-              y: dbY !== undefined ? dbY + yOffset : s.y,
-              status: dbStall.status || s.status,
-              price: dbStall.monthlyRate || s.price,
-              contractorName: dbStall.contractorName || 'None',
-              dbId: dbStall._id || dbStall.id
-            };
-          }
+            if (dbStall) {
+              const isDbZone = ['E', 'F', 'G'].includes(zoneLetter);
+              const dbY = dbStall.coordinates?.y;
+              const yOffset = isDbZone ? 250 : 0;
+              return {
+                ...s,
+                x: isDbZone ? (dbStall.coordinates?.x || s.x) : s.x,
+                y: isDbZone ? (dbY !== undefined ? dbY + yOffset : s.y) : s.y,
+                status: dbStall.status || s.status,
+                price: dbStall.monthlyRate || s.price,
+                contractorName: dbStall.contractorName || 'None',
+                dbId: dbStall._id || dbStall.id
+              };
+            }
           return s; // Keep the fallback instead of filtering out!
         });
 
@@ -271,8 +289,8 @@ export default function ArFinder({ onBack }) {
 
   const currentStall = stallsList.find(s => s.id === selectedStallId) || stallsList[0] || STALLS_AR[0];
 
-  const [userX, setUserX] = useState(1020);
-  const [userY, setUserY] = useState(1450);
+  const [userX, setUserX] = useState(1050);
+  const [userY, setUserY] = useState(1720);
   const [heading, setHeading] = useState(0);
 
   const [cameraActive, setCameraActive] = useState(false);
@@ -282,14 +300,18 @@ export default function ArFinder({ onBack }) {
   const [showHelp, setShowHelp] = useState(false);
   const [hasOrientation, setHasOrientation] = useState(false);
   const [showCard, setShowCard] = useState(true);
-  const [showScanner, setShowScanner] = useState(false);
-  const [activeScannerTab, setActiveScannerTab] = useState("simulate");
+  const [showStartSelector, setShowStartSelector] = useState(false);
+  const [selectedStartId, setSelectedStartId] = useState("entrance");
   const [toastMsg, setToastMsg] = useState("");
   const [isMobile, setIsMobile] = useState(false);
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const containerRef = useRef(null);
+
+  const gpsWatchIdRef = useRef(null);
+  const gpsAnchorRef = useRef(null);
+  const [gpsActive, setGpsActive] = useState(false);
 
   // Detect mobile
   useEffect(() => {
@@ -305,6 +327,75 @@ export default function ArFinder({ onBack }) {
       return () => clearTimeout(timer);
     }
   }, [toastMsg]);
+
+  const toggleGps = () => {
+    if (gpsActive) {
+      if (gpsWatchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(gpsWatchIdRef.current);
+        gpsWatchIdRef.current = null;
+      }
+      gpsAnchorRef.current = null;
+      setGpsActive(false);
+      setToastMsg("GPS tracking disabled.");
+    } else {
+      if (!navigator.geolocation) {
+        alert("Geolocation is not supported by your browser.");
+        return;
+      }
+      setToastMsg("Activating GPS. Please allow location access...");
+      gpsAnchorRef.current = null;
+      gpsWatchIdRef.current = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude, accuracy } = position.coords;
+          
+          if (!gpsAnchorRef.current) {
+            gpsAnchorRef.current = {
+              lat: latitude,
+              lng: longitude,
+              mapX: userX,
+              mapY: userY
+            };
+            setToastMsg(`GPS active (Accuracy: ${Math.round(accuracy)}m). Anchored.`);
+          } else {
+            const latDiff = latitude - gpsAnchorRef.current.lat;
+            const lngDiff = longitude - gpsAnchorRef.current.lng;
+            
+            const dyMeters = latDiff * 111139;
+            const dxMeters = lngDiff * 111139 * Math.cos(gpsAnchorRef.current.lat * Math.PI / 180);
+            
+            const scale = 50; // pixels per meter
+            const dxPixels = dxMeters * scale;
+            const dyPixels = -dyMeters * scale;
+            
+            const newX = Math.round(gpsAnchorRef.current.mapX + dxPixels);
+            const newY = Math.round(gpsAnchorRef.current.mapY + dyPixels);
+            
+            setUserX(Math.max(30, Math.min(2270, newX)));
+            setUserY(Math.max(30, Math.min(1790, newY)));
+          }
+          setGpsActive(true);
+        },
+        (err) => {
+          console.error("GPS error:", err);
+          setToastMsg(`GPS tracking failed: ${err.message}`);
+          if (gpsWatchIdRef.current !== null) {
+            navigator.geolocation.clearWatch(gpsWatchIdRef.current);
+            gpsWatchIdRef.current = null;
+          }
+          setGpsActive(false);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (gpsWatchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(gpsWatchIdRef.current);
+      }
+    };
+  }, []);
 
   const startCamera = async () => {
     if (!cameraEnabled) return;
@@ -353,32 +444,59 @@ export default function ArFinder({ onBack }) {
     else { scale = rect.height / vh; ox = (rect.width - vw * scale) / 2; }
     const cx = (e.clientX - rect.left - ox) / scale;
     const cy = (e.clientY - rect.top - oy) / scale;
-    if (cx >= 0 && cx <= vw && cy >= 0 && cy <= vh) { setUserX(Math.round(cx)); setUserY(Math.round(cy)); }
+    if (cx >= 0 && cx <= vw && cy >= 0 && cy <= vh) {
+      gpsAnchorRef.current = null;
+      setUserX(Math.round(cx));
+      setUserY(Math.round(cy));
+      setSelectedStartId("custom");
+    }
   };
 
-  const X_CORRIDORS = [50, 490, 990, 1485, 1950]; // Reduced horizontal spacing by ~30px per corridor
+  const X_CORRIDORS = [30, 265, 530, 790, 1050, 1300, 1570, 1845, 2120];
+  const Y_PATHWAYS = [100, 910, 1720];
 
   const getPathPoints = () => {
     const pts = [{ x: userX, y: userY }];
     const sx = currentStall.x, sy = currentStall.y;
+
+    const userCX = X_CORRIDORS.reduce((p, c) => Math.abs(c - userX) < Math.abs(p - userX) ? c : p);
     const stallCX = X_CORRIDORS.reduce((p, c) => Math.abs(c - sx) < Math.abs(p - sx) ? c : p);
-    let bestCX = X_CORRIDORS[0], minD = Infinity;
-    for (const cx of X_CORRIDORS) {
-      const d = Math.abs(cx - userX) + Math.abs(stallCX - cx);
-      if (d < minD) { minD = d; bestCX = cx; }
-    }
-    if (bestCX === stallCX) {
-      if (userX !== bestCX) pts.push({ x: bestCX, y: userY });
-      if (userY !== sy) pts.push({ x: bestCX, y: sy });
+
+    if (userCX === stallCX) {
+      if (userX !== userCX) pts.push({ x: userCX, y: userY });
+      if (userY !== sy) pts.push({ x: userCX, y: sy });
     } else {
-      if (userX !== bestCX) pts.push({ x: bestCX, y: userY });
-      if (userY !== 635) pts.push({ x: bestCX, y: 635 });
-      if (bestCX !== stallCX) pts.push({ x: stallCX, y: 635 });
-      if (sy !== 635) pts.push({ x: stallCX, y: sy });
+      let bestPY = Y_PATHWAYS[0];
+      let minDist = Infinity;
+      for (const py of Y_PATHWAYS) {
+        const dist = Math.abs(userY - py) + Math.abs(userCX - stallCX) + Math.abs(sy - py);
+        if (dist < minDist) {
+          minDist = dist;
+          bestPY = py;
+        }
+      }
+
+      if (userX !== userCX) pts.push({ x: userCX, y: userY });
+      if (userY !== bestPY) pts.push({ x: userCX, y: bestPY });
+      if (userCX !== stallCX) pts.push({ x: stallCX, y: bestPY });
+      if (bestPY !== sy) pts.push({ x: stallCX, y: sy });
     }
+
     const last = pts[pts.length - 1];
     if (last.x !== sx || last.y !== sy) pts.push({ x: sx, y: sy });
-    return pts;
+
+    const cleanPts = [];
+    for (const p of pts) {
+      if (cleanPts.length === 0) {
+        cleanPts.push(p);
+      } else {
+        const lastP = cleanPts[cleanPts.length - 1];
+        if (lastP.x !== p.x || lastP.y !== p.y) {
+          cleanPts.push(p);
+        }
+      }
+    }
+    return cleanPts;
   };
 
   const pathPoints = getPathPoints();
@@ -391,6 +509,18 @@ export default function ArFinder({ onBack }) {
     return Math.round(d * 0.02);
   };
   const totalDistance = getPathDist(pathPoints);
+
+  const getETA = (distInMeters) => {
+    const speed = 1.2; // average walking speed: 1.2 m/s
+    const totalSeconds = Math.round(distInMeters / speed);
+    if (totalSeconds < 60) {
+      return `~${totalSeconds}s`;
+    } else {
+      const mins = Math.floor(totalSeconds / 60);
+      const secs = totalSeconds % 60;
+      return secs > 0 ? `~${mins}m ${secs}s` : `~${mins}m`;
+    }
+  };
 
   const getBearing = (x1, y1, x2, y2) => {
     let a = Math.atan2(x2 - x1, y1 - y2) * (180 / Math.PI);
@@ -438,11 +568,13 @@ export default function ArFinder({ onBack }) {
   };
   const handleRotateLeft = () => setHeading(h => (h - 15 + 360) % 360);
   const handleRotateRight = () => setHeading(h => (h + 15) % 360);
-  const handleResetPosition = () => { setUserX(1020); setUserY(1450); setHeading(0); setToastMsg("Location reset to Main Entrance."); };
-  const handleSimulateScan = (anchor) => {
-    setUserX(anchor.x); setUserY(anchor.y);
-    setToastMsg(`Calibrated to: ${anchor.label}`);
-    setShowScanner(false);
+  const handleResetPosition = () => { gpsAnchorRef.current = null; setUserX(1050); setUserY(1720); setHeading(0); setSelectedStartId("entrance"); setToastMsg("Location reset to Main Entrance."); };
+  const handleSelectStartPoint = (point) => {
+    gpsAnchorRef.current = null;
+    setUserX(point.x); setUserY(point.y);
+    setSelectedStartId(point.id);
+    setToastMsg(`Location set to: ${point.label}`);
+    setShowStartSelector(false);
   };
 
   const requestCompassPermission = async () => {
@@ -777,6 +909,27 @@ export default function ArFinder({ onBack }) {
         {!isMobile && (
           <div style={{ display: "flex", gap: 6, alignItems: "center", flex: 1, minWidth: 0 }}>
             <div className="stall-select">
+              <label>START:</label>
+              <select value={selectedStartId} onChange={e => {
+                const val = e.target.value;
+                setSelectedStartId(val);
+                gpsAnchorRef.current = null;
+                if (val !== "custom") {
+                  const found = HALLWAYS.find(h => h.id === val);
+                  if (found) {
+                    setUserX(found.x);
+                    setUserY(found.y);
+                    setToastMsg(`Starting point set to ${found.label}`);
+                  }
+                }
+              }} style={{ maxWidth: 160 }}>
+                <option value="custom" disabled={selectedStartId !== "custom"}>Custom Location</option>
+                {HALLWAYS.map(h => (
+                  <option key={h.id} value={h.id}>{h.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="stall-select">
               <label>SECTION:</label>
               <select value={selectedCategory} onChange={e => {
                 const cat = e.target.value;
@@ -895,6 +1048,27 @@ export default function ArFinder({ onBack }) {
       {isMobile && (
         <div className="header-selects-bar">
           <div className="stall-select" style={{ flexShrink: 0 }}>
+            <label>START:</label>
+            <select value={selectedStartId} onChange={e => {
+              const val = e.target.value;
+              setSelectedStartId(val);
+              gpsAnchorRef.current = null;
+              if (val !== "custom") {
+                const found = HALLWAYS.find(h => h.id === val);
+                if (found) {
+                  setUserX(found.x);
+                  setUserY(found.y);
+                  setToastMsg(`Starting point set to ${found.label}`);
+                }
+              }
+            }} style={{ maxWidth: 100 }}>
+              <option value="custom" disabled={selectedStartId !== "custom"}>Custom</option>
+              {HALLWAYS.map(h => (
+                <option key={h.id} value={h.id}>{h.label.replace("Hallway ", "H")}</option>
+              ))}
+            </select>
+          </div>
+          <div className="stall-select" style={{ flexShrink: 0 }}>
             <label>SEC:</label>
             <select value={selectedCategory} onChange={e => {
               const cat = e.target.value;
@@ -980,7 +1154,7 @@ export default function ArFinder({ onBack }) {
                   <button onClick={() => setShowHelp(false)} style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0 }}><X size={14} /></button>
                 </div>
                 <ul style={{ fontSize: 11, color: "#475569", paddingLeft: 16, margin: 0, lineHeight: 1.7 }}>
-                  <li>Tap <strong>Scan QR</strong> to calibrate your location using QR codes on pillars.</li>
+                  <li>Select your starting hallway using the <strong>Starting Point</strong> selector.</li>
                   <li>Follow floating orange dots and direction indicator in the camera view.</li>
                   <li>Use the right-side HUD to simulate walking or rotating.</li>
                   <li>Tap anywhere on the floor map to set your position manually.</li>
@@ -1015,11 +1189,11 @@ export default function ArFinder({ onBack }) {
                 </div>
                 <div style={{ marginTop: 6, background: "rgba(255,255,255,0.97)", border: "1px solid #e2e8f0", borderRadius: 10, padding: "4px 10px", textAlign: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.1)", maxWidth: 160 }}>
                   <div style={{ fontSize: 11, fontWeight: 800, color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentStall.label}</div>
-                  <div style={{ fontSize: 9, color: "#e8621a", fontWeight: 700 }}>{totalDistance}m away</div>
+                  <div style={{ fontSize: 9, color: "#e8621a", fontWeight: 700 }}>{totalDistance}m away · {getETA(totalDistance)}</div>
                 </div>
               </div>
             ) : (
-              <div style={{ position: "absolute", inset: "0 52px", top: "38%", display: "flex", justifyContent: relNextAngle < 0 ? "flex-start" : "flex-end" }}>
+              <div style={{ position: "absolute", inset: "0 52px", top: "38%", display: "flex", alignItems: "flex-start", justifyContent: relNextAngle < 0 ? "flex-start" : "flex-end" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.97)", border: "1px solid #e2e8f0", borderRadius: 999, padding: "6px 12px", boxShadow: "0 2px 10px rgba(0,0,0,0.1)", animation: "pulse 1s ease-in-out infinite" }}>
                   <span style={{ fontSize: 10, fontWeight: 700, color: "#1e293b" }}>{relNextAngle < 0 ? "◀ Turn Left" : "Turn Right ▶"}</span>
                   <span style={{ fontSize: 9, color: "#e8621a", fontWeight: 700 }}>{Math.round(Math.abs(relNextAngle))}°</span>
@@ -1030,6 +1204,14 @@ export default function ArFinder({ onBack }) {
 
           {/* ── RIGHT HUD CONTROLS ── */}
           <div style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", zIndex: 20, display: "flex", flexDirection: "column", gap: 5 }}>
+            <button
+              onClick={toggleGps}
+              className={`ctrl-btn${gpsActive ? " primary" : ""}`}
+              style={gpsActive ? { background: "#1a5c2a", color: "#fff", borderColor: "#1a5c2a", marginBottom: 4 } : { marginBottom: 4 }}
+              title={gpsActive ? "Disable GPS Tracking" : "Enable GPS Tracking"}
+            >
+              <Locate size={15} />
+            </button>
             {!hasOrientation && (
               <button onClick={requestCompassPermission} className="ctrl-btn" style={{ background: "#e8621a", color: "#fff", borderColor: "#e8621a", marginBottom: 4 }} title="Request Compass">
                 <Compass size={15} />
@@ -1047,9 +1229,9 @@ export default function ArFinder({ onBack }) {
           {/* ── BOTTOM INFO CARD ── */}
           {showCard && (
             <div className="ar-info-card" style={{ flexDirection: "column", alignItems: "stretch", gap: 6 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+              <div style={{ display: "flex", alignItems: "center", justifycontent: "space-between", width: "100%" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(232,98,26,0.1)", border: "1px solid rgba(232,98,26,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(232,98,26,0.1)", border: "1px solid rgba(232,98,26,0.2)", display: "flex", alignItems: "center", justifycontent: "center", flexShrink: 0 }}>
                     <Navigation size={15} color="#e8621a" />
                   </div>
                   <div style={{ minWidth: 0 }}>
@@ -1058,14 +1240,14 @@ export default function ArFinder({ onBack }) {
                       <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#e8621a", display: "inline-block" }} />
                     </div>
                     <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{currentStall.label}</div>
-                    <div style={{ fontSize: 9, color: "#64748b" }}>{currentStall.zone} · <span style={{ color: "#e8621a", fontWeight: 700 }}>{totalDistance}m</span></div>
+                    <div style={{ fontSize: 9, color: "#64748b" }}>{currentStall.zone} · <span style={{ color: "#e8621a", fontWeight: 700 }}>{totalDistance}m ({getETA(totalDistance)})</span></div>
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 5, flexShrink: 0, alignItems: "center" }}>
-                  <button onClick={() => setShowScanner(true)} style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 10px", background: "#1a5c2a", color: "#fff", fontSize: 10, fontWeight: 700, border: "none", borderRadius: 9, cursor: "pointer", whiteSpace: "nowrap" }}>
-                    <QrCode size={12} /><span>Scan QR</span>
+                  <button onClick={() => setShowStartSelector(true)} style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 10px", background: "#1a5c2a", color: "#fff", fontSize: 10, fontWeight: 700, border: "none", borderRadius: 9, cursor: "pointer", whiteSpace: "nowrap" }}>
+                    <Navigation size={12} /><span>Start Point</span>
                   </button>
-                  <button onClick={() => setShowCard(false)} style={{ width: 28, height: 28, borderRadius: 7, background: "#f1f5f9", border: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#64748b", flexShrink: 0 }}>
+                  <button onClick={() => setShowCard(false)} style={{ width: 28, height: 28, borderRadius: 7, background: "#f1f5f9", border: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifycontent: "center", cursor: "pointer", color: "#64748b", flexShrink: 0 }}>
                     <X size={12} />
                   </button>
                 </div>
@@ -1106,7 +1288,7 @@ export default function ArFinder({ onBack }) {
           <div className="ar-map-header" onClick={() => setMapCollapsed(c => !c)}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <Map size={13} color="#e8621a" style={{ flexShrink: 0 }} />
-              {(!isMobile || true) && (
+              {(!isMobile ? !mapCollapsed : true) && (
                 <span className="ar-map-header-label">
                   {isMobile
                     ? mapCollapsed ? "Show Floor Map" : "Hide Floor Map"
@@ -1114,9 +1296,14 @@ export default function ArFinder({ onBack }) {
                 </span>
               )}
             </div>
-            <div style={{ color: "#94a3b8", flexShrink: 0 }}>
-              {mapCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-            </div>
+            {(!isMobile ? !mapCollapsed : true) && (
+              <div style={{ color: "#94a3b8", flexShrink: 0 }}>
+                {isMobile
+                  ? (mapCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />)
+                  : (mapCollapsed ? <ChevronLeft size={14} /> : <ChevronRight size={14} />)
+                }
+              </div>
+            )}
           </div>
 
           {/* Map body — hidden when collapsed */}
@@ -1130,14 +1317,7 @@ export default function ArFinder({ onBack }) {
               >
                 <image xlinkHref={mapImage} href={mapImage} x="-20" y="-15" width="2305" height="1824" preserveAspectRatio="none" />
 
-                {QR_ANCHORS.map(a => (
-                  <g key={a.id} transform={`translate(${a.x},${a.y})`}>
-                    <circle r="16" fill="rgba(232,98,26,0.9)" stroke="#fff" strokeWidth="3" />
-                    <rect x="-6" y="-6" width="12" height="12" fill="#fff" />
-                    <rect x="-4" y="-4" width="8" height="8" fill="#0f172a" />
-                    <rect x="-2" y="-2" width="4" height="4" fill="#fff" />
-                  </g>
-                ))}
+                {/* Stalls */}
 
                 {stallsList.filter(s => selectedCategory === "all" || s.category === selectedCategory).map(s => {
                   const isSelected = s.id === selectedStallId;
@@ -1209,72 +1389,67 @@ export default function ArFinder({ onBack }) {
         </div>
       </div>
 
-      {/* ── QR SCANNER OVERLAY ── */}
-      {showScanner && (
-        <div className="scanner-overlay">
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: 360, gap: 14 }}>
-            {/* Scanner frame */}
-            <div style={{ position: "relative", width: 140, height: 140, border: "2px dashed #e8621a", borderRadius: 20, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", background: "#f8fafc", flexShrink: 0 }}>
-              {[["top", "left"], ["top", "right"], ["bottom", "left"], ["bottom", "right"]].map(([v, h], i) => (
-                <div key={i} style={{ position: "absolute", [v]: 6, [h]: 6, width: 18, height: 18, borderTop: v === "top" ? "4px solid #1a5c2a" : "none", borderBottom: v === "bottom" ? "4px solid #1a5c2a" : "none", borderLeft: h === "left" ? "4px solid #1a5c2a" : "none", borderRight: h === "right" ? "4px solid #1a5c2a" : "none", borderRadius: h === "left" && v === "top" ? "5px 0 0 0" : h === "right" && v === "top" ? "0 5px 0 0" : h === "left" && v === "bottom" ? "0 0 0 5px" : "0 0 5px 0" }} />
-              ))}
-              <QrCode size={48} color="rgba(26,92,42,0.3)" />
-              <div className="animate-scanLine" style={{ left: 0, right: 0, height: 2, background: "#e8621a", boxShadow: "0 0 8px rgba(232,98,26,0.9)" }} />
+      {/* ── STARTING POINT SELECTOR OVERLAY ── */}
+      {showStartSelector && (
+        <div className="scanner-overlay" style={{ background: "rgba(10,15,10,0.98)" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: 440, gap: 14 }}>
+            <div style={{ textAlign: "center", width: "100%" }}>
+              <p style={{ fontSize: 15, fontWeight: 800, color: "#fff", margin: "0 0 4px" }}>Select Starting Point</p>
+              <p style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", margin: 0 }}>Choose a hallway or entrance as your navigation start location.</p>
             </div>
 
-            {/* Tab bar */}
-            <div style={{ display: "flex", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 12, padding: 4, width: "100%" }}>
-              {["simulate", "guide"].map(tab => (
-                <button key={tab} onClick={() => setActiveScannerTab(tab)} style={{ flex: 1, padding: "7px 0", borderRadius: 9, fontSize: 12, fontWeight: 800, border: "none", cursor: "pointer", background: activeScannerTab === tab ? "#1a5c2a" : "transparent", color: activeScannerTab === tab ? "#fff" : "#64748b", transition: "background 0.15s" }}>
-                  {tab === "simulate" ? "Scan Simulator" : "Real-World Guide"}
-                </button>
-              ))}
-            </div>
-
-            {activeScannerTab === "simulate" ? (
-              <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 8 }}>
-                <div style={{ textAlign: "center" }}>
-                  <p style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", margin: "0 0 4px" }}>QR Anchor Calibration</p>
-                  <p style={{ fontSize: 11, color: "#64748b", margin: 0 }}>Tap a location to simulate scanning its QR poster.</p>
-                </div>
-                {QR_ANCHORS.map(a => (
-                  <button key={a.id} onClick={() => handleSimulateScan(a)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, fontSize: 12, fontWeight: 700, color: "#1e293b", cursor: "pointer" }}>
-                    <span>{a.label}</span>
-                    <span style={{ fontSize: 10, color: "#e8621a", background: "rgba(232,98,26,0.08)", border: "1px solid rgba(232,98,26,0.2)", borderRadius: 6, padding: "2px 8px" }}>{a.zone}</span>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 10, fontSize: 11, color: "#475569" }}>
-                <div style={{ background: "#edf5ed", border: "1px solid rgba(26,92,42,0.2)", borderRadius: 12, padding: 12 }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: "#1a5c2a", margin: "0 0 6px", display: "flex", alignItems: "center", gap: 5 }}><Info size={13} />How QR Positioning Works</p>
-                  <p style={{ margin: 0, lineHeight: 1.6 }}>Indoor environments lack GPS. Scanning fixed QR codes resets your (x,y) coordinates to the poster's known location.</p>
-                </div>
-                <div>
-                  <p style={{ fontSize: 10, fontWeight: 800, color: "#e8621a", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px" }}>Physical Code Setup</p>
-                  <ol style={{ paddingLeft: 18, margin: 0, lineHeight: 1.8 }}>
-                    <li>Use any free QR generator (e.g., qr-code-generator.com).</li>
-                    <li>Generate plain-text QR codes with the Scan Text below.</li>
-                    <li>Print and place at the corresponding location.</li>
-                  </ol>
-                </div>
-                {QR_ANCHORS.map(a => (
-                  <div key={a.id} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "8px 12px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "#1e293b" }}>{a.label}</span>
-                      <span style={{ fontSize: 9, color: "#64748b" }}>{a.zone}</span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", background: "#f1f5f9", borderRadius: 6, padding: "4px 8px" }}>
-                      <span style={{ fontSize: 9, color: "#94a3b8" }}>Scan Text:</span>
-                      <code style={{ fontSize: 10, color: "#e8621a", fontWeight: 700 }}>{a.id}</code>
-                    </div>
+            <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 12, maxHeight: "65vh", overflowY: "auto", paddingRight: 4 }}>
+              {Object.entries(HALLWAY_GROUPS).map(([groupName, items]) => (
+                <div key={groupName} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: "#e8621a", textTransform: "uppercase", letterSpacing: "0.06em", paddingLeft: 4, marginTop: 4 }}>{groupName}</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 6 }}>
+                    {items.map(item => (
+                      <button
+                        key={item.id}
+                        onClick={() => handleSelectStartPoint(item)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "10px 12px",
+                          background: selectedStartId === item.id ? "#1a5c2a" : "rgba(255,255,255,0.06)",
+                          border: `1px solid ${selectedStartId === item.id ? "#22c55e" : "rgba(255,255,255,0.12)"}`,
+                          borderRadius: 12,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: "#fff",
+                          cursor: "pointer",
+                          transition: "background 0.2s, border-color 0.2s",
+                          textAlign: "left"
+                        }}
+                      >
+                        <span>{item.label}</span>
+                        {selectedStartId === item.id && <Check size={12} color="#22c55e" />}
+                      </button>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              ))}
+            </div>
 
-            <button onClick={() => setShowScanner(false)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 20px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 12, fontSize: 12, fontWeight: 700, color: "#475569", cursor: "pointer", marginTop: 4 }}>
-              <X size={14} /><span>Cancel Scan</span>
+            <button
+              onClick={() => setShowStartSelector(false)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "9px 20px",
+                background: "rgba(255,255,255,0.08)",
+                border: "1px solid rgba(255,255,255,0.15)",
+                borderRadius: 12,
+                fontSize: 12,
+                fontWeight: 700,
+                color: "#fff",
+                cursor: "pointer",
+                marginTop: 8
+              }}
+            >
+              <X size={14} /><span>Close</span>
             </button>
           </div>
         </div>
