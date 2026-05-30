@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Compass, Info, HelpCircle, Navigation, RotateCw, Check, QrCode, X, Camera, CameraOff, Map, ChevronDown, ChevronUp } from "lucide-react";
 import mapImage from "../../images/map.png";
 import { SVG_STALL_COORDS } from "../../utils/coords_dict";
+import { STALL_POSITIONS } from "../../utils/stall_positions";
 
 const getStallZone = (num, category) => {
   const stallId = String(num);
@@ -26,15 +27,39 @@ const getStallZone = (num, category) => {
 };
 
 const getStallCoords = (rawId, category, zone) => {
+  const cleanNum = getCleanDbStallNumber(rawId);
+  const zoneLetter = String(zone || '').replace('Zone ', '').toUpperCase();
+  const isBottomZone = ['E', 'F', 'G', 'H'].includes(zoneLetter);
+  const yOffset = isBottomZone ? 250 : 0;
+
+  // Skip STALL_POSITIONS for variants/specials to avoid collisions
+  const isVariant = /\(u\d*\)/i.test(rawId);
+  const isSpecial = String(rawId).startsWith('empty') || String(rawId).startsWith('nostallnum');
+
+  if (!isVariant && !isSpecial) {
+    const match = STALL_POSITIONS.find(s => {
+      return s.category === category &&
+             String(s.zone).toUpperCase() === zoneLetter &&
+             String(s.number).trim().replace(/^0+(?=\d)/, '') === cleanNum;
+    });
+    if (match) {
+      return { x: match.circleX, y: match.circleY + yOffset };
+    }
+  }
+
+  // Fallback to SVG_STALL_COORDS with exact rawId
   const key = `${category}-${rawId}`;
-  if (SVG_STALL_COORDS[key]) return SVG_STALL_COORDS[key];
-  
-  // Fallback parsed numeric matching
+  if (SVG_STALL_COORDS[key]) {
+    return { x: SVG_STALL_COORDS[key].x, y: SVG_STALL_COORDS[key].y + yOffset };
+  }
+
   const num = parseInt(String(rawId).replace(/[^0-9]/g, '')) || 1;
   const genericKey = `${category}-${num}`;
-  if (SVG_STALL_COORDS[genericKey]) return SVG_STALL_COORDS[genericKey];
+  if (SVG_STALL_COORDS[genericKey]) {
+    return { x: SVG_STALL_COORDS[genericKey].x, y: SVG_STALL_COORDS[genericKey].y + yOffset };
+  }
 
-  return { x: 1020, y: 635 }; // center default fallback
+  return { x: 1020, y: 635 + yOffset };
 };
 
 const getCleanDbStallNumber = (rawId) => {
@@ -45,6 +70,14 @@ const getCleanDbStallNumber = (rawId) => {
     .trim()
     .toLowerCase()
     .replace(/^0+(?=\d)/, '');
+};
+
+const getCircleDisplayNumber = (rawId) => {
+  const clean = getCleanDbStallNumber(rawId);
+  if (clean.startsWith('nostallnum') || clean.startsWith('empty')) {
+    return '';
+  }
+  return clean;
 };
 
 const buildAllStalls = () => {
@@ -97,11 +130,11 @@ const buildAllStalls = () => {
 const STALLS_AR = buildAllStalls();
 
 const QR_ANCHORS = [
-  { id: "entrance", label: "Main Entrance Poster", x: 1020, y: 1450, zone: "Entrance" },
+  { id: "entrance", label: "Main Entrance Poster", x: 1020, y: 1800, zone: "Entrance" },
   { id: "central_aisle", label: "Central Aisle Poster", x: 1020, y: 635, zone: "Central Pathway" },
-  { id: "meat_pillar", label: "Meat Section Pillar A", x: 230, y: 370, zone: "Meat Section" },
+  { id: "meat_pillar", label: "Meat Section Pillar A", x: 250, y: 370, zone: "Meat Section" },
   { id: "seafood_column", label: "Seafood Column B", x: 970, y: 280, zone: "Seafood Section" },
-  { id: "veggies_pillar", label: "Veggies Pillar C", x: 1470, y: 1010, zone: "Veggies Section" }
+  { id: "veggies_pillar", label: "Veggies Pillar C", x: 1550, y: 1010, zone: "Veggies Section" }
 ];
 
 export default function ArFinder({ onBack }) {
@@ -119,19 +152,19 @@ export default function ArFinder({ onBack }) {
       const data = await response.json();
       if (data.success && data.stall) {
         const foundStall = data.stall;
-        
+
         const targetClean = getCleanDbStallNumber(foundStall.stallNumber);
-        
+
         const matched = stallsList.find(s => {
           const sec = String(foundStall.section || '').toLowerCase();
           let category = 'meat';
           if (sec.includes('fish') || sec.includes('sea')) category = 'fish';
           else if (sec.includes('veg') || sec.includes('produce')) category = 'veggies';
-          
+
           const sNum = getCleanDbStallNumber(s.rawId);
           const sZone = String(s.zone || '').replace('Zone ', '').toUpperCase();
           const fZone = String(foundStall.zone || '').replace('Zone ', '').toUpperCase();
-          
+
           return sNum === targetClean && s.category === category && sZone === fZone;
         });
 
@@ -155,7 +188,7 @@ export default function ArFinder({ onBack }) {
   useEffect(() => {
     const currentStall = stallsList.find(s => s.id === selectedStallId);
     if (!currentStall) return;
-    
+
     const fetchDirections = async () => {
       try {
         const cleanStallNum = getCleanDbStallNumber(currentStall.rawId);
@@ -201,10 +234,14 @@ export default function ArFinder({ onBack }) {
           const zoneLetter = String(s.zone || '').replace('Zone ', '').toUpperCase();
           const dbStall = dbStallMap[`${s.category}-${zoneLetter}-${cleanedId}`];
           if (dbStall) {
+            const isBottomZone = ['E', 'F', 'G', 'H'].includes(zoneLetter);
+            const isTopZone = ['A', 'B', 'C', 'D'].includes(zoneLetter);
+            const dbY = dbStall.coordinates?.y;
+            const yOffset = isBottomZone ? 250 : isTopZone ? 30 : 0;
             return {
               ...s,
               x: dbStall.coordinates?.x || s.x,
-              y: dbStall.coordinates?.y || s.y,
+              y: dbY !== undefined ? dbY + yOffset : s.y,
               status: dbStall.status || s.status,
               price: dbStall.monthlyRate || s.price,
               contractorName: dbStall.contractorName || 'None',
@@ -215,7 +252,7 @@ export default function ArFinder({ onBack }) {
         });
 
         setStallsList(updatedList);
-        
+
         // Auto-select the first available stall in the updated list if the current selection is not in it
         if (updatedList.length > 0) {
           const exists = updatedList.some(s => s.id === selectedStallId);
@@ -319,7 +356,7 @@ export default function ArFinder({ onBack }) {
     if (cx >= 0 && cx <= vw && cy >= 0 && cy <= vh) { setUserX(Math.round(cx)); setUserY(Math.round(cy)); }
   };
 
-  const X_CORRIDORS = [50, 520, 1020, 1515, 1980];
+  const X_CORRIDORS = [50, 490, 990, 1485, 1950]; // Reduced horizontal spacing by ~30px per corridor
 
   const getPathPoints = () => {
     const pts = [{ x: userX, y: userY }];
@@ -1104,34 +1141,46 @@ export default function ArFinder({ onBack }) {
 
                 {stallsList.filter(s => selectedCategory === "all" || s.category === selectedCategory).map(s => {
                   const isSelected = s.id === selectedStallId;
-                  
+
                   // Color according to dynamic database status
                   let circleColor = "rgba(226,232,240,0.9)";
                   let textColor = "#1e293b";
-                  let strokeColor = "#475569";
-                  
+                  let strokeColor = "#ffffff";
+                  let strokeWidth = "2.5";
+
                   if (isSelected) {
                     circleColor = "#e8621a";
                     textColor = "#ffffff";
                     strokeColor = "#ffffff";
+                    strokeWidth = "3.5";
                   } else if (s.status === "available") {
-                    circleColor = "rgba(45, 106, 45, 0.9)"; // Beautiful theme green
+                    circleColor = "rgba(34, 197, 94, 0.9)"; // Brighter theme green matching InteractiveStallMap
                     textColor = "#ffffff";
-                    strokeColor = "#1a5c2a";
+                    strokeColor = "#ffffff";
                   } else if (s.status === "occupied") {
-                    circleColor = "rgba(220, 38, 38, 0.9)"; // Red
+                    circleColor = "rgba(239, 68, 68, 0.9)"; // Brighter occupied red matching InteractiveStallMap
                     textColor = "#ffffff";
-                    strokeColor = "#991b1b";
+                    strokeColor = "#ffffff";
                   } else if (s.status === "pending") {
-                    circleColor = "rgba(217, 119, 6, 0.9)"; // Orange/amber
+                    circleColor = "rgba(245, 158, 11, 0.9)"; // Brighter pending orange matching InteractiveStallMap
                     textColor = "#ffffff";
-                    strokeColor = "#92400e";
+                    strokeColor = "#ffffff";
                   }
 
                   return (
                     <g key={s.id} transform={`translate(${s.x},${s.y})`}>
-                      <circle r="18" fill={circleColor} stroke={strokeColor} strokeWidth="2.5" />
-                      <text y="5.5" textAnchor="middle" fontSize="13" fontWeight="900" fill={textColor}>{s.id.split('-')[1] || s.id}</text>
+                      <circle r="18" fill={circleColor} stroke={strokeColor} strokeWidth={strokeWidth} />
+                      <text
+                        y="0"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fontSize="13"
+                        fontWeight="900"
+                        fill={textColor}
+                        style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}
+                      >
+                        {getCircleDisplayNumber(s.rawId)}
+                      </text>
                     </g>
                   );
                 })}
