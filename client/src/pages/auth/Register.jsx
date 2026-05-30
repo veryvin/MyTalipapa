@@ -15,7 +15,7 @@ export default function Register() {
     role: '',          // 'renter' | 'contractor'
     agreed: false
   })
-  
+
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -60,7 +60,7 @@ export default function Register() {
 
   const isEmailValid = form.email.trim().includes('@')
 
-  const isFormValid = 
+  const isFormValid =
     form.full_name.trim().length > 0 &&
     (form.role !== 'contractor' || form.business_name.trim().length > 0) &&
     isEmailValid &&
@@ -109,14 +109,14 @@ export default function Register() {
   // Filter stalls based on search and zone selection
   const filteredStalls = useMemo(() => {
     return stalls.filter(stall => {
-      const matchesSearch = 
+      const matchesSearch =
         stall.stallNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
         stall.section.toLowerCase().includes(searchQuery.toLowerCase())
-      
-      const matchesZone = 
-        selectedZone === 'All' || 
+
+      const matchesZone =
+        selectedZone === 'All' ||
         stall.section.toLowerCase() === selectedZone.toLowerCase()
-        
+
       return matchesSearch && matchesZone
     })
   }, [stalls, searchQuery, selectedZone])
@@ -275,7 +275,7 @@ export default function Register() {
           <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-xl">🏪</div>
           <span className="text-white text-2xl font-bold">MyTalipapa</span>
         </div>
-                {/* Back button moved to top left */}
+        {/* Back button moved to top left */}
       </div>
 
       {/* Card */}
@@ -362,15 +362,13 @@ export default function Register() {
                         <button
                           type="button"
                           onClick={() => selectRole('renter')}
-                          className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${
-                            form.role === 'renter'
+                          className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${form.role === 'renter'
                               ? 'border-green-700 bg-green-50'
                               : 'border-gray-200 bg-gray-50 hover:border-gray-300'
-                          }`}
+                            }`}
                         >
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                            form.role === 'renter' ? 'bg-green-700' : 'bg-gray-200'
-                          }`}>
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${form.role === 'renter' ? 'bg-green-700' : 'bg-gray-200'
+                            }`}>
                             <ShoppingBag size={20} className={form.role === 'renter' ? 'text-white' : 'text-gray-500'} />
                           </div>
                           <div className="text-center">
@@ -390,15 +388,13 @@ export default function Register() {
                         <button
                           type="button"
                           onClick={() => selectRole('contractor')}
-                          className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${
-                            form.role === 'contractor'
+                          className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${form.role === 'contractor'
                               ? 'border-green-700 bg-green-50'
                               : 'border-gray-200 bg-gray-50 hover:border-gray-300'
-                          }`}
+                            }`}
                         >
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                            form.role === 'contractor' ? 'bg-green-700' : 'bg-gray-200'
-                          }`}>
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${form.role === 'contractor' ? 'bg-green-700' : 'bg-gray-200'
+                            }`}>
                             <Store size={20} className={form.role === 'contractor' ? 'text-white' : 'text-gray-500'} />
                           </div>
                           <div className="text-center">
@@ -453,13 +449,12 @@ export default function Register() {
                     {/* Contact Number */}
                     <div>
                       <label className="block text-sm font-medium text-gray-600 mb-1.5">Contact Number</label>
-                      <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border transition-all ${
-                        form.contact_number.length === 0
+                      <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border transition-all ${form.contact_number.length === 0
                           ? 'border-gray-200 bg-gray-50 focus-within:border-green-700'
                           : isPhoneValid
-                          ? 'border-green-600 bg-green-50/20'
-                          : 'border-red-500 bg-red-50/20'
-                      }`}>
+                            ? 'border-green-600 bg-green-50/20'
+                            : 'border-red-500 bg-red-50/20'
+                        }`}>
                         <Phone size={16} className="text-gray-400 shrink-0" />
                         <span className="text-gray-500 text-sm font-semibold select-none shrink-0">+63</span>
                         <input
@@ -482,13 +477,12 @@ export default function Register() {
                     {/* Email */}
                     <div>
                       <label className="block text-sm font-medium text-gray-600 mb-1.5">Email Address</label>
-                      <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border transition-all ${
-                        form.email.length === 0
+                      <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border transition-all ${form.email.length === 0
                           ? 'border-gray-200 bg-gray-50 focus-within:border-green-700'
                           : isEmailValid
-                          ? 'border-green-600 bg-green-50/20'
-                          : 'border-red-500 bg-red-50/20'
-                      }`}>
+                            ? 'border-green-600 bg-green-50/20'
+                            : 'border-red-500 bg-red-50/20'
+                        }`}>
                         <Mail size={16} className="text-gray-400 shrink-0" />
                         <input
                           type="email" name="email" value={form.email} onChange={handleChange}
@@ -510,13 +504,12 @@ export default function Register() {
                     {/* Password */}
                     <div>
                       <label className="block text-sm font-medium text-gray-600 mb-1.5">Password</label>
-                      <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border transition-all ${
-                        form.password.length === 0
+                      <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border transition-all ${form.password.length === 0
                           ? 'border-gray-200 bg-gray-50 focus-within:border-green-700'
                           : isPasswordValid
-                          ? 'border-green-600 bg-green-50/20'
-                          : 'border-gray-200 bg-gray-50 focus-within:border-green-700'
-                      }`}>
+                            ? 'border-green-600 bg-green-50/20'
+                            : 'border-gray-200 bg-gray-50 focus-within:border-green-700'
+                        }`}>
                         <Lock size={16} className="text-gray-400 shrink-0" />
                         <input
                           type={showPassword ? 'text' : 'password'} name="password" value={form.password}
@@ -571,13 +564,12 @@ export default function Register() {
                     {/* Confirm Password */}
                     <div>
                       <label className="block text-sm font-medium text-gray-600 mb-1.5">Confirm Password</label>
-                      <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border transition-all ${
-                        form.confirm_password.length === 0
+                      <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border transition-all ${form.confirm_password.length === 0
                           ? 'border-gray-200 bg-gray-50 focus-within:border-green-700'
                           : passwordsMatch
-                          ? 'border-green-600 bg-green-50/20'
-                          : 'border-red-500 bg-red-50/20'
-                      }`}>
+                            ? 'border-green-600 bg-green-50/20'
+                            : 'border-red-500 bg-red-50/20'
+                        }`}>
                         <Lock size={16} className="text-gray-400 shrink-0" />
                         <input
                           type={showConfirm ? 'text' : 'password'} name="confirm_password" value={form.confirm_password}
@@ -639,9 +631,9 @@ export default function Register() {
                 {/* ── STEP 2: Pick Your Stalls ── */}
                 {step === 2 && (
                   <div>
-                    <button 
-                      type="button" 
-                      onClick={() => setStep(1)} 
+                    <button
+                      type="button"
+                      onClick={() => setStep(1)}
                       className="absolute top-6 left-6 text-gray-500 hover:text-gray-700 flex items-center gap-1 text-sm font-semibold"
                     >
                       ← Back
@@ -681,11 +673,10 @@ export default function Register() {
                               key={zone}
                               type="button"
                               onClick={() => setSelectedZone(zone)}
-                              className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${
-                                selectedZone === zone
+                              className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${selectedZone === zone
                                   ? 'bg-green-700 border-green-700 text-white shadow-sm'
                                   : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
-                              }`}
+                                }`}
                             >
                               {zone}
                             </button>
@@ -721,22 +712,20 @@ export default function Register() {
                                     setSelectedStalls([...selectedStalls, stall.stallNumber])
                                   }
                                 }}
-                                className={`flex flex-col text-left p-3.5 rounded-2xl border-2 transition-all relative ${
-                                  isSelected
+                                className={`flex flex-col text-left p-3.5 rounded-2xl border-2 transition-all relative ${isSelected
                                     ? 'border-green-700 bg-green-50/50'
                                     : isAvailable
-                                    ? 'border-gray-200 bg-white hover:border-gray-300'
-                                    : 'border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed'
-                                }`}
+                                      ? 'border-gray-200 bg-white hover:border-gray-300'
+                                      : 'border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed'
+                                  }`}
                               >
                                 {/* Stall Number & Status */}
                                 <div className="flex justify-between items-start mb-2">
                                   <span className="font-extrabold text-sm text-gray-800">#{stall.stallNumber}</span>
-                                  <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-md ${
-                                    isAvailable
+                                  <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-md ${isAvailable
                                       ? 'bg-green-100 text-green-700'
                                       : 'bg-gray-200 text-gray-500'
-                                  }`}>
+                                    }`}>
                                     {stall.status.toUpperCase()}
                                   </span>
                                 </div>
@@ -791,9 +780,9 @@ export default function Register() {
                 {/* ── STEP 3: Review & Submit ── */}
                 {step === 3 && (
                   <div>
-                    <button 
-                      type="button" 
-                      onClick={() => setStep(2)} 
+                    <button
+                      type="button"
+                      onClick={() => setStep(2)}
                       className="absolute top-6 left-6 text-gray-500 hover:text-gray-700 flex items-center gap-1 text-sm font-semibold"
                     >
                       ← Back
@@ -915,7 +904,7 @@ export default function Register() {
           </p>
         </div>
       </div>
-      
+
       {/* Scrollbar hide CSS */}
       <style>{`
         .scrollbar-none::-webkit-scrollbar { display: none; }

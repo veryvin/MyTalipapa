@@ -959,7 +959,13 @@ export default function MarketTour360() {
       <div className={`absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-2 sm:p-4 pointer-events-none transition-all duration-300 ${uiVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-12 pointer-events-none'}`}>
         <div className="flex items-center gap-3 pointer-events-auto">
           <button
-            onClick={() => { window.location.href = '/renter/dashboard' }}
+            onClick={() => {
+              if (window.history.state && window.history.state.idx > 0) {
+                navigate(-1);
+              } else {
+                navigate(location.pathname.startsWith('/renter') ? '/renter/dashboard' : '/');
+              }
+            }}
             className="w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center shadow-lg hover:bg-white active:scale-95 transition-all text-slate-800 border border-black/10 cursor-pointer"
           >
             <ArrowLeft size={20} />

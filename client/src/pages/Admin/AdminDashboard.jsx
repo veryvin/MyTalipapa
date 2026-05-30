@@ -96,11 +96,11 @@ export default function AdminDashboard() {
   }, [])
 
   // ── Derived live stats ─────────────────────────────────
-  const totalStalls   = stalls.length
+  const totalStalls = stalls.length
   const availableCount = stalls.filter(s => s.status === 'available').length
-  const occupiedCount  = stalls.filter(s => s.status === 'occupied').length
-  const pendingApps    = applications.filter(a => a.status === 'pending')
-  const occupancyPct   = totalStalls > 0 ? Math.round((occupiedCount / totalStalls) * 100) : 0
+  const occupiedCount = stalls.filter(s => s.status === 'occupied').length
+  const pendingApps = applications.filter(a => a.status === 'pending')
+  const occupancyPct = totalStalls > 0 ? Math.round((occupiedCount / totalStalls) * 100) : 0
 
   // Total monthly revenue from occupied stalls with a monthlyRate
   const totalRevenue = stalls
@@ -246,8 +246,8 @@ export default function AdminDashboard() {
                 {occupancyPct >= 90
                   ? <><span className="near-full">Near full capacity</span> — {availableCount} stalls left</>
                   : occupancyPct >= 50
-                  ? <><span className="near-full">{occupancyPct}% occupied</span> — {availableCount} stalls available</>
-                  : <>{availableCount} stalls currently <span className="near-full">available</span></>
+                    ? <><span className="near-full">{occupancyPct}% occupied</span> — {availableCount} stalls available</>
+                    : <>{availableCount} stalls currently <span className="near-full">available</span></>
                 }
               </p>
             </div>
@@ -302,7 +302,7 @@ export default function AdminDashboard() {
                         onClick={() => handleAction(app.id, 'reject')}
                       >
                         <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                         </svg>
                         {processingId === app.id ? '…' : 'Reject'}
                       </button>
@@ -312,7 +312,7 @@ export default function AdminDashboard() {
                         onClick={() => handleAction(app.id, 'approve')}
                       >
                         <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <polyline points="20 6 9 17 4 12"/>
+                          <polyline points="20 6 9 17 4 12" />
                         </svg>
                         {processingId === app.id ? '…' : 'Approve'}
                       </button>

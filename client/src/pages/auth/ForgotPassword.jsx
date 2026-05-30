@@ -8,17 +8,17 @@ export default function ForgotPassword() {
   const [accountName, setAccountName] = useState('')
   const [userId, setUserId] = useState('')
   const [maskedEmail, setMaskedEmail] = useState('')
-  
+
   const [otp, setOtp] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  
+
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
-  
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-  
+
   // Timer: 5 minutes = 300 seconds
   const [timer, setTimer] = useState(0)
 
@@ -227,7 +227,7 @@ export default function ForgotPassword() {
 
         {/* Card */}
         <div className="bg-white rounded-3xl shadow-sm p-6 relative overflow-hidden">
-          
+
           {/* Back button (Only for steps 1, 2, 3) */}
           {step < 4 && (
             <button

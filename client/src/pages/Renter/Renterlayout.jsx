@@ -14,7 +14,6 @@ import RenterApplications from './RenterApplications'
 import Renterprofile from './Renterprofile'
 import MarketTour360 from '../MarketTour360'
 import ArFinder from './ArFinder'
-import FindStall from './FindStall'
 
 const LogoutIcon = () => (
   <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -26,7 +25,6 @@ const LogoutIcon = () => (
 
 const NAV_ITEMS = [
   { id: 'home',         label: 'Home',            Icon: Home       },
-  { id: 'find-stall',   label: 'Map',             Icon: Map        },
   { id: 'navigate',     label: '360° Tour',       Icon: Navigation },
   { id: 'ar-finder',    label: 'AR Finder',       Icon: Camera     },
   { id: 'stalls',       label: 'Stalls',          Icon: Store      },
@@ -94,7 +92,7 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, onLogout }) {
 function BottomBar({ active, setActive }) {
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
-      <div className="grid grid-cols-7 h-16">
+      <div className="grid grid-cols-6 h-16">
         {NAV_ITEMS.map(({ id, label, Icon }) => {
           const isActive = active === id
           return (
@@ -152,10 +150,6 @@ export default function RenterLayout() {
       setSelectedStall(null)
       routerNavigate('/renter/dashboard')
     }
-    else if (tab === 'find-stall') {
-      routerNavigate('/renter/find-stall')
-      setSelectedStall(null)
-    }
     else if (tab === 'stalls') {
       routerNavigate('/renter/stalls')
     }
@@ -172,7 +166,7 @@ export default function RenterLayout() {
       routerNavigate('/renter/ar-finder')
     }
     else if (tab === 'navigate') {
-      routerNavigate('/renter/market-tour')
+      routerNavigate('/renter/market-tour', { state: { stall: selectedStall } })
     }
   }, [routerNavigate, selectedStall])
 
@@ -190,9 +184,7 @@ export default function RenterLayout() {
   // Synchronize layout active tabs with route path changes
   useEffect(() => {
     console.log('[RenterLayout] location.pathname changed to:', location.pathname)
-    if (location.pathname.includes('find-stall')) {
-      setActiveTab('find-stall')
-    } else if (location.pathname.includes('market-tour') || location.pathname.includes('navigate')) {
+    if (location.pathname.includes('market-tour') || location.pathname.includes('navigate')) {
       setActiveTab('navigate')
     } else if (location.pathname.includes('ar-finder')) {
       setActiveTab('ar-finder')
@@ -209,10 +201,6 @@ export default function RenterLayout() {
 
   const renderPage = () => {
     console.log('[RenterLayout] Rendering page. activeTab =', activeTab, 'pathname =', location.pathname)
-
-    if (location.pathname.includes('find-stall')) {
-      return <FindStall />
-    }
     if (location.pathname.includes('market-tour')) {
       return <MarketTour360 />
     }
@@ -246,9 +234,6 @@ export default function RenterLayout() {
 
       case 'applications':
         return <RenterApplications onNavigate={navigate} prefill={prefillStall} />
-
-      case 'find-stall':
-        return <FindStall />
 
       case 'ar-finder':
         return <ArFinder onBack={() => routerNavigate('/renter/dashboard')} />

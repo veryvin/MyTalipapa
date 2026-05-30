@@ -15,7 +15,7 @@ window.addEventListener('error', (event) => {
       colno: event.colno,
       error: event.error ? event.error.stack : null
     })
-  }).catch(() => {});
+  }).catch(() => { });
 });
 
 window.addEventListener('unhandledrejection', (event) => {
@@ -26,7 +26,7 @@ window.addEventListener('unhandledrejection', (event) => {
       message: 'Unhandled Rejection: ' + String(event.reason),
       error: event.reason && event.reason.stack ? event.reason.stack : null
     })
-  }).catch(() => {});
+  }).catch(() => { });
 });
 
 createRoot(document.getElementById('root')).render(

@@ -37,8 +37,8 @@ const LogoutIcon = () => (
 );
 
 const SECTION_META = {
-  Meat:       { label: "Meat",       color: "#b91c1c", bg: "#fee2e2", border: "#fca5a5" },
-  Fishes:     { label: "Fishes",     color: "#0369a1", bg: "#e0f2fe", border: "#7dd3fc" },
+  Meat: { label: "Meat", color: "#b91c1c", bg: "#fee2e2", border: "#fca5a5" },
+  Fishes: { label: "Fishes", color: "#0369a1", bg: "#e0f2fe", border: "#7dd3fc" },
   Vegetables: { label: "Vegetables", color: "#15803d", bg: "#dcfce7", border: "#86efac" },
 };
 
@@ -353,7 +353,7 @@ export default function AdminStalls() {
                 <div className="stalls-filter-wrap">
                   <button className="stalls-filter-btn" onClick={() => setFilterOpen(o => !o)}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
                     </svg>
                     Filter
                     {filterStatus !== 'all' && <span className="filter-active-dot" />}

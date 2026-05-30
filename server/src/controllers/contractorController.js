@@ -1,5 +1,5 @@
 // contractorController.js
-const Stall       = require('../models/Stall');
+const Stall = require('../models/Stall');
 const Application = require('../models/Application');
 
 // ── Helper: resolve stallNumber from application ──────────
@@ -127,26 +127,26 @@ exports.getApplications = async (req, res) => {
       }
 
       return {
-        id:                app._id.toString(),
-        name:              app.fullName,
-        phone:             app.contactNumber,
-        email:             app.email,
-        stall:             stallDisplay,
-        stallId:           stall ? stall._id.toString() : null,
-        stallColor:        app.avatarColor || '#f97316',
-        applied:           app.appliedAt
+        id: app._id.toString(),
+        name: app.fullName,
+        phone: app.contactNumber,
+        email: app.email,
+        stall: stallDisplay,
+        stallId: stall ? stall._id.toString() : null,
+        stallColor: app.avatarColor || '#f97316',
+        applied: app.appliedAt
           ? new Date(app.appliedAt).toLocaleDateString('en-US', {
-              month: 'short', day: 'numeric', year: 'numeric',
-            })
+            month: 'short', day: 'numeric', year: 'numeric',
+          })
           : '',
-        type:              app.intendedBusinessUse,
-        typeColor:         '#2563eb',
-        status:            app.status,
-        initials:          app.initials,
+        type: app.intendedBusinessUse,
+        typeColor: '#2563eb',
+        status: app.status,
+        initials: app.initials,
         additionalMessage: app.additionalMessage,
-        rejectionReason:   app.rejectionReason,
-        reviewedAt:        app.reviewedAt,
-        preferredStall:    app.preferredStall,
+        rejectionReason: app.rejectionReason,
+        reviewedAt: app.reviewedAt,
+        preferredStall: app.preferredStall,
       };
     }));
 
@@ -188,11 +188,11 @@ exports.updateApplicationStatus = async (req, res) => {
             $set: {
               status: 'occupied',
               tenant: {
-                name:       app.fullName,
-                contact:    app.contactNumber,
-                email:      app.email,
+                name: app.fullName,
+                contact: app.contactNumber,
+                email: app.email,
                 leaseStart: new Date(),
-                leaseEnd:   null,
+                leaseEnd: null,
               },
               updatedAt: new Date(),
             },
@@ -207,11 +207,11 @@ exports.updateApplicationStatus = async (req, res) => {
             $set: {
               status: 'available',
               tenant: {
-                name:       null,
-                contact:    null,
-                email:      null,
+                name: null,
+                contact: null,
+                email: null,
                 leaseStart: null,
-                leaseEnd:   null,
+                leaseEnd: null,
               },
               updatedAt: new Date(),
             },
@@ -226,7 +226,7 @@ exports.updateApplicationStatus = async (req, res) => {
       id,
       {
         $set: {
-          status:     action === 'approve' ? 'approved' : 'rejected',
+          status: action === 'approve' ? 'approved' : 'rejected',
           reviewedAt: new Date(),
           reviewedBy: req.user?.name || req.user?.id || 'Admin',
         },
@@ -246,9 +246,9 @@ exports.updateApplicationStatus = async (req, res) => {
     });
 
     res.json({
-      application:    updatedApp,
-      stallUpdated:   !!stall,
-      stallId:        stall?._id,
+      application: updatedApp,
+      stallUpdated: !!stall,
+      stallId: stall?._id,
       newStallStatus: action === 'approve' ? 'occupied' : 'available',
     });
 
@@ -258,7 +258,7 @@ exports.updateApplicationStatus = async (req, res) => {
   }
 };
 
- // ── GET /api/contractor/records ──────────────────────────
+// ── GET /api/contractor/records ──────────────────────────
 exports.getRecords = async (req, res) => {
   try {
     const { email } = req.query;
@@ -266,7 +266,7 @@ exports.getRecords = async (req, res) => {
     const Payment = require('../models/Payment'); // import here to avoid circular deps
     const records = await Promise.all(approved.map(async (app) => {
       const stall = await findStallByAppStallNumber(app.preferredStall);
-      
+
       // Filter by contractor email if query param is provided
       if (email && (!stall || stall.managedBy !== email.toLowerCase())) {
         return null;
@@ -281,7 +281,7 @@ exports.getRecords = async (req, res) => {
       }));
       const lastPaid = payments.find(p => p.status === 'paid');
       const lastPayment = lastPaid ? new Date(lastPaid.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
-      
+
       // Calculate dynamic payment validity and status (1 month validity)
       const baseDate = lastPaid ? lastPaid.date : (app.reviewedAt || app.appliedAt || new Date());
       const nextDueDate = new Date(baseDate);
@@ -350,10 +350,10 @@ exports.getContractorApplications = async (req, res) => {
         rejectionReason: app.rejectionReason || '',
         appliedAt: app.appliedAt
           ? new Date(app.appliedAt).toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-            })
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          })
           : '',
         initials,
       };
@@ -553,7 +553,7 @@ exports.requestArchiveAccess = async (req, res) => {
     }
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'mytalipapa-secret-key-12345');
-    
+
     const user = await User.findById(decoded.id);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -585,14 +585,14 @@ exports.getArchivedRecords = async (req, res) => {
     const Application = require('../models/Application');
     const Payment = require('../models/Payment');
     const Stall = require('../models/Stall');
-    
+
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ error: 'Unauthorized. No token provided.' });
     }
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'mytalipapa-secret-key-12345');
-    
+
     const user = await User.findById(decoded.id);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -620,7 +620,7 @@ exports.getArchivedRecords = async (req, res) => {
 
     const records = await Promise.all(archivedApps.map(async (app) => {
       const stall = await findStallByAppStallNumber(app.preferredStall);
-      
+
       // Filter by contractor email (since contractor can only see stalls they manage)
       if (!stall || stall.managedBy !== user.email.toLowerCase()) {
         return null;

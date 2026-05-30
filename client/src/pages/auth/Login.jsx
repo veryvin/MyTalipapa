@@ -11,51 +11,51 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-async function handleLogin(e) {
-  e.preventDefault()
-  setLoading(true)
-  setError(null)
+  async function handleLogin(e) {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
 
-  try {
-    const response = await fetch('http://localhost:5000/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, role }),
-    })
+    try {
+      const response = await fetch('http://localhost:5000/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, role }),
+      })
 
-    const result = await response.json()
+      const result = await response.json()
 
-    if (!response.ok) {
-      setError(result.error || 'Login failed')
-      setLoading(false)
-      return
+      if (!response.ok) {
+        setError(result.error || 'Login failed')
+        setLoading(false)
+        return
+      }
+
+      // Store JWT token
+      localStorage.setItem('authToken', result.token)
+      localStorage.setItem('user', JSON.stringify(result.user))
+
+
+      // Redirect based on role
+      if (result.user && result.user.role === 'renter') {
+        window.location.href = '/renter/dashboard'
+      } else if (result.user && result.user.role === 'admin') {
+        window.location.href = '/admin/dashboard'
+      } else {
+        window.location.href = '/contractor/dashboard'
+      }
+
+    } catch (err) {
+      setError('Network error: ' + err.message)
     }
 
-    // Store JWT token
-    localStorage.setItem('authToken', result.token)
-    localStorage.setItem('user', JSON.stringify(result.user))
-    
-
-    // Redirect based on role
-    if (result.user && result.user.role === 'renter') {
-      window.location.href = '/renter/dashboard'
-    } else if (result.user && result.user.role === 'admin') {
-      window.location.href = '/admin/dashboard'
-    } else {
-      window.location.href = '/contractor/dashboard'
-    }
-
-  } catch (err) {
-    setError('Network error: ' + err.message)
+    setLoading(false)
   }
-
-  setLoading(false)
-}
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-10 relative" style={{ backgroundColor: '#f5f2ec' }}>
-  <button onClick={() => navigate('/')} className="absolute top-4 left-4 flex items-center gap-1 text-sm font-semibold bg-[#1a5c2a] rounded-md shadow p-2 text-white hover:bg-[#163721] transition-colors">← Back</button>
-  <div className="w-full max-w-sm">
+      <button onClick={() => navigate('/')} className="absolute top-4 left-4 flex items-center gap-1 text-sm font-semibold bg-[#1a5c2a] rounded-md shadow p-2 text-white hover:bg-[#163721] transition-colors">← Back</button>
+      <div className="w-full max-w-sm">
 
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
@@ -69,7 +69,7 @@ async function handleLogin(e) {
           {/* Back button moved to top left */}
         </div>
 
-    {/* Card */}
+        {/* Card */}
         <div className="bg-white rounded-3xl shadow-sm p-6">
 
           {/* Role Toggle */}

@@ -78,7 +78,7 @@ const buildAllStalls = () => {
     '21', '22', '23', '24', '25', '26', '27', '28', '29', '30',
     '31', '32', '33', '34', '35', '36', '37', '38', '39', '40',
     '41', '42', '43', '44', '45', '46', '47', '48', '49', '50',
-    '57', '58', '59', '60', '61', '62', '63', '64', '65', '66', '67', '68', '69', '70', '71', '72','73','74','75',
+    '57', '58', '59', '60', '61', '62', '63', '64', '65', '66', '67', '68', '69', '70', '71', '72', '73', '74', '75',
     'nostallnum1', 'nostallnum2', 'nostallnum3', 'nostallnum4', 'nostallnum5'
   ];
   const veggieIds = [
@@ -348,7 +348,7 @@ export default function ArFinder({ onBack }) {
       gpsWatchIdRef.current = navigator.geolocation.watchPosition(
         (position) => {
           const { latitude, longitude, accuracy } = position.coords;
-          
+
           if (!gpsAnchorRef.current) {
             gpsAnchorRef.current = {
               lat: latitude,
@@ -360,17 +360,17 @@ export default function ArFinder({ onBack }) {
           } else {
             const latDiff = latitude - gpsAnchorRef.current.lat;
             const lngDiff = longitude - gpsAnchorRef.current.lng;
-            
+
             const dyMeters = latDiff * 111139;
             const dxMeters = lngDiff * 111139 * Math.cos(gpsAnchorRef.current.lat * Math.PI / 180);
-            
+
             const scale = 50; // pixels per meter
             const dxPixels = dxMeters * scale;
             const dyPixels = -dyMeters * scale;
-            
+
             const newX = Math.round(gpsAnchorRef.current.mapX + dxPixels);
             const newY = Math.round(gpsAnchorRef.current.mapY + dyPixels);
-            
+
             setUserX(Math.max(30, Math.min(2270, newX)));
             setUserY(Math.max(30, Math.min(1790, newY)));
           }

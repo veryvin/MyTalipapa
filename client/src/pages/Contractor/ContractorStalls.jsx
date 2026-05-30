@@ -38,8 +38,8 @@ const LogoutIcon = () => (
 );
 
 const SECTION_META = {
-  Meat:       { label: "Meat",       color: "#b91c1c", bg: "#fee2e2", border: "#fca5a5" },
-  Fishes:     { label: "Fishes",     color: "#0369a1", bg: "#e0f2fe", border: "#7dd3fc" },
+  Meat: { label: "Meat", color: "#b91c1c", bg: "#fee2e2", border: "#fca5a5" },
+  Fishes: { label: "Fishes", color: "#0369a1", bg: "#e0f2fe", border: "#7dd3fc" },
   Vegetables: { label: "Vegetables", color: "#15803d", bg: "#dcfce7", border: "#86efac" },
 };
 
@@ -195,313 +195,313 @@ export default function ContractorStalls() {
   return (
     <ContractorLockScreen>
       <div className="flex h-screen bg-[#f5f5f0] font-sans overflow-hidden w-full">
-      {/* Logout Modal */}
-      {showLogoutModal && (
-        <div className="logout-overlay" onClick={() => setShowLogoutModal(false)}>
-          <div className="logout-modal" onClick={e => e.stopPropagation()}>
-            <div className="logout-modal-icon"><LogoutIcon /></div>
-            <h3 className="logout-modal-title">Log Out?</h3>
-            <p className="logout-modal-msg">You'll be signed out of your contractor session.</p>
-            <div className="logout-modal-actions">
-              <button className="logout-cancel-btn" onClick={() => setShowLogoutModal(false)}>Cancel</button>
-              <button className="logout-confirm-btn" onClick={handleLogout}>Yes, Log Out</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Sidebar */}
-      <ContractorSidebar active="nav-stalls" />
-
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        {/* Header */}
-        <header className="bg-white border-b border-gray-100 px-4 md:px-6 py-3.5 flex items-center justify-between sticky top-0 z-30 shrink-0">
-          <div className="flex items-center gap-3">
-            {/* Mobile logo */}
-            <div className="md:hidden flex items-center gap-2">
-              <div className="w-7 h-7 bg-[#1a5c2a] rounded-lg flex items-center justify-center shrink-0">
-                <Store size={13} color="white" />
+        {/* Logout Modal */}
+        {showLogoutModal && (
+          <div className="logout-overlay" onClick={() => setShowLogoutModal(false)}>
+            <div className="logout-modal" onClick={e => e.stopPropagation()}>
+              <div className="logout-modal-icon"><LogoutIcon /></div>
+              <h3 className="logout-modal-title">Log Out?</h3>
+              <p className="logout-modal-msg">You'll be signed out of your contractor session.</p>
+              <div className="logout-modal-actions">
+                <button className="logout-cancel-btn" onClick={() => setShowLogoutModal(false)}>Cancel</button>
+                <button className="logout-confirm-btn" onClick={handleLogout}>Yes, Log Out</button>
               </div>
-              <span className="font-extrabold text-gray-900 text-sm">MyTalipapa</span>
-            </div>
-            {/* Desktop breadcrumb */}
-            <div className="hidden md:flex items-center gap-1 text-sm text-gray-400">
-              <span>Contractor</span>
-              <ChevronRight size={14} />
-              <span className="text-gray-700 font-semibold">Stalls</span>
             </div>
           </div>
-          <div className="header-right">
-            <div className="header-welcome">
-              <span className="welcome-name">{authLoading ? 'Loading…' : userName ? `${userName}` : 'Welcome, Guest'}</span>
-              <span className="welcome-role">Contractor</span>
-            </div>
-            <NotificationBell />
-            <button className="header-logout-btn" aria-label="Log out" onClick={() => setShowLogoutModal(true)}>
-              <LogoutIcon />
-            </button>
-          </div>
-        </header>
+        )}
 
-        <main className="dashboard-main stalls-main">
-          <div className="stalls-title-block">
-            <h1 className="stalls-page-title">Market Floor Plan</h1>
-            <p className="stalls-page-sub">Real-time stall availability and management.</p>
-          </div>
+        {/* Sidebar */}
+        <ContractorSidebar active="nav-stalls" />
 
-          {loading && (
-            <div className="stalls-state-msg">
-              <div className="stalls-spinner" />
-              <span>Loading stalls...</span>
-            </div>
-          )}
-          {error && (
-            <div className="stalls-error-msg">⚠️ Failed to load stalls: {error}</div>
-          )}
-
-          {!loading && !error && (
-            <>
-              {/* Occupancy Banner */}
-              <div className="stalls-occupancy-banner">
-                <div className="occupancy-banner-inner">
-                  <span className="occupancy-banner-label">Total Occupancy</span>
-                  <span className="occupancy-banner-pct">{occupancyPct}%</span>
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+          {/* Header */}
+          <header className="bg-white border-b border-gray-100 px-4 md:px-6 py-3.5 flex items-center justify-between sticky top-0 z-30 shrink-0">
+            <div className="flex items-center gap-3">
+              {/* Mobile logo */}
+              <div className="md:hidden flex items-center gap-2">
+                <div className="w-7 h-7 bg-[#1a5c2a] rounded-lg flex items-center justify-center shrink-0">
+                  <Store size={13} color="white" />
                 </div>
-                <div className="occupancy-bar-track">
-                  <div className="occupancy-bar-fill" style={{ width: `${occupancyPct}%` }}></div>
-                </div>
-                <div className="occupancy-banner-counts">
-                  <span>{occupied} Stalls Occupied</span>
-                  <span>{totalStalls} Total Stalls</span>
-                </div>
+                <span className="font-extrabold text-gray-900 text-sm">MyTalipapa</span>
               </div>
-
-              {/* ── Section Tabs (Fishes / Meat / Vegetables) ── */}
-              <div className="stalls-section-tabs-wrap">
-                <div className="stalls-section-tabs">
-                  {sectionKeys.map(sec => {
-                    const meta = getSectionMeta(sec);
-                    return (
-                      <button
-                        key={sec}
-                        className={`stalls-section-tab${activeSection === sec ? " stalls-tab-active" : ""}`}
-                        style={activeSection === sec ? { background: meta.color, borderColor: meta.color } : {}}
-                        onClick={() => { setActiveSection(sec); setFilterStatus("all"); }}
-                      >
-                        <span className="tab-section-dot" style={{ background: meta.color }} />
-                        {sec}
-                        <span className="tab-count">{sectionCounts[sec] ?? 0}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+              {/* Desktop breadcrumb */}
+              <div className="hidden md:flex items-center gap-1 text-sm text-gray-400">
+                <span>Contractor</span>
+                <ChevronRight size={14} />
+                <span className="text-gray-700 font-semibold">Stalls</span>
               </div>
+            </div>
+            <div className="header-right">
+              <div className="header-welcome">
+                <span className="welcome-name">{authLoading ? 'Loading…' : userName ? `${userName}` : 'Welcome, Guest'}</span>
+                <span className="welcome-role">Contractor</span>
+              </div>
+              <NotificationBell />
+              <button className="header-logout-btn" aria-label="Log out" onClick={() => setShowLogoutModal(true)}>
+                <LogoutIcon />
+              </button>
+            </div>
+          </header>
 
-              {/* ── Zone Sub-Tabs (A–H) ── */}
-              {zoneKeys.length > 1 && (
-                <div className="stalls-floor-tabs-wrap">
-                  <div className="stalls-floor-tabs">
-                    <button
-                      className={`stalls-floor-tab${activeZone === "all" ? " floor-tab-active" : ""}`}
-                      onClick={() => { setActiveZone("all"); setFilterStatus("all"); }}
-                    >
-                      <span className="floor-tab-icon">🌐</span>
-                      All Zones
-                      <span className="floor-tab-count">
-                        {stalls.filter(s => s.section === activeSection).length}
-                      </span>
-                    </button>
-                    {zoneKeys.map(zone => {
-                      const zoneCount = stalls.filter(
-                        s => s.section === activeSection && s.zone === zone
-                      ).length;
+          <main className="dashboard-main stalls-main">
+            <div className="stalls-title-block">
+              <h1 className="stalls-page-title">Market Floor Plan</h1>
+              <p className="stalls-page-sub">Real-time stall availability and management.</p>
+            </div>
+
+            {loading && (
+              <div className="stalls-state-msg">
+                <div className="stalls-spinner" />
+                <span>Loading stalls...</span>
+              </div>
+            )}
+            {error && (
+              <div className="stalls-error-msg">⚠️ Failed to load stalls: {error}</div>
+            )}
+
+            {!loading && !error && (
+              <>
+                {/* Occupancy Banner */}
+                <div className="stalls-occupancy-banner">
+                  <div className="occupancy-banner-inner">
+                    <span className="occupancy-banner-label">Total Occupancy</span>
+                    <span className="occupancy-banner-pct">{occupancyPct}%</span>
+                  </div>
+                  <div className="occupancy-bar-track">
+                    <div className="occupancy-bar-fill" style={{ width: `${occupancyPct}%` }}></div>
+                  </div>
+                  <div className="occupancy-banner-counts">
+                    <span>{occupied} Stalls Occupied</span>
+                    <span>{totalStalls} Total Stalls</span>
+                  </div>
+                </div>
+
+                {/* ── Section Tabs (Fishes / Meat / Vegetables) ── */}
+                <div className="stalls-section-tabs-wrap">
+                  <div className="stalls-section-tabs">
+                    {sectionKeys.map(sec => {
+                      const meta = getSectionMeta(sec);
                       return (
                         <button
-                          key={zone}
-                          className={`stalls-floor-tab${activeZone === zone ? " floor-tab-active" : ""}`}
-                          onClick={() => { setActiveZone(zone); setFilterStatus("all"); }}
+                          key={sec}
+                          className={`stalls-section-tab${activeSection === sec ? " stalls-tab-active" : ""}`}
+                          style={activeSection === sec ? { background: meta.color, borderColor: meta.color } : {}}
+                          onClick={() => { setActiveSection(sec); setFilterStatus("all"); }}
                         >
-                          <span className="floor-tab-icon">📍</span>
-                          Zone {zone}
-                          <span className="floor-tab-count">{zoneCount}</span>
+                          <span className="tab-section-dot" style={{ background: meta.color }} />
+                          {sec}
+                          <span className="tab-count">{sectionCounts[sec] ?? 0}</span>
                         </button>
                       );
                     })}
                   </div>
                 </div>
-              )}
 
-              {/* ── Section + Zone Header + Filter ── */}
-              <div className="stalls-section-header">
-                <div className="stalls-section-name-wrap">
-                  {activeSection && (
-                    <span
-                      className="section-color-badge"
-                      style={{
-                        background: getSectionMeta(activeSection).bg,
-                        color: getSectionMeta(activeSection).color,
-                        borderColor: getSectionMeta(activeSection).border,
-                      }}
-                    >
-                      {activeSection}
-                    </span>
-                  )}
-                  {activeZone && activeZone !== "all" && (
-                    <span className="floor-label-badge">
-                      Zone {activeZone}
-                    </span>
-                  )}
-                  <span className="stalls-section-sub">
-                    {displayStalls.length} stall{displayStalls.length !== 1 ? 's' : ''}
-                    {filterStatus !== 'all' ? ` · ${STATUS_LABEL[filterStatus]}` : ''}
-                  </span>
-                </div>
-                <div className="stalls-filter-wrap">
-                  <button className="stalls-filter-btn" onClick={() => setFilterOpen(o => !o)}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
-                    </svg>
-                    Filter
-                    {filterStatus !== 'all' && <span className="filter-active-dot" />}
-                  </button>
-                  {filterOpen && (
-                    <div className="stalls-filter-dropdown">
-                      {filterOptions.map(f => (
-                        <button
-                          key={f}
-                          className={`stalls-filter-option${filterStatus === f ? " filter-selected" : ""}`}
-                          onClick={() => { setFilterStatus(f); setFilterOpen(false); }}
-                        >
-                          {f === "all" ? "All Statuses" : STATUS_LABEL[f]}
-                        </button>
-                      ))}
+                {/* ── Zone Sub-Tabs (A–H) ── */}
+                {zoneKeys.length > 1 && (
+                  <div className="stalls-floor-tabs-wrap">
+                    <div className="stalls-floor-tabs">
+                      <button
+                        className={`stalls-floor-tab${activeZone === "all" ? " floor-tab-active" : ""}`}
+                        onClick={() => { setActiveZone("all"); setFilterStatus("all"); }}
+                      >
+                        <span className="floor-tab-icon">🌐</span>
+                        All Zones
+                        <span className="floor-tab-count">
+                          {stalls.filter(s => s.section === activeSection).length}
+                        </span>
+                      </button>
+                      {zoneKeys.map(zone => {
+                        const zoneCount = stalls.filter(
+                          s => s.section === activeSection && s.zone === zone
+                        ).length;
+                        return (
+                          <button
+                            key={zone}
+                            className={`stalls-floor-tab${activeZone === zone ? " floor-tab-active" : ""}`}
+                            onClick={() => { setActiveZone(zone); setFilterStatus("all"); }}
+                          >
+                            <span className="floor-tab-icon">📍</span>
+                            Zone {zone}
+                            <span className="floor-tab-count">{zoneCount}</span>
+                          </button>
+                        );
+                      })}
                     </div>
-                  )}
+                  </div>
+                )}
+
+                {/* ── Section + Zone Header + Filter ── */}
+                <div className="stalls-section-header">
+                  <div className="stalls-section-name-wrap">
+                    {activeSection && (
+                      <span
+                        className="section-color-badge"
+                        style={{
+                          background: getSectionMeta(activeSection).bg,
+                          color: getSectionMeta(activeSection).color,
+                          borderColor: getSectionMeta(activeSection).border,
+                        }}
+                      >
+                        {activeSection}
+                      </span>
+                    )}
+                    {activeZone && activeZone !== "all" && (
+                      <span className="floor-label-badge">
+                        Zone {activeZone}
+                      </span>
+                    )}
+                    <span className="stalls-section-sub">
+                      {displayStalls.length} stall{displayStalls.length !== 1 ? 's' : ''}
+                      {filterStatus !== 'all' ? ` · ${STATUS_LABEL[filterStatus]}` : ''}
+                    </span>
+                  </div>
+                  <div className="stalls-filter-wrap">
+                    <button className="stalls-filter-btn" onClick={() => setFilterOpen(o => !o)}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                      </svg>
+                      Filter
+                      {filterStatus !== 'all' && <span className="filter-active-dot" />}
+                    </button>
+                    {filterOpen && (
+                      <div className="stalls-filter-dropdown">
+                        {filterOptions.map(f => (
+                          <button
+                            key={f}
+                            className={`stalls-filter-option${filterStatus === f ? " filter-selected" : ""}`}
+                            onClick={() => { setFilterStatus(f); setFilterOpen(false); }}
+                          >
+                            {f === "all" ? "All Statuses" : STATUS_LABEL[f]}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
+
+                {/* ── Stall Grid grouped by Zone ── */}
+                {stallsByZone.length === 0 ? (
+                  <p className="stalls-empty">No stalls match this filter.</p>
+                ) : (
+                  <div
+                    className="stalls-columns-wrap"
+                    style={{ "--col-count": stallsByZone.length }}
+                  >
+                    {stallsByZone.map(([zone, zoneStalls]) => (
+                      <div key={zone} className="stalls-column-group">
+                        <div className="stalls-col-header">Zone {zone}</div>
+                        <div className={`stalls-col-cells ${stallsByZone.length === 1 ? 'grid-3-cols' : ''}`}>
+                          {zoneStalls.map(stall => {
+                            const key = stall._id || stall.stallNumber;
+                            // Display full stallNumber as stored in DB
+                            const label = stall.stallNumber || "?";
+                            return (
+                              <button
+                                key={key}
+                                className={`stall-cell stall-${stall.status}`}
+                                onClick={() => setSelectedStall(stall)}
+                                title={`Stall ${label} · ${stall.section} · Zone ${stall.zone} · ${STATUS_LABEL[stall.status]}`}
+                              >
+                                {label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Legend */}
+                <div className="stalls-legend">
+                  <div className="legend-item"><span className="legend-dot legend-available"></span><span>Available</span></div>
+                  <div className="legend-item"><span className="legend-dot legend-occupied"></span><span>Occupied</span></div>
+                  <div className="legend-item"><span className="legend-dot legend-pending"></span><span>Pending</span></div>
+                </div>
+              </>
+            )}
+          </main>
+        </div>
+
+        {/* Bottom Navigation */}
+        <nav className="bottom-nav" aria-label="Main Navigation">
+          {NAV_ITEMS.map(item => (
+            <button
+              key={item.id}
+              className={`nav-item ${activeNav === item.id ? 'nav-active' : ''}`}
+              onClick={() => handleNav(item)}
+            >
+              <span className="nav-icon">{item.icon}</span>
+              <span className="nav-label">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        {/* Stall Detail Modal */}
+        {selectedStall && (
+          <div className="logout-overlay" onClick={() => setSelectedStall(null)}>
+            <div className="stall-modal" onClick={e => e.stopPropagation()}>
+              <div className={`stall-modal-badge stall-modal-${selectedStall.status}`}>
+                {STATUS_LABEL[selectedStall.status]}
+              </div>
+              <h2 className="stall-modal-number">Stall #{selectedStall.stallNumber}</h2>
+              <p className="stall-modal-section">
+                {selectedStall.section}
+              </p>
+
+              <div className="stall-modal-meta-row">
+                {selectedStall.zone && (
+                  <span className="stall-modal-meta-chip">📍 Zone {selectedStall.zone}</span>
+                )}
+                {selectedStall.monthlyRate && (
+                  <span className="stall-modal-meta-chip">💰 ₱{selectedStall.monthlyRate.toLocaleString()}/mo</span>
+                )}
               </div>
 
-              {/* ── Stall Grid grouped by Zone ── */}
-              {stallsByZone.length === 0 ? (
-                <p className="stalls-empty">No stalls match this filter.</p>
-              ) : (
-                <div
-                  className="stalls-columns-wrap"
-                  style={{ "--col-count": stallsByZone.length }}
-                >
-                  {stallsByZone.map(([zone, zoneStalls]) => (
-                    <div key={zone} className="stalls-column-group">
-                      <div className="stalls-col-header">Zone {zone}</div>
-                      <div className={`stalls-col-cells ${stallsByZone.length === 1 ? 'grid-3-cols' : ''}`}>
-                        {zoneStalls.map(stall => {
-                          const key = stall._id || stall.stallNumber;
-                          // Display full stallNumber as stored in DB
-                          const label = stall.stallNumber || "?";
-                          return (
-                            <button
-                              key={key}
-                              className={`stall-cell stall-${stall.status}`}
-                              onClick={() => setSelectedStall(stall)}
-                              title={`Stall ${label} · ${stall.section} · Zone ${stall.zone} · ${STATUS_LABEL[stall.status]}`}
-                            >
-                              {label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
+              {selectedStall.amenities?.length > 0 && (
+                <div className="stall-modal-amenities">
+                  {selectedStall.amenities.map(a => (
+                    <span key={a} className="amenity-chip">{a}</span>
                   ))}
                 </div>
               )}
 
-              {/* Legend */}
-              <div className="stalls-legend">
-                <div className="legend-item"><span className="legend-dot legend-available"></span><span>Available</span></div>
-                <div className="legend-item"><span className="legend-dot legend-occupied"></span><span>Occupied</span></div>
-                <div className="legend-item"><span className="legend-dot legend-pending"></span><span>Pending</span></div>
-              </div>
-            </>
-          )}
-        </main>
-      </div>
-
-      {/* Bottom Navigation */}
-      <nav className="bottom-nav" aria-label="Main Navigation">
-        {NAV_ITEMS.map(item => (
-          <button
-            key={item.id}
-            className={`nav-item ${activeNav === item.id ? 'nav-active' : ''}`}
-            onClick={() => handleNav(item)}
-          >
-            <span className="nav-icon">{item.icon}</span>
-            <span className="nav-label">{item.label}</span>
-          </button>
-        ))}
-      </nav>
-
-      {/* Stall Detail Modal */}
-      {selectedStall && (
-        <div className="logout-overlay" onClick={() => setSelectedStall(null)}>
-          <div className="stall-modal" onClick={e => e.stopPropagation()}>
-            <div className={`stall-modal-badge stall-modal-${selectedStall.status}`}>
-              {STATUS_LABEL[selectedStall.status]}
-            </div>
-            <h2 className="stall-modal-number">Stall #{selectedStall.stallNumber}</h2>
-            <p className="stall-modal-section">
-              {selectedStall.section}
-            </p>
-
-            <div className="stall-modal-meta-row">
-              {selectedStall.zone && (
-                <span className="stall-modal-meta-chip">📍 Zone {selectedStall.zone}</span>
+              {selectedStall.status === "occupied" && selectedStall.tenant && (
+                <div className="stall-modal-info">
+                  <div className="stall-modal-row"><span>Vendor</span><strong>{selectedStall.tenant.name}</strong></div>
+                  <div className="stall-modal-row"><span>Contact</span><strong>{selectedStall.tenant.contact}</strong></div>
+                  <div className="stall-modal-row"><span>Monthly Rent</span><strong>₱{selectedStall.monthlyRate?.toLocaleString()}</strong></div>
+                  {selectedStall.tenant.leaseStart && (
+                    <div className="stall-modal-row">
+                      <span>Lease Start</span>
+                      <strong>{new Date(selectedStall.tenant.leaseStart).toLocaleDateString('en-PH', { month: 'short', year: 'numeric' })}</strong>
+                    </div>
+                  )}
+                </div>
               )}
-              {selectedStall.monthlyRate && (
-                <span className="stall-modal-meta-chip">💰 ₱{selectedStall.monthlyRate.toLocaleString()}/mo</span>
+              {selectedStall.status === "occupied" && !selectedStall.tenant && (
+                <div className="stall-modal-info">
+                  <div className="stall-modal-row"><span>Vendor</span><strong>Juan Dela Cruz</strong></div>
+                  <div className="stall-modal-row"><span>Lease Since</span><strong>Jan 2023</strong></div>
+                  <div className="stall-modal-row"><span>Monthly Rent</span><strong>₱{selectedStall.monthlyRate?.toLocaleString() || '3,500'}</strong></div>
+                </div>
               )}
+              {selectedStall.status === "pending" && (
+                <div className="stall-modal-info">
+                  <div className="stall-modal-row"><span>Status</span><strong>Awaiting Approval</strong></div>
+                </div>
+              )}
+              {selectedStall.status === "available" && (
+                <p className="stall-modal-avail">This stall is available for rent.</p>
+              )}
+
+              <button className="stall-modal-close" onClick={() => setSelectedStall(null)}>Close</button>
             </div>
-
-            {selectedStall.amenities?.length > 0 && (
-              <div className="stall-modal-amenities">
-                {selectedStall.amenities.map(a => (
-                  <span key={a} className="amenity-chip">{a}</span>
-                ))}
-              </div>
-            )}
-
-            {selectedStall.status === "occupied" && selectedStall.tenant && (
-              <div className="stall-modal-info">
-                <div className="stall-modal-row"><span>Vendor</span><strong>{selectedStall.tenant.name}</strong></div>
-                <div className="stall-modal-row"><span>Contact</span><strong>{selectedStall.tenant.contact}</strong></div>
-                <div className="stall-modal-row"><span>Monthly Rent</span><strong>₱{selectedStall.monthlyRate?.toLocaleString()}</strong></div>
-                {selectedStall.tenant.leaseStart && (
-                  <div className="stall-modal-row">
-                    <span>Lease Start</span>
-                    <strong>{new Date(selectedStall.tenant.leaseStart).toLocaleDateString('en-PH', { month: 'short', year: 'numeric' })}</strong>
-                  </div>
-                )}
-              </div>
-            )}
-            {selectedStall.status === "occupied" && !selectedStall.tenant && (
-              <div className="stall-modal-info">
-                <div className="stall-modal-row"><span>Vendor</span><strong>Juan Dela Cruz</strong></div>
-                <div className="stall-modal-row"><span>Lease Since</span><strong>Jan 2023</strong></div>
-                <div className="stall-modal-row"><span>Monthly Rent</span><strong>₱{selectedStall.monthlyRate?.toLocaleString() || '3,500'}</strong></div>
-              </div>
-            )}
-            {selectedStall.status === "pending" && (
-              <div className="stall-modal-info">
-                <div className="stall-modal-row"><span>Status</span><strong>Awaiting Approval</strong></div>
-              </div>
-            )}
-            {selectedStall.status === "available" && (
-              <p className="stall-modal-avail">This stall is available for rent.</p>
-            )}
-
-            <button className="stall-modal-close" onClick={() => setSelectedStall(null)}>Close</button>
           </div>
-        </div>
-      )}
+        )}
 
-      <style>{`
+        <style>{`
         .stalls-main { padding-bottom: 80px; }
         .stalls-title-block { margin-bottom: 2px; }
         .stalls-page-title { font-size: 20px; font-weight: 800; color: var(--color-text); margin: 0 0 4px; letter-spacing: -0.3px; }
