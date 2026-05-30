@@ -49,15 +49,9 @@ const appStyles = `
     to   { opacity: 1; }
   }
 
-  .ra-topbar {
-    animation: fadeSlideDown 0.35s ease both;
-  }
-  .ra-heading {
-    animation: fadeSlideUp 0.38s ease both;
-  }
-  .ra-stat-card {
-    animation: cardPop 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
-  }
+  .ra-topbar       { animation: fadeSlideDown 0.35s ease both; }
+  .ra-heading      { animation: fadeSlideUp 0.38s ease both; }
+  .ra-stat-card    { animation: cardPop 0.42s cubic-bezier(0.22, 1, 0.36, 1) both; }
   .ra-app-card {
     animation: cardPop 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -66,20 +60,14 @@ const appStyles = `
     transform: translateY(-3px) scale(1.01);
     box-shadow: 0 8px 24px rgba(0,0,0,0.09);
   }
-  .ra-empty {
-    animation: fadeSlideUp 0.4s ease both;
-  }
+  .ra-empty        { animation: fadeSlideUp 0.4s ease both; }
   .ra-submit-btn {
     position: relative;
     overflow: hidden;
     transition: transform 0.15s ease, background-color 0.2s ease;
   }
-  .ra-submit-btn:hover:not(:disabled) {
-    transform: translateY(-1px);
-  }
-  .ra-submit-btn:active:not(:disabled) {
-    transform: scale(0.97);
-  }
+  .ra-submit-btn:hover:not(:disabled) { transform: translateY(-1px); }
+  .ra-submit-btn:active:not(:disabled) { transform: scale(0.97); }
   .ra-submit-btn::after {
     content: '';
     position: absolute;
@@ -88,73 +76,36 @@ const appStyles = `
     background-size: 200% 100%;
     animation: shimmer 2s infinite;
   }
-  .ra-view-btn {
-    transition: transform 0.15s ease, background-color 0.15s ease;
-  }
-  .ra-view-btn:hover {
-    transform: scale(1.04);
-  }
-  .ra-view-btn:active {
-    transform: scale(0.95);
-  }
+  .ra-view-btn { transition: transform 0.15s ease, background-color 0.15s ease; }
+  .ra-view-btn:hover  { transform: scale(1.04); }
+  .ra-view-btn:active { transform: scale(0.95); }
 
   /* Form view */
-  .ra-brand {
-    animation: bounceIn 0.45s ease both;
-  }
-  .ra-prefill-notice {
-    animation: fadeSlideUp 0.35s ease 0.08s both;
-  }
-  .ra-form-card {
-    animation: fadeSlideUp 0.4s ease both;
-  }
-  .ra-form-section {
-    animation: fadeSlideUp 0.38s ease both;
-  }
-  .ra-success {
-    animation: bounceIn 0.45s ease both;
-  }
-  .ra-whats-next {
-    animation: fadeSlideUp 0.4s ease both;
-  }
+  .ra-brand          { animation: bounceIn 0.45s ease both; }
+  .ra-prefill-notice { animation: fadeSlideUp 0.35s ease 0.08s both; }
+  .ra-form-card      { animation: fadeSlideUp 0.4s ease both; }
+  .ra-form-section   { animation: fadeSlideUp 0.38s ease both; }
+  .ra-success        { animation: bounceIn 0.45s ease both; }
+  .ra-whats-next     { animation: fadeSlideUp 0.4s ease both; }
   .ra-market-img {
     animation: cardPop 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
     transition: transform 0.3s ease;
     overflow: hidden;
   }
-  .ra-market-img:hover img {
-    transform: scale(1.04);
-  }
-  .ra-market-img img {
-    transition: transform 0.35s ease;
-  }
-  .ra-cta-banner {
-    animation: fadeSlideUp 0.4s ease both;
-  }
+  .ra-market-img:hover img { transform: scale(1.04); }
+  .ra-market-img img       { transition: transform 0.35s ease; }
+  .ra-cta-banner { animation: fadeSlideUp 0.4s ease both; }
   .ra-back-btn {
     transition: transform 0.15s ease, opacity 0.15s ease;
   }
-  .ra-back-btn:hover {
-    transform: translateX(-2px);
-    opacity: 0.75;
-  }
+  .ra-back-btn:hover { transform: translateX(-2px); opacity: 0.75; }
 
   /* Modal */
-  .ra-overlay {
-    animation: overlayIn 0.2s ease both;
-  }
-  .ra-modal {
-    animation: modalIn 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
-  }
-  .ra-modal-close {
-    transition: transform 0.15s ease, background-color 0.15s ease;
-  }
-  .ra-modal-close:hover {
-    transform: scale(1.1);
-  }
-  .ra-modal-close:active {
-    transform: scale(0.92);
-  }
+  .ra-overlay { animation: overlayIn 0.2s ease both; }
+  .ra-modal   { animation: modalIn 0.25s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .ra-modal-close { transition: transform 0.15s ease, background-color 0.15s ease; }
+  .ra-modal-close:hover  { transform: scale(1.1); }
+  .ra-modal-close:active { transform: scale(0.92); }
 
   @media (prefers-reduced-motion: reduce) {
     .ra-topbar, .ra-heading, .ra-stat-card, .ra-app-card, .ra-empty,
@@ -169,39 +120,26 @@ const appStyles = `
 `
 
 /* ── Static data ─────────────────────────────────────────────── */
-const MY_APPLICATIONS = [
-  { id: 'app-1', stall: '#042', zone: 'Zone A', status: 'Approved',  submittedOn: 'Oct 24, 2023' },
-  { id: 'app-2', stall: '#115', zone: 'Zone C', status: 'Pending',   submittedOn: 'Nov 02, 2023' },
-  { id: 'app-3', stall: '#009', zone: 'Zone B', status: 'Rejected',  submittedOn: 'Sep 15, 2023' },
-]
-
-const BUSINESS_TYPES = [
-  'Fishes',
-  'Meat',
-  'Vegetables',
-]
+const BUSINESS_TYPES = ['Fishes', 'Meat', 'Vegetables']
 
 const MARKET_IMAGES = [
   { src: 'https://images.unsplash.com/photo-1533900298318-6b8da08a523e?w=600&q=80', alt: 'Market interior' },
-  { src: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&q=80',   alt: 'Fresh produce'   },
+  { src: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&q=80', alt: 'Fresh produce' },
 ]
 
 /* ── Status config ───────────────────────────────────────────── */
 const STATUS_CFG = {
   Approved: { pill: 'bg-[#1a5c2a] text-white', Icon: CheckCircle, label: 'APPROVED' },
-  Pending:  { pill: 'bg-[#e8621a] text-white',  Icon: AlertCircle, label: 'PENDING'  },
-  Rejected: { pill: 'bg-red-600 text-white',    Icon: XCircle,     label: 'REJECTED' },
+  Pending: { pill: 'bg-[#e8621a] text-white', Icon: AlertCircle, label: 'PENDING' },
+  Rejected: { pill: 'bg-red-600 text-white', Icon: XCircle, label: 'REJECTED' },
 }
 
-/* ── Shared field label ──────────────────────────────────────── */
+/* ── Shared styles ───────────────────────────────────────────── */
 const fieldLabel = 'block text-xs font-semibold text-gray-700 mb-1.5'
-
-/* ── Shared input classes ────────────────────────────────────── */
 const inputCls =
   'w-full bg-[#f5f5f0] border border-transparent rounded-xl px-4 py-3 ' +
   'text-sm text-gray-800 placeholder-gray-400 ' +
   'focus:outline-none focus:border-[#1a5c2a] focus:bg-white transition-all duration-200'
-
 const selectCls =
   'w-full bg-[#f5f5f0] border border-transparent rounded-xl px-4 py-3 ' +
   'text-sm text-gray-800 focus:outline-none focus:border-[#1a5c2a] focus:bg-white ' +
@@ -258,10 +196,7 @@ function TopBar({ showBack, onBack }) {
     <header className="ra-topbar bg-white border-b border-gray-100 px-4 md:px-6 py-3 flex items-center justify-between shrink-0">
       <div className="w-20">
         {showBack && (
-          <button
-            onClick={onBack}
-            className="ra-back-btn flex items-center gap-1.5 text-[#1a5c2a] text-sm font-semibold"
-          >
+          <button onClick={onBack} className="ra-back-btn flex items-center gap-1.5 text-[#1a5c2a] text-sm font-semibold">
             <ArrowLeft size={16} />
             Back
           </button>
@@ -285,54 +220,51 @@ function TopBar({ showBack, onBack }) {
 
 /* ── Main export ─────────────────────────────────────────────── */
 export default function RenterApplications({ prefill }) {
-  const [view,      setView]      = useState('list')
+  const [view, setView] = useState('list')
   const [submitted, setSubmitted] = useState(false)
-  const [loading,   setLoading]   = useState(false)
+  const [loading, setLoading] = useState(false)
   const [applications, setApplications] = useState([])
   const [selectedApp, setSelectedApp] = useState(null)
 
   const [form, setForm] = useState({
-    fullName:            getUser()?.full_name || getUser()?.name || '',
-    contactNumber:       getUser()?.contact_number || '',
-    emailAddress:        getUser()?.email || '',
-    preferredStall:      prefill?.preferredStall ?? '',
+    fullName: getUser()?.full_name || getUser()?.name || '',
+    contactNumber: getUser()?.contact_number || '',
+    emailAddress: getUser()?.email || '',
+    preferredStall: prefill?.preferredStall ?? '',
     intendedBusinessUse: prefill?.intendedBusinessUse ?? '',
-    additionalMessage:   '',
+    additionalMessage: '',
   })
 
   const fetchApplications = () => {
-    const user = getUser();
-    const emailParam = user && user.email ? `?email=${encodeURIComponent(user.email)}` : '';
+    const user = getUser()
+    const emailParam = user?.email ? `?email=${encodeURIComponent(user.email)}` : ''
 
     fetch(`/api/renter/applications${emailParam}`)
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch applications');
-        return res.json();
-      })
+      .then(res => { if (!res.ok) throw new Error('Failed'); return res.json() })
       .then(data => setApplications(data))
       .catch(() => {
         setApplications([
-          { id: 'app-1', stall: '#042', zone: 'Zone A', status: 'Approved',  submittedOn: 'Oct 24, 2023' },
-          { id: 'app-2', stall: '#115', zone: 'Zone C', status: 'Pending',   submittedOn: 'Nov 02, 2023' },
-          { id: 'app-3', stall: '#009', zone: 'Zone B', status: 'Rejected',  submittedOn: 'Sep 15, 2023' },
-        ]);
-      });
-  };
+          { id: 'app-1', stall: '#042', zone: 'Zone A', status: 'Approved', submittedOn: 'Oct 24, 2023' },
+          { id: 'app-2', stall: '#115', zone: 'Zone C', status: 'Pending', submittedOn: 'Nov 02, 2023' },
+          { id: 'app-3', stall: '#009', zone: 'Zone B', status: 'Rejected', submittedOn: 'Sep 15, 2023' },
+        ])
+      })
+  }
 
-  useEffect(() => { fetchApplications(); }, []);
+  useEffect(() => { fetchApplications() }, [])
 
   useEffect(() => {
     if (prefill?.preferredStall) {
       setForm(f => ({
         ...f,
         preferredStall: prefill.preferredStall,
-        intendedBusinessUse: prefill.intendedBusinessUse ?? f.intendedBusinessUse
+        intendedBusinessUse: prefill.intendedBusinessUse ?? f.intendedBusinessUse,
       }))
       setView('form')
     }
   }, [prefill])
 
-  const totalActive  = applications.filter(a => a.status !== 'Rejected').length
+  const totalActive = applications.filter(a => a.status !== 'Rejected').length
   const totalPending = applications.filter(a => a.status === 'Pending').length
 
   const setField = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
@@ -348,43 +280,40 @@ export default function RenterApplications({ prefill }) {
     const payload = {
       fullName: form.fullName,
       contactNumber: form.contactNumber,
-      email: form.emailAddress || (getUser()?.email) || '',
+      email: form.emailAddress || getUser()?.email || '',
       preferredStall: form.preferredStall,
       intendedBusinessUse: form.intendedBusinessUse || 'Other',
       additionalMessage: form.additionalMessage || '',
-    };
+    }
 
     fetch('/api/renter/applications', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
-      .then(res => {
-        if (!res.ok) throw new Error('Submission failed');
-        return res.json();
-      })
+      .then(res => { if (!res.ok) throw new Error('Submission failed'); return res.json() })
       .then(() => {
-        setLoading(false);
-        setSubmitted(true);
-        fetchApplications();
+        setLoading(false)
+        setSubmitted(true)
+        fetchApplications()
         setTimeout(() => {
-          setView('list');
+          setView('list')
           setForm({
-            fullName:            getUser()?.full_name || getUser()?.name || '',
-            contactNumber:       getUser()?.contact_number || '',
-            emailAddress:        getUser()?.email || '',
-            preferredStall:      '',
+            fullName: getUser()?.full_name || getUser()?.name || '',
+            contactNumber: getUser()?.contact_number || '',
+            emailAddress: getUser()?.email || '',
+            preferredStall: '',
             intendedBusinessUse: '',
-            additionalMessage:   '',
-          });
-          setSubmitted(false);
-        }, 2500);
+            additionalMessage: '',
+          })
+          setSubmitted(false)
+        }, 2500)
       })
       .catch(err => {
-        console.error('Submit application error:', err);
-        setLoading(false);
-        alert('Failed to submit application: ' + err.message);
-      });
+        console.error('Submit application error:', err)
+        setLoading(false)
+        alert('Failed to submit application: ' + err.message)
+      })
   }
 
   return (
@@ -407,10 +336,7 @@ export default function RenterApplications({ prefill }) {
 
               {/* Stat cards */}
               <div className="grid grid-cols-2 gap-3">
-                <div
-                  className="ra-stat-card bg-[#1a5c2a] rounded-2xl p-4 flex items-center gap-3"
-                  style={{ animationDelay: '0.08s' }}
-                >
+                <div className="ra-stat-card bg-[#1a5c2a] rounded-2xl p-4 flex items-center gap-3" style={{ animationDelay: '0.08s' }}>
                   <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
                     <CheckCircle size={22} className="text-white" />
                   </div>
@@ -422,10 +348,7 @@ export default function RenterApplications({ prefill }) {
                   </div>
                 </div>
 
-                <div
-                  className="ra-stat-card bg-[#e8621a] rounded-2xl p-4 flex items-center gap-3"
-                  style={{ animationDelay: '0.14s' }}
-                >
+                <div className="ra-stat-card bg-[#e8621a] rounded-2xl p-4 flex items-center gap-3" style={{ animationDelay: '0.14s' }}>
                   <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
                     <Clock size={22} className="text-white" />
                   </div>
@@ -476,7 +399,6 @@ export default function RenterApplications({ prefill }) {
           {view === 'form' && (
             <div className="max-w-xl mx-auto px-4 md:px-6 pt-6 space-y-5">
 
-              {/* Brand */}
               <div className="ra-brand flex flex-col items-center gap-2 pt-2 pb-1">
                 <div className="w-16 h-16 bg-[#1a5c2a] rounded-2xl flex items-center justify-center shadow-md">
                   <Store size={28} color="white" />
@@ -487,7 +409,6 @@ export default function RenterApplications({ prefill }) {
                 </div>
               </div>
 
-              {/* Prefill notice */}
               {prefill?.preferredStall && (
                 <div className="ra-prefill-notice bg-[#edf5ed] border border-[#c3dfc3] rounded-xl px-4 py-3 flex items-center gap-2">
                   <Store size={14} className="text-[#1a5c2a] shrink-0" />
@@ -497,7 +418,6 @@ export default function RenterApplications({ prefill }) {
                 </div>
               )}
 
-              {/* Form fields */}
               <div className="ra-form-card bg-white rounded-2xl shadow-sm p-5 space-y-4" style={{ animationDelay: '0.1s' }}>
 
                 <div>
@@ -546,7 +466,6 @@ export default function RenterApplications({ prefill }) {
                 </div>
               </div>
 
-              {/* Submit button */}
               <button
                 onClick={handleSubmit}
                 disabled={loading || submitted || !form.fullName || !form.contactNumber || !form.preferredStall}
@@ -561,7 +480,6 @@ export default function RenterApplications({ prefill }) {
                 }
               </button>
 
-              {/* Success */}
               {submitted && (
                 <div className="ra-success bg-green-50 border border-green-200 rounded-2xl p-4 flex gap-3">
                   <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center shrink-0">
@@ -576,7 +494,6 @@ export default function RenterApplications({ prefill }) {
                 </div>
               )}
 
-              {/* What's Next */}
               <div className="ra-whats-next bg-[#fff8f4] border border-[#fde8d8] rounded-2xl p-4 flex gap-3" style={{ animationDelay: '0.24s' }}>
                 <div className="w-8 h-8 bg-[#e8621a] rounded-lg flex items-center justify-center shrink-0 mt-0.5">
                   <Clock size={15} color="white" />
@@ -585,13 +502,11 @@ export default function RenterApplications({ prefill }) {
                   <p className="text-sm font-bold text-gray-800 mb-1">What's Next?</p>
                   <p className="text-xs text-gray-600 leading-relaxed">
                     Our market management team will review your application. Expect a response
-                    within <span className="font-bold text-gray-800">24–48 hours</span> via
-                    email or phone.
+                    within <span className="font-bold text-gray-800">24–48 hours</span> via email or phone.
                   </p>
                 </div>
               </div>
 
-              {/* Market images */}
               <div className="grid grid-cols-2 gap-3 pb-2">
                 {MARKET_IMAGES.map((img, i) => (
                   <div
@@ -604,7 +519,6 @@ export default function RenterApplications({ prefill }) {
                 ))}
               </div>
 
-              {/* CTA */}
               <div className="ra-cta-banner bg-[#1a5c2a] rounded-2xl p-5 text-center mb-2" style={{ animationDelay: '0.36s' }}>
                 <p className="text-white text-sm font-bold leading-snug">
                   Join our growing community of<br />over 500+ local vendors.
@@ -625,17 +539,19 @@ export default function RenterApplications({ prefill }) {
               className="ra-modal bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-gray-100 flex flex-col"
               onClick={e => e.stopPropagation()}
             >
-              {/* Header */}
+              {/* Modal Header */}
               <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[#f0f7f0] flex items-center justify-center text-gray-500 font-extrabold text-sm shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-[#f0f7f0] flex items-center justify-center text-[#1a5c2a] font-extrabold text-sm shrink-0">
                     {selectedApp.fullName
                       ? selectedApp.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
                       : 'AP'}
                   </div>
                   <div>
                     <h3 className="text-sm font-extrabold text-gray-900 leading-tight">Application Details</h3>
-                    <p className="text-[10px] text-gray-400 mt-0.5">{selectedApp.zone || selectedApp.section || 'Market Stall'}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">
+                      Stall {selectedApp.stall} · {selectedApp.zone || selectedApp.section || 'Market'}
+                    </p>
                   </div>
                 </div>
                 <button
@@ -646,52 +562,88 @@ export default function RenterApplications({ prefill }) {
                 </button>
               </div>
 
-              {/* Content */}
-              <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { label: 'Stall Number',   value: selectedApp.stall },
-                    { label: 'Business Type',  value: selectedApp.intendedBusinessUse || 'N/A' },
-                    { label: 'Submitted On',   value: selectedApp.submittedOn || selectedApp.date },
-                  ].map(({ label, value }, i) => (
-                    <div
-                      key={label}
-                      className="bg-[#f9fafb] rounded-xl p-3 flex flex-col gap-1"
-                      style={{ animation: 'fadeSlideUp 0.3s ease both', animationDelay: `${i * 0.06}s` }}
-                    >
-                      <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">{label}</span>
-                      <span className="text-xs font-semibold text-gray-800">{value}</span>
-                    </div>
-                  ))}
-                  <div
-                    className="bg-[#f9fafb] rounded-xl p-3 flex flex-col gap-1"
-                    style={{ animation: 'fadeSlideUp 0.3s ease 0.18s both' }}
-                  >
-                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Status</span>
-                    <span className={`inline-flex items-center self-start px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                      selectedApp.status === 'Approved' ? 'bg-green-50 text-green-700' :
-                      selectedApp.status === 'Rejected' ? 'bg-red-50 text-red-500' :
-                      'bg-orange-50 text-orange-700'
+              {/* Modal Body */}
+              <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
+
+                {/* Status — full width */}
+                <div
+                  className="flex items-center justify-between bg-[#f9fafb] rounded-xl px-4 py-3"
+                  style={{ animation: 'fadeSlideUp 0.3s ease both' }}
+                >
+                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Application Status</span>
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase ${selectedApp.status === 'Approved' ? 'bg-green-100 text-green-700' :
+                      selectedApp.status === 'Rejected' ? 'bg-red-100 text-red-600' :
+                        'bg-orange-100 text-orange-700'
                     }`}>
-                      {selectedApp.status}
-                    </span>
+                    {selectedApp.status === 'Approved' && <CheckCircle size={10} />}
+                    {selectedApp.status === 'Rejected' && <XCircle size={10} />}
+                    {selectedApp.status === 'Pending' && <AlertCircle size={10} />}
+                    {selectedApp.status}
+                  </span>
+                </div>
+
+                {/* Stall Information */}
+                <div>
+                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Stall Information</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { label: 'Stall Number', value: selectedApp.stall },
+                      { label: 'Zone / Floor', value: selectedApp.zone || selectedApp.section || 'N/A' },
+                      { label: 'Section', value: selectedApp.stallSection || selectedApp.category || 'N/A' },
+                      { label: 'Size', value: selectedApp.size ? `${selectedApp.size} sqm` : 'N/A' },
+                      { label: 'Monthly Rate', value: selectedApp.monthlyRate ? `₱${Number(selectedApp.monthlyRate).toLocaleString()}` : 'N/A' },
+                      { label: 'Contractor Manager', value: selectedApp.contractorName || 'N/A' },
+                    ].map(({ label, value }, i) => (
+                      <div
+                        key={label}
+                        className="bg-[#f9fafb] rounded-xl p-3 flex flex-col gap-0.5"
+                        style={{ animation: 'fadeSlideUp 0.3s ease both', animationDelay: `${0.04 + i * 0.05}s` }}
+                      >
+                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">{label}</span>
+                        <span className="text-xs font-semibold text-gray-800">{value}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
+                {/* Applicant Information */}
+                <div>
+                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Applicant Information</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { label: 'Full Name', value: selectedApp.fullName || 'N/A' },
+                      { label: 'Contact', value: selectedApp.contactNumber || 'N/A' },
+                      { label: 'Business Type', value: selectedApp.intendedBusinessUse || 'N/A' },
+                      { label: 'Submitted On', value: selectedApp.submittedOn || selectedApp.date || 'N/A' },
+                    ].map(({ label, value }, i) => (
+                      <div
+                        key={label}
+                        className="bg-[#f9fafb] rounded-xl p-3 flex flex-col gap-0.5"
+                        style={{ animation: 'fadeSlideUp 0.3s ease both', animationDelay: `${0.28 + i * 0.05}s` }}
+                      >
+                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">{label}</span>
+                        <span className="text-xs font-semibold text-gray-800">{value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Additional Message */}
                 {selectedApp.additionalMessage && (
                   <div
                     className="bg-[#f9fafb] rounded-xl p-3 flex flex-col gap-1.5"
-                    style={{ animation: 'fadeSlideUp 0.3s ease 0.22s both' }}
+                    style={{ animation: 'fadeSlideUp 0.3s ease 0.48s both' }}
                   >
                     <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Additional Message</span>
                     <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap">{selectedApp.additionalMessage}</p>
                   </div>
                 )}
 
+                {/* Rejection Reason */}
                 {selectedApp.status === 'Rejected' && selectedApp.rejectionReason && (
                   <div
                     className="bg-red-50 border border-red-100 rounded-xl p-3 flex flex-col gap-1.5"
-                    style={{ animation: 'bounceIn 0.35s ease 0.26s both' }}
+                    style={{ animation: 'bounceIn 0.35s ease 0.52s both' }}
                   >
                     <span className="text-[9px] font-bold text-red-500 uppercase tracking-wider">Rejection Reason</span>
                     <p className="text-xs text-red-700 leading-relaxed">{selectedApp.rejectionReason}</p>
@@ -699,7 +651,7 @@ export default function RenterApplications({ prefill }) {
                 )}
               </div>
 
-              {/* Footer */}
+              {/* Modal Footer */}
               <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
                 <button
                   onClick={() => setSelectedApp(null)}

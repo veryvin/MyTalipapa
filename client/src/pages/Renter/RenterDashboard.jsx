@@ -504,31 +504,7 @@ export default function RenterDashboard({ onNavigate, onOpenStall }) {
             </div>
           </div>
 
-          {/* ── MARKET ALERTS ── */}
-          <div className="dash-card bg-white rounded-2xl p-5 shadow-sm border border-gray-100" style={{ animationDelay: '0.49s' }}>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <MessageSquare size={15} className="text-gray-500" />
-                <span className="text-sm font-bold text-gray-800">Market Management Alerts</span>
-              </div>
-              <span className="dash-pulse-dot w-2 h-2 rounded-full bg-red-500" />
-            </div>
-            <div className="space-y-3">
-              {alerts.map((al, idx) => (
-                <div
-                  key={al.id}
-                  className="dash-alert p-3 rounded-xl bg-gray-50 text-[11px] space-y-1.5 border border-gray-100"
-                  style={{ animation: `fadeSlideUp 0.4s ease ${0.52 + idx * 0.08}s both` }}
-                >
-                  <div className="flex justify-between text-gray-400 font-bold uppercase tracking-wider">
-                    <span className={al.type === 'warning' ? 'text-red-500' : 'text-blue-500'}>{al.type}</span>
-                    <span>{al.date}</span>
-                  </div>
-                  <p className="text-gray-700 leading-relaxed">{al.message}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+
 
           {/* ── PROFILE DETAILS ── */}
           <div className="dash-card bg-white rounded-2xl p-5 shadow-sm border border-gray-100" style={{ animationDelay: '0.56s' }}>
