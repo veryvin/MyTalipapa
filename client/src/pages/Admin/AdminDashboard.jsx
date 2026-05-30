@@ -90,17 +90,72 @@ export default function AdminDashboard() {
       .catch(() => setLoadingApps(false))
   }
 
-  useEffect(() => {
-    fetchStalls()
-    fetchApplications()
-  }, [])
-
   // ── Derived live stats ─────────────────────────────────
   const totalStalls = stalls.length
   const availableCount = stalls.filter(s => s.status === 'available').length
   const occupiedCount = stalls.filter(s => s.status === 'occupied').length
   const pendingApps = applications.filter(a => a.status === 'pending')
   const occupancyPct = totalStalls > 0 ? Math.round((occupiedCount / totalStalls) * 100) : 0
+
+  // Announcements states & handlers
+  const [recentAnnouncements, setRecentAnnouncements] = useState([])
+  const [loadingAnnouncements, setLoadingAnnouncements] = useState(true)
+  const [showAnnounceForm, setShowAnnounceForm] = useState(false)
+  const [announceTitle, setAnnounceTitle] = useState('')
+  const [announceContent, setAnnounceContent] = useState('')
+  const [announceTarget, setAnnounceTarget] = useState('all')
+  const [submittingAnnounce, setSubmittingAnnounce] = useState(false)
+
+  const fetchAnnouncements = async () => {
+    setLoadingAnnouncements(true)
+    try {
+      const res = await fetch('/api/public/announcements')
+      if (res.ok) {
+        const data = await res.json()
+        setRecentAnnouncements(data)
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoadingAnnouncements(false)
+    }
+  }
+
+  const handlePostAnnouncement = async (e) => {
+    e.preventDefault()
+    setSubmittingAnnounce(true)
+    try {
+      const res = await fetch('/api/admin/announcements', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: announceTitle,
+          content: announceContent,
+          targetAudience: announceTarget
+        })
+      })
+      if (res.ok) {
+        setAnnounceTitle('')
+        setAnnounceContent('')
+        setAnnounceTarget('all')
+        setShowAnnounceForm(false)
+        fetchAnnouncements()
+      } else {
+        alert('Failed to post announcement')
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Error posting announcement')
+    } finally {
+      setSubmittingAnnounce(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchStalls()
+    fetchApplications()
+    fetchAnnouncements()
+  }, [])
 
   // Total monthly revenue from occupied stalls with a monthlyRate
   const totalRevenue = stalls
@@ -124,7 +179,7 @@ export default function AdminDashboard() {
       accent: '#2563eb',
     },
     {
-      id: 'pending', label: 'PENDING APPS', value: loadingApps ? '…' : pendingApps.length,
+      id: 'pending', label: 'PENDING APPLICATIONS', value: loadingApps ? '…' : pendingApps.length,
       icon: (<svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14,2 14,8 20,8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>),
       accent: '#dc2626',
     },
@@ -203,7 +258,7 @@ export default function AdminDashboard() {
           </div>
         </header>
 
-        <main className="dashboard-main">
+        <main className="dashboard-main overflow-y-auto p-6">
           {/* Stats Row — live from DB */}
           <section className="stats-grid" aria-label="Market Statistics">
             {STATS.map(stat => (
@@ -322,6 +377,102 @@ export default function AdminDashboard() {
                         {processingId === app.id ? '…' : 'Approve'}
                       </button>
                     </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+
+          {/* Announcements Section */}
+          <section className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm mt-6">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Market Announcements</h3>
+                <p className="text-xs text-gray-400">Broadcast updates to Renters and Contractors</p>
+              </div>
+              <button
+                onClick={() => setShowAnnounceForm(!showAnnounceForm)}
+                className="px-4 py-2 bg-[#1a5c2a] text-white text-xs font-bold rounded-xl hover:bg-[#154d23] transition-colors"
+              >
+                {showAnnounceForm ? 'Cancel' : '+ Post New'}
+              </button>
+            </div>
+
+            {showAnnounceForm && (
+              <form onSubmit={handlePostAnnouncement} className="mb-6 bg-gray-50 border border-gray-100 p-4 rounded-2xl space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Announcement Title</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Scheduled Power Interruption"
+                      value={announceTitle}
+                      onChange={e => setAnnounceTitle(e.target.value)}
+                      required
+                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1a5c2a] transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Target Audience</label>
+                    <select
+                      value={announceTarget}
+                      onChange={e => setAnnounceTarget(e.target.value)}
+                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1a5c2a] transition-all"
+                    >
+                      <option value="all">Everyone (Renters & Contractors)</option>
+                      <option value="renters">Renters Only</option>
+                      <option value="contractors">Contractors Only</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Announcement Message</label>
+                  <textarea
+                    placeholder="Type the message details here..."
+                    rows="3"
+                    value={announceContent}
+                    onChange={e => setAnnounceContent(e.target.value)}
+                    required
+                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1a5c2a] transition-all resize-none"
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={submittingAnnounce}
+                    className="px-5 py-2.5 bg-[#1a5c2a] text-white text-xs font-bold rounded-xl hover:bg-[#154d23] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    {submittingAnnounce ? 'Posting...' : 'Post Announcement'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* List of Recent Announcements */}
+            <div className="space-y-3">
+              {loadingAnnouncements ? (
+                <div className="text-center py-4 text-xs text-gray-400">Loading announcements...</div>
+              ) : recentAnnouncements.length === 0 ? (
+                <div className="text-center py-6 bg-gray-50 border border-dashed border-gray-200 rounded-2xl text-xs text-gray-400">
+                  📢 No announcements posted yet.
+                </div>
+              ) : (
+                recentAnnouncements.map(ann => (
+                  <div key={ann._id} className="p-4 bg-gray-50 border border-gray-100 rounded-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:bg-gray-100/50 transition-colors">
+                    <div className="space-y-1 text-left">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm text-gray-800">{ann.title}</span>
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider text-white ${
+                          ann.targetAudience === 'all' ? 'bg-[#1a5c2a]' : ann.targetAudience === 'renters' ? 'bg-[#e07b00]' : 'bg-blue-600'
+                        }`}>
+                          {ann.targetAudience === 'all' ? 'Everyone' : ann.targetAudience === 'renters' ? 'Renters' : 'Contractors'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500">{ann.content}</p>
+                    </div>
+                    <span className="text-[10px] text-gray-400 font-bold whitespace-nowrap">
+                      {new Date(ann.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
                   </div>
                 ))
               )}

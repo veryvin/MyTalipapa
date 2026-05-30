@@ -6,7 +6,8 @@ import {
   FileText,
   History,
   User,
-  LogOut
+  LogOut,
+  MessageSquare
 } from 'lucide-react'
 
 const NAV_ITEMS = [
@@ -14,6 +15,7 @@ const NAV_ITEMS = [
   { id: 'nav-stalls', label: 'Stalls', path: '/admin/stalls', Icon: Store },
   { id: 'nav-apps', label: 'Applications', path: '/admin/applications', Icon: FileText },
   { id: 'nav-records', label: 'Records', path: '/admin/records', Icon: History },
+  { id: 'nav-messages', label: 'Messages', path: '/admin/messages', Icon: MessageSquare },
   { id: 'nav-profile', label: 'Profile', path: '/admin/profile', Icon: User },
 ]
 
@@ -23,14 +25,16 @@ export default function AdminSidebar({ active }) {
   const [collapsed, setCollapsed] = useState(true)
   const [showLogout, setShowLogout] = useState(false)
   const [pendingAppsCount, setPendingAppsCount] = useState(0)
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0)
 
-  // Fetch pending applications count for notification badge
+  // Fetch pending applications count and messages for notification badge
   useEffect(() => {
-    const fetchPendingCount = async () => {
+    const fetchCounts = async () => {
       try {
-        const [renterRes, contractorRes] = await Promise.all([
+        const [renterRes, contractorRes, messagesRes] = await Promise.all([
           fetch('/api/admin/applications'),
-          fetch('/api/admin/contractor-applications')
+          fetch('/api/admin/contractor-applications'),
+          fetch('/api/admin/contact-messages')
         ])
         
         let count = 0
@@ -43,14 +47,20 @@ export default function AdminSidebar({ active }) {
           count += contractors.filter(a => a.status === 'pending').length
         }
         setPendingAppsCount(count)
+
+        if (messagesRes.ok) {
+          const messages = await messagesRes.json()
+          const unread = messages.filter(m => m.status === 'unread').length
+          setUnreadMessagesCount(unread)
+        }
       } catch (err) {
-        console.error('Error fetching pending counts for sidebar:', err)
+        console.error('Error fetching counts for sidebar:', err)
       }
     }
 
-    fetchPendingCount()
+    fetchCounts()
     // Poll every 15 seconds to keep counts relatively fresh
-    const interval = setInterval(fetchPendingCount, 15000)
+    const interval = setInterval(fetchCounts, 15000)
     return () => clearInterval(interval)
   }, [])
 
@@ -106,7 +116,17 @@ export default function AdminSidebar({ active }) {
                   )
                 )}
 
-                {!collapsed && isActive && id !== 'nav-apps' && (
+                {id === 'nav-messages' && unreadMessagesCount > 0 && (
+                  collapsed ? (
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500" />
+                  ) : (
+                    <span className="ml-auto px-1.5 py-0.5 rounded-full bg-red-500 text-[9px] font-black text-white leading-none">
+                      {unreadMessagesCount}
+                    </span>
+                  )
+                )}
+
+                {!collapsed && isActive && id !== 'nav-apps' && id !== 'nav-messages' && (
                   <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#1a5c2a]" />
                 )}
               </button>

@@ -176,6 +176,8 @@ export default function RenterDashboard({ onNavigate, onOpenStall }) {
   const [applications, setApplications] = useState([])
   const [activeStall, setActiveStall] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [announcements, setAnnouncements] = useState([])
+  const [showAllAnnouncements, setShowAllAnnouncements] = useState(false)
 
   const alerts = [
     { id: 'alert-1', type: 'info', message: 'Market cleanup is scheduled for next Monday. Stall operations will start at 9:00 AM.', date: 'May 22, 2026' },
@@ -220,10 +222,16 @@ export default function RenterDashboard({ onNavigate, onOpenStall }) {
         })
       : Promise.resolve(null)
 
-    Promise.all([fetchApps, fetchLease, fetchProfile])
-      .then(([appsData, leaseData, profileData]) => {
+    const fetchAnnouncements = fetch(`/api/public/announcements?role=renter`).then(res => {
+      if (!res.ok) throw new Error('Failed to fetch announcements')
+      return res.json()
+    })
+
+    Promise.all([fetchApps, fetchLease, fetchProfile, fetchAnnouncements])
+      .then(([appsData, leaseData, profileData, announcementsData]) => {
         setApplications(appsData)
         setActiveStall(leaseData)
+        setAnnouncements(announcementsData)
         if (profileData) {
           setCurrentUser(profileData)
           localStorage.setItem('user', JSON.stringify(profileData))
@@ -344,40 +352,37 @@ export default function RenterDashboard({ onNavigate, onOpenStall }) {
           <div style={{ animation: 'fadeSlideUp 0.45s ease 0.28s both' }}>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-bold text-gray-800">Market News</h2>
-              <button className="text-xs font-bold text-[#1a5c2a] hover:text-[#14451f] transition-colors">View All</button>
-            </div>
-            <div className="dash-card bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100" style={{ animationDelay: '0.28s' }}>
-              <div className="relative w-full" style={{ paddingBottom: '42%' }}>
-                <img
-                  src="https://images.unsplash.com/photo-1533900298318-6b8da08a523e?w=800&q=80"
-                  alt="Market interior"
-                  className="dash-news-img absolute inset-0 w-full h-full object-cover"
-                  style={{ animationDelay: '0.35s' }}
-                  onError={e => {
-                    e.target.style.display = 'none'
-                    e.target.parentElement.style.background = 'linear-gradient(135deg,#1a5c2a,#2f7a40)'
-                  }}
-                />
+              {announcements.length > 0 && (
                 <button
-                  className="absolute right-3 bottom-3 w-9 h-9 rounded-full flex items-center justify-center text-white shadow-md hover:opacity-90 hover:scale-110 transition-all"
-                  style={{ backgroundColor: '#1a5c2a' }}
+                  onClick={() => setShowAllAnnouncements(true)}
+                  className="text-xs font-bold text-[#1a5c2a] hover:text-[#14451f] transition-colors"
                 >
-                  <ChevronRight size={18} />
+                  View All
                 </button>
-              </div>
-              <div className="px-4 py-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider text-white" style={{ backgroundColor: '#e07b00' }}>
-                    Announcement
-                  </span>
-                  <span className="text-[10px] font-bold text-gray-400">New</span>
-                </div>
-                <h3 className="text-sm font-extrabold text-gray-900 mb-1">New Stalls in Zone B</h3>
-                <p className="text-xs text-gray-500 leading-relaxed">
-                  Leasing starts next Monday. Reserve your spot early to get premium corner locations near the main entrance.
-                </p>
-              </div>
+              )}
             </div>
+            {announcements.length > 0 ? (
+              <div className="dash-card bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 p-4" style={{ animationDelay: '0.28s' }}>
+                <div className="text-left">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider text-white" style={{ backgroundColor: '#e07b00' }}>
+                      Announcement
+                    </span>
+                    <span className="text-[10px] font-bold text-gray-400">
+                      {new Date(announcements[0].createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-extrabold text-gray-900 mb-1">{announcements[0].title}</h3>
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    {announcements[0].content}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="dash-card bg-white rounded-2xl p-6 text-center shadow-sm border border-gray-100 text-xs text-gray-400">
+                📢 No active announcements from management.
+              </div>
+            )}
           </div>
 
           {/* ── ACTIVE STALL LEASE ── */}
@@ -545,6 +550,40 @@ export default function RenterDashboard({ onNavigate, onOpenStall }) {
           </footer>
 
         </main>
+
+        {/* ── Announcements Modal ── */}
+        {showAllAnnouncements && (
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowAllAnnouncements(false)}
+          >
+            <div
+              className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-gray-100 flex flex-col max-h-[80vh] animate-in fade-in zoom-in-95 duration-200"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+                <h3 className="text-base font-extrabold text-gray-900">All Announcements</h3>
+                <button
+                  onClick={() => setShowAllAnnouncements(false)}
+                  className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="p-6 overflow-y-auto space-y-4">
+                {announcements.map(ann => (
+                  <div key={ann._id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 text-left">
+                    <span className="text-[10px] text-gray-400 font-bold block mb-1">
+                      {new Date(ann.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
+                    <h4 className="text-sm font-extrabold text-gray-800 mb-1">{ann.title}</h4>
+                    <p className="text-xs text-gray-600 leading-relaxed">{ann.content}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   )

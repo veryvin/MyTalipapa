@@ -94,10 +94,23 @@ export default function ContractorDashboard() {
       .catch(() => setLoadingApps(false))
   }
 
+  const [announcements, setAnnouncements] = useState([])
+  const [loadingAnnouncements, setLoadingAnnouncements] = useState(true)
+  const [showAllAnnouncements, setShowAllAnnouncements] = useState(false)
+
+  const fetchAnnouncements = () => {
+    setLoadingAnnouncements(true)
+    fetch('/api/public/announcements?role=contractor')
+      .then(r => r.json())
+      .then(data => { setAnnouncements(data); setLoadingAnnouncements(false) })
+      .catch(() => setLoadingAnnouncements(false))
+  }
+
   useEffect(() => {
     if (userEmail) {
       fetchStalls()
       fetchApplications()
+      fetchAnnouncements()
     }
   }, [userEmail])
 
@@ -334,6 +347,52 @@ export default function ContractorDashboard() {
                 )}
               </div>
             </section>
+
+            {/* Announcements Section */}
+            <section className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm mt-6 text-left">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Market Announcements</h3>
+                  <p className="text-xs text-gray-400">Latest updates from market administration</p>
+                </div>
+                {announcements.length > 0 && (
+                  <button
+                    onClick={() => setShowAllAnnouncements(true)}
+                    className="text-xs font-bold text-[#1a5c2a] hover:text-[#14451f] transition-colors"
+                  >
+                    View All
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                {loadingAnnouncements ? (
+                  <div className="text-center py-4 text-xs text-gray-400">Loading announcements...</div>
+                ) : announcements.length === 0 ? (
+                  <div className="text-center py-6 bg-gray-50 border border-dashed border-gray-200 rounded-2xl text-xs text-gray-400">
+                    📢 No active announcements from management.
+                  </div>
+                ) : (
+                  // Show the latest 3 announcements on the dashboard
+                  announcements.slice(0, 3).map(ann => (
+                    <div key={ann._id} className="p-4 bg-gray-50 border border-gray-100 rounded-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:bg-gray-100/50 transition-colors">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-sm text-gray-800">{ann.title}</span>
+                          <span className="px-2 py-0.5 rounded bg-blue-600 text-white text-[9px] font-extrabold uppercase tracking-wider">
+                            Management
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500">{ann.content}</p>
+                      </div>
+                      <span className="text-[10px] text-gray-400 font-bold whitespace-nowrap">
+                        {new Date(ann.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </section>
           </main>
         </div>
 
@@ -350,6 +409,40 @@ export default function ContractorDashboard() {
             </button>
           ))}
         </nav>
+
+        {/* ── Announcements Modal ── */}
+        {showAllAnnouncements && (
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowAllAnnouncements(false)}
+          >
+            <div
+              className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-gray-100 flex flex-col max-h-[80vh] animate-in fade-in zoom-in-95 duration-200"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+                <h3 className="text-base font-extrabold text-gray-900">All Announcements</h3>
+                <button
+                  onClick={() => setShowAllAnnouncements(false)}
+                  className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="p-6 overflow-y-auto space-y-4">
+                {announcements.map(ann => (
+                  <div key={ann._id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 text-left">
+                    <span className="text-[10px] text-gray-400 font-bold block mb-1">
+                      {new Date(ann.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
+                    <h4 className="text-sm font-extrabold text-gray-800 mb-1">{ann.title}</h4>
+                    <p className="text-xs text-gray-600 leading-relaxed">{ann.content}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         <style>{`
           .stalls-spinner { border: 2px solid #e5e7eb; border-top-color: var(--color-brand-green); border-radius: 50%; animation: spin 0.7s linear infinite; }

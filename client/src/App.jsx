@@ -14,6 +14,7 @@ import AdminRecord from './pages/Admin/AdminRecord'
 import AdminApplication from './pages/Admin/AdminApplication'
 import AdminStalls from './pages/Admin/AdminStalls'
 import AdminSecurity from './pages/Admin/AdminSecurity'
+import AdminMessages from './pages/Admin/AdminMessages'
 import ContractorSecurity from './pages/Contractor/ContractorSecurity'
 import RenterLayout from './pages/Renter/Renterlayout'
 import MarketTour360 from './pages/MarketTour360'
@@ -36,6 +37,7 @@ export default function App() {
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/profile" element={<AdminProfile />} />
         <Route path="/admin/profile/security" element={<AdminSecurity />} />
+        <Route path="/admin/messages" element={<AdminMessages />} />
         <Route path="/contractor/profile/security" element={<ContractorSecurity />} />
         <Route path="/contractor/profile/security" element={<ContractorSecurity />} />
         <Route path="/admin/records" element={<AdminRecord />} />

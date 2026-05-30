@@ -9,6 +9,7 @@ const contractorRoutes = require('./routes/contractor');
 const renterRoutes = require('./routes/renter');
 const publicRoutes = require('./routes/public');
 const stallsRoutes = require('./routes/stalls');
+const contactRoutes = require('./routes/Contacts'); // ← updated
 
 const app = express();
 app.use(cors());
@@ -34,6 +35,7 @@ app.use('/api/admin', contractorRoutes);
 app.use('/api/renter', renterRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/stalls', stallsRoutes);
+app.use('/api', contactRoutes); // ← added
 
 app.post('/api/log-error', (req, res) => {
   console.error('\n----------------------------------------\n🚨 FRONTEND ERROR:', req.body.message);
