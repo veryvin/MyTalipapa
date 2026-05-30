@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+
+
+
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -305,7 +308,18 @@ export default function MarketTour360() {
     }
     return 'meat';
   })
-  const [sectionsData, setSectionsData] = useState(SECTIONS)
+  const [sectionsData, setSectionsData] = useState(SECTIONS);
+
+  // Set CSS variable for mobile viewport height to handle address bar resizing
+  useEffect(() => {
+    const setVh = () => {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+    setVh();
+    window.addEventListener('resize', setVh);
+    return () => window.removeEventListener('resize', setVh);
+  }, []);
   const activeSection = sectionsData[activeSectionKey]
 
   // Stall Selection State
@@ -900,7 +914,7 @@ export default function MarketTour360() {
   // No inquiry handling needed
 
   return (
-    <div className="relative w-full h-screen bg-black overflow-hidden font-sans select-none">
+    <div className="relative w-full bg-black overflow-hidden font-sans select-none" style={{ height: 'calc(var(--vh, 1vh) * 100)' }}>
       {/* 360 ThreeJS Viewer Mount */}
       <div
         ref={mountRef}
@@ -1074,8 +1088,8 @@ export default function MarketTour360() {
                     setStallDropdownOpen(false)
                   }}
                   className={`px-3 py-1.5 rounded-xl text-left text-xs font-bold transition-all cursor-pointer ${idx === stallIndex
-                      ? 'bg-[#1a5c2a] text-white'
-                      : 'text-slate-700 hover:bg-black/5'
+                    ? 'bg-[#1a5c2a] text-white'
+                    : 'text-slate-700 hover:bg-black/5'
                     }`}
                 >
                   {st.name}
@@ -1128,8 +1142,8 @@ export default function MarketTour360() {
                       setSectionDropdownOpen(false)
                     }}
                     className={`px-3 py-1.5 rounded-xl text-left text-xs font-bold transition-all cursor-pointer ${sect.id === activeSectionKey
-                        ? 'bg-[#1a5c2a] text-white'
-                        : 'text-slate-700 hover:bg-black/5'
+                      ? 'bg-[#1a5c2a] text-white'
+                      : 'text-slate-700 hover:bg-black/5'
                       }`}
                   >
                     {sect.icon} {sect.name}

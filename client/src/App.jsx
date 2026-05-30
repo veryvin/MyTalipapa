@@ -38,6 +38,7 @@ export default function App() {
         <Route path="/admin/stalls" element={<AdminStalls />} />
         <Route path="/admin/*" element={<AdminDashboard />} />
 
+        <Route path="/renter/market-tour" element={<MarketTour360 />} />
         <Route path="/renter/*" element={<RenterLayout />} />
         <Route path="/tour" element={<MarketTour360 />} />
       </Routes>
