@@ -5,7 +5,7 @@
  */
 import { useState, useCallback, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Home, Map, Store, FileText, User, LogOut } from 'lucide-react'
+import { Home, Map, Store, FileText, User, LogOut, Navigation, Camera } from 'lucide-react'
 
 import RenterDashboard from './RenterDashboard'
 import RenterStalls from './RenterStalls'
@@ -25,11 +25,13 @@ const LogoutIcon = () => (
 )
 
 const NAV_ITEMS = [
-  { id: 'home', label: 'Home', Icon: Home },
-  { id: 'find-stall', label: 'Interactive Map', Icon: Map },
-  { id: 'stalls', label: 'Stalls', Icon: Store },
-  { id: 'applications', label: 'Applications', Icon: FileText },
-  { id: 'profile', label: 'Profile', Icon: User },
+  { id: 'home',         label: 'Home',            Icon: Home       },
+  { id: 'find-stall',   label: 'Map',             Icon: Map        },
+  { id: 'navigate',     label: '360° Tour',       Icon: Navigation },
+  { id: 'ar-finder',    label: 'AR Finder',       Icon: Camera     },
+  { id: 'stalls',       label: 'Stalls',          Icon: Store      },
+  { id: 'applications', label: 'Applications',    Icon: FileText   },
+  { id: 'profile',      label: 'Profile',         Icon: User       },
 ]
 
 /* ── Sidebar (desktop) ───────────────────────────────────────── */
@@ -88,24 +90,23 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, onLogout }) {
   )
 }
 
-
 /* ── Mobile bottom tab bar ───────────────────────────────────── */
 function BottomBar({ active, setActive }) {
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
-      <div className="grid grid-cols-5 h-16">
+      <div className="grid grid-cols-7 h-16">
         {NAV_ITEMS.map(({ id, label, Icon }) => {
           const isActive = active === id
           return (
             <button
               key={id}
               onClick={() => setActive(id)}
-              className="flex flex-col items-center justify-center gap-0.5 transition-all"
+              className="flex flex-col items-center justify-center gap-0.5 transition-all px-0.5"
             >
               <div className={`p-1.5 rounded-xl transition-all ${isActive ? 'bg-[#1a5c2a]' : ''}`}>
-                <Icon size={18} className={isActive ? 'text-white' : 'text-gray-400'} />
+                <Icon size={16} className={isActive ? 'text-white' : 'text-gray-400'} />
               </div>
-              <span className={`text-[9px] font-bold ${isActive ? 'text-[#1a5c2a]' : 'text-gray-400'}`}>
+              <span className={`text-[8px] font-bold leading-tight text-center ${isActive ? 'text-[#1a5c2a]' : 'text-gray-400'}`}>
                 {label}
               </span>
             </button>
@@ -147,7 +148,6 @@ export default function RenterLayout() {
   const navigate = useCallback((tab) => {
     setActiveTab(tab)
 
-    // Redirect to the corresponding route
     if (tab === 'home') {
       setSelectedStall(null)
       routerNavigate('/renter/dashboard')
@@ -166,6 +166,13 @@ export default function RenterLayout() {
     else if (tab === 'profile') {
       setSelectedStall(null)
       routerNavigate('/renter/profile')
+    }
+    else if (tab === 'ar-finder') {
+      setSelectedStall(null)
+      routerNavigate('/renter/ar-finder')
+    }
+    else if (tab === 'navigate') {
+      routerNavigate('/renter/market-tour')
     }
   }, [routerNavigate, selectedStall])
 
@@ -186,7 +193,7 @@ export default function RenterLayout() {
     if (location.pathname.includes('find-stall')) {
       setActiveTab('find-stall')
     } else if (location.pathname.includes('market-tour') || location.pathname.includes('navigate')) {
-      setActiveTab('find-stall') // Fallback active highlight to Map
+      setActiveTab('navigate')
     } else if (location.pathname.includes('ar-finder')) {
       setActiveTab('ar-finder')
     } else if (location.pathname.includes('stalls')) {
@@ -202,29 +209,24 @@ export default function RenterLayout() {
 
   const renderPage = () => {
     console.log('[RenterLayout] Rendering page. activeTab =', activeTab, 'pathname =', location.pathname)
-    // Check for Find Stall route
+
     if (location.pathname.includes('find-stall')) {
-      console.log('[RenterLayout] pathname contains find-stall, rendering FindStall')
       return <FindStall />
     }
-    // Check for special routes like market-tour
     if (location.pathname.includes('market-tour')) {
-      console.log('[RenterLayout] pathname contains market-tour, rendering MarketTour360')
       return <MarketTour360 />
     }
-    // Check for AR Finder route
     if (location.pathname.includes('ar-finder')) {
-      console.log('[RenterLayout] pathname contains ar-finder, rendering ArFinder')
       return <ArFinder onBack={() => routerNavigate('/renter/dashboard')} />
     }
 
     switch (activeTab) {
       case 'home':
-        console.log('[RenterLayout] rendering RenterDashboard')
-        return RenterDashboard ? <RenterDashboard onNavigate={navigate} onOpenStall={openStallDetail} /> : <PlaceholderPage label="Home" />
+        return RenterDashboard
+          ? <RenterDashboard onNavigate={navigate} onOpenStall={openStallDetail} />
+          : <PlaceholderPage label="Home" />
 
       case 'stalls':
-        console.log('[RenterLayout] rendering RenterStalls or StallDetails')
         return selectedStall
           ? (
             <StallDetails
@@ -243,19 +245,18 @@ export default function RenterLayout() {
           : <RenterStalls onNavigate={navigate} onOpenStall={openStallDetail} />
 
       case 'applications':
-        console.log('[RenterLayout] rendering RenterApplications')
         return <RenterApplications onNavigate={navigate} prefill={prefillStall} />
 
       case 'find-stall':
-        console.log('[RenterLayout] rendering FindStall')
         return <FindStall />
 
+      case 'ar-finder':
+        return <ArFinder onBack={() => routerNavigate('/renter/dashboard')} />
+
       case 'navigate':
-        console.log('[RenterLayout] rendering MarketTour360')
         return <MarketTour360 />
 
       case 'profile':
-        console.log('[RenterLayout] rendering Renterprofile')
         return <Renterprofile onNavigate={navigate} onLogout={handleLogout} />
 
       default:
