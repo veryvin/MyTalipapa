@@ -11,10 +11,15 @@ const publicRoutes = require('./routes/public');
 const stallsRoutes = require('./routes/stalls');
 const contactRoutes = require('./routes/Contacts'); // ← updated
 
+
+
+
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
+
 
 const PORT = process.env.PORT || 5001;
 
@@ -48,6 +53,10 @@ app.post('/api/log-error', (req, res) => {
   res.sendStatus(200);
 });
 
-app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
-});
+// Export for Vercel serverless
+module.exports = app;
+
+// Start server only in local development
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
+}

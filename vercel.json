@@ -1,0 +1,40 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "client/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "client/dist"
+      }
+    },
+    {
+      "src": "server/api/index.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/server/api/index.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/client/dist/$1"
+    }
+  ],
+  "env": {
+    "MONGODB_URI": "@mongodb_uri",
+    "SMTP_HOST": "@smtp_host",
+    "SMTP_PORT": "@smtp_port",
+    "SMTP_USER": "@smtp_user",
+    "SMTP_PASS": "@smtp_pass",
+    "EMAIL_FROM": "@email_from",
+    "TWILIO_ACCOUNT_SID": "@twilio_sid",
+    "TWILIO_AUTH_TOKEN": "@twilio_token",
+    "TWILIO_PHONE_NUMBER": "@twilio_number",
+    "JWT_SECRET": "@jwt_secret",
+    "BACKEND_URL": "@backend_url",         
+    "VITE_BACKEND_URL": "@backend_url"      
+  }
+}
